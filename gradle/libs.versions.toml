@@ -17,6 +17,7 @@ composeBom = "2024.06.00"
 activityCompose = "1.9.0"
 lifecycleRuntimeKtx = "2.8.3"
 navigationCompose = "2.7.7"
+materialIconsExtended = "1.6.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +44,8 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+
 
 
 [plugins]

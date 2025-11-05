@@ -2,20 +2,18 @@ package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-//import androidx.compose.material.Button
-//import androidx.compose.material.Text
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.material3.Text
-import androidx.compose.material3.Button
 import tn.esprit.wayfinder.R
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun AfterSplashScreen(navController: NavController) {
@@ -28,7 +26,7 @@ fun AfterSplashScreen(navController: NavController) {
     ) {
         // Image with animation (adjust based on your image assets)
         Image(
-            painter = painterResource(id = R.drawable.travel_image), // Replace with your drawable
+            painter = painterResource(id = R.drawable.travel_image),
             contentDescription = "Traveler",
             modifier = Modifier.size(150.dp)
         )
@@ -59,4 +57,10 @@ fun AfterSplashScreen(navController: NavController) {
             Text(text = "Commencer")
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AfterSplashScreenPreview() {
+    AfterSplashScreen(navController = rememberNavController())
 }
