@@ -22,13 +22,13 @@ fun AfterSplashScreen(navController: NavController) {
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+
     ) {
         // Image with animation (adjust based on your image assets)
         Image(
             painter = painterResource(id = R.drawable.travel_image),
             contentDescription = "Traveler",
-            modifier = Modifier.size(150.dp)
+            modifier = Modifier.size(500.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))

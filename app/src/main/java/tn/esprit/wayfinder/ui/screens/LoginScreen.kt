@@ -38,11 +38,11 @@ fun LoginScreen(navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFEAF2FF))
-            .padding(horizontal = 32.dp),
+            .padding(horizontal = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.weight(0.3f))
         // Title
         Row {
             Text(
@@ -67,7 +67,7 @@ fun LoginScreen(navController: NavController) {
         Image(
             painter = painterResource(id = R.drawable.wayfinder_logo), // Assuming this is the yin-yang logo
             contentDescription = "Wayfinder Logo",
-            modifier = Modifier.size(150.dp)
+            modifier = Modifier.size(200.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -188,7 +188,7 @@ fun LoginScreen(navController: NavController) {
                 tint = Color.White
             )
         }
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.weight(0.2f))
         // Other options
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -201,12 +201,12 @@ fun LoginScreen(navController: NavController) {
                 Text(
                     text = "Pas de compte ?",
                     color = Color.Gray,
-                    modifier = Modifier.clickable { /* TODO: Navigate to Sign Up screen */ }
+                    modifier = Modifier.clickable {  navController.navigate("SingUpScreen") }
                 )
                 Text(
                     text = "Mot de passe oublié ?",
                     color = Color(0xFF1976D2), // Blue
-                    modifier = Modifier.clickable { /* TODO: Navigate to Forgot Password screen */ }
+                    modifier = Modifier.clickable { navController.navigate("VerificationScreen") }
                 )
             }
 
@@ -225,7 +225,7 @@ fun LoginScreen(navController: NavController) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = "Google",
-                        modifier = Modifier.size(30.dp),
+                        modifier = Modifier.size(35.dp),
                         tint = Color.Unspecified
                     )
                 }
@@ -234,7 +234,7 @@ fun LoginScreen(navController: NavController) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_apple),
                         contentDescription = "Apple",
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(90.dp),
                         tint = Color.Unspecified
                     )
                 }
