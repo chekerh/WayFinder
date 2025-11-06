@@ -8,10 +8,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.ui.screens.AfterSplashScreen
-import tn.esprit.wayfinder.ui.screens.HomeScreen
 import tn.esprit.wayfinder.ui.screens.LoginScreen
 import tn.esprit.wayfinder.ui.screens.SignUpScreen
 import tn.esprit.wayfinder.ui.screens.SplashScreen
+import tn.esprit.wayfinder.ui.screens.SurveyScreen
 import tn.esprit.wayfinder.ui.screens.VerificationScreen
 
 class MainActivity : ComponentActivity() {
@@ -43,8 +43,8 @@ fun AppNavigation() {
         composable("VerificationScreen") {
             VerificationScreen(navController = navController)
         }
-        composable("HomeScreen"){
-            HomeScreen(navController = navController)
+        composable("SurveyScreen"){
+            SurveyScreen(navController = navController)
         }
 
     }
