@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -32,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.R
@@ -45,7 +47,7 @@ data class Destination(val name: String, val description: String, val imageRes: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    // Dummy data based on your drawable resources
+    // Corrected dummy data to use the right images
     val regions = listOf(
         Region("Europe", R.drawable.europe),
         Region("Asie", R.drawable.asia),
@@ -58,7 +60,7 @@ fun HomeScreen(navController: NavController) {
     )
 
     Scaffold(
-        containerColor = Color(0xFFF0F4F8),
+        containerColor = Color(0xFFEAF2FF), // Set the background color for the whole screen
         bottomBar = { CustomBottomNavigationBar() }
     ) {
         Column(
@@ -68,16 +70,28 @@ fun HomeScreen(navController: NavController) {
                 .padding(bottom = it.calculateBottomPadding())
         ) {
             TopBar()
+
+            Spacer(modifier = Modifier.height(16.dp)) // Control spacing manually
+
+            // Main content area
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                Text(
+                    text = "Explore le monde à ta façon",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(28.dp)) // Control spacing manually
+
             Column {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                        text = "Explore le monde à ta façon",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     RegionSection(regions = regions)
-                    Spacer(modifier = Modifier.height(32.dp))
+                }
+
+                Spacer(modifier = Modifier.height(32.dp)) // Control spacing manually
+
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -86,11 +100,13 @@ fun HomeScreen(navController: NavController) {
                         Text(text = "Comparateur avec Gemini", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text(text = "Voir tous", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
+
+                Spacer(modifier = Modifier.height(16.dp)) // Control spacing manually
+
                 DestinationsSection(destinations = destinations)
-                Spacer(modifier = Modifier.height(24.dp))
             }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -100,22 +116,27 @@ fun TopBar() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.LightGray)
+            Image(
+                painter = painterResource(id = R.drawable.europe),
+                contentDescription = "User Avatar",
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = "Salut, Javier", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text = "Salut, Javier", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.5f))
+                .background(Color.White.copy(alpha = 0.6f))
                 .clickable { /* Handle notification click */ },
             contentAlignment = Alignment.Center
         ) {
@@ -128,7 +149,7 @@ fun TopBar() {
 fun RegionSection(regions: List<Region>) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(24.dp) // Adjusted spacing
+        horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         regions.forEach { region -> RegionChip(region = region) }
     }
@@ -140,9 +161,9 @@ fun RegionChip(region: Region) {
         Image(
             painter = painterResource(id = region.imageRes),
             contentDescription = region.name,
-            modifier = Modifier.size(40.dp).clip(CircleShape)
+            modifier = Modifier.size(32.dp).clip(CircleShape)
         )
-        Spacer(modifier = Modifier.width(12.dp)) // Adjusted spacing
+        Spacer(modifier = Modifier.width(12.dp))
         Text(text = region.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
     }
 }
@@ -154,28 +175,30 @@ fun DestinationsSection(destinations: List<Destination>) {
 
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(horizontal = 64.dp),
+        contentPadding = PaddingValues(horizontal = 80.dp),
+        pageSpacing = (-120).dp, // Corrected parameter name
     ) { page ->
+        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
         Card(
             modifier = Modifier
+                .zIndex(1f - pageOffset)
                 .graphicsLayer {
-                    val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-                    alpha = lerp(start = 0.5f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
-                    scaleY = lerp(start = 0.8f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
+                    scaleY = lerp(start = 0.85f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
                 }
-                .width(280.dp)
+                .width(290.dp)
                 .height(340.dp),
             shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             DestinationCardContent(destination = destinations[page])
         }
     }
 }
 
+
 @Composable
 fun DestinationCardContent(destination: Destination) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().clickable { }) {
         Image(
             painter = painterResource(id = destination.imageRes),
             contentDescription = destination.name,
@@ -184,14 +207,14 @@ fun DestinationCardContent(destination: Destination) {
         )
         Box(
             modifier = Modifier.fillMaxSize().background(
-                Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)), startY = 400f)
+                Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)), startY = 300f)
             )
         )
         Column(
-            modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+            modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)
         ) {
             Text(text = destination.name, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
-            Text(text = destination.description, style = MaterialTheme.typography.bodyMedium, color = Color.White)
+            Text(text = destination.description, style = MaterialTheme.typography.bodyMedium, color = Color.White, modifier = Modifier.padding(top = 4.dp))
         }
         Box(
             modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
@@ -217,7 +240,7 @@ fun CustomBottomNavigationBar() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            BottomNavItem(iconRes = R.drawable.icon_home, isSelected = selectedIndex == 0, onClick = { selectedIndex = 0 })
+            BottomNavItem(iconVector = Icons.Filled.Home, isSelected = selectedIndex == 0, onClick = { selectedIndex = 0 })
             BottomNavItem(iconVector = Icons.Default.FavoriteBorder, isSelected = selectedIndex == 1, onClick = { selectedIndex = 1 })
             BottomNavItem(iconVector = Icons.Outlined.ChatBubbleOutline, isSelected = selectedIndex == 2, onClick = { selectedIndex = 2 })
             BottomNavItem(iconVector = Icons.Default.PersonOutline, isSelected = selectedIndex == 3, onClick = { selectedIndex = 3 })
