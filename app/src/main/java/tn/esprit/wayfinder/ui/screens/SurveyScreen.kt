@@ -1,140 +1,101 @@
 package tn.esprit.wayfinder.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.clickable
-// Main Composable for the Survey Screen
+import tn.esprit.wayfinder.models.OnboardingQuestion // FIX: Import from models
+import tn.esprit.wayfinder.models.Progress // FIX: Import from models
+import tn.esprit.wayfinder.models.QuestionOption // FIX: Import from models
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+
 @Composable
 fun SurveyScreen(navController: NavController) {
-    val scrollState = rememberScrollState() // Scroll state for making the content scrollable
+    // This is a placeholder for the real ViewModel logic
+    val sampleQuestion = OnboardingQuestion(
+        id = "q1",
+        type = "single_choice",
+        text = "What type of trip are you planning?",
+        options = listOf(
+            QuestionOption("business", "Business"),
+            QuestionOption("leisure", "Leisure"),
+            QuestionOption("adventure", "Adventure")
+        ),
+        required = true,
+        minSelections = null,
+        maxSelections = null
+    )
+    val sampleProgress = Progress(current = 1, total = 8)
+    
+    QuestionScreen(question = sampleQuestion, progress = sampleProgress, onAnswer = {})
+}
+
+@Composable
+fun QuestionScreen(
+    question: OnboardingQuestion,
+    progress: Progress,
+    onAnswer: (Any) -> Unit
+) {
+    var selectedOption by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState) // Enable scrolling
-            .padding(16.dp)
+            .background(Color(0xFFF0F8FF))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title Text
-        Text(
-            text = "Bienvenue sur Wayfindr",
-            style = MaterialTheme.typography.headlineSmall, // Corrected: M3 typography
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        // Introduction Text
-        Text(
-            text = "Ce formulaire nous aide à personnaliser l'application en fonction de tes préférences et envies ! 🧳",
-            style = MaterialTheme.typography.bodyLarge, // Corrected: M3 typography
-            modifier = Modifier.padding(bottom = 16.dp),
-            color = Color.Gray
-        )
-
-        // Fun and personal questions for the survey
-        QuestionCard(
-            question = "Quel type de voyage préfères-tu ?",
-            options = listOf("Vacances à la plage 🏖️", "Aventure en montagne 🏔️", "Voyage culturel 🏛️", "Road trip 🚗")
-        )
-
-        QuestionCard(
-            question = "Comment te sens-tu en vacances ?",
-            options = listOf("Détendu et zen 😌", "Énergisé et curieux 🌍", "Excité et aventureux 🏄‍♂️")
-        )
-
-        QuestionCard(
-            question = "Si tu pouvais téléporter tes affaires, où irais-tu ?",
-            options = listOf("Îles tropicales 🏝️", "Capitale culturelle 🏙️", "Montagnes enneigées 🏔️")
-        )
-
-        QuestionCard(
-            question = "Quel est ton mode de transport préféré ?",
-            options = listOf("Avion ✈️", "Train 🚄", "Bateau ⛴️", "Voiture 🚗")
-        )
-
-        QuestionCard(
-            question = "As-tu un hobby qui t'inspire durant tes voyages ?",
-            options = listOf("Photographie 📸", "Randonnée 🥾", "Cuisine locale 🍽️", "Sports extrêmes 🧗")
-        )
-
-        QuestionCard(
-            question = "Si tu pouvais voyager dans le temps, où irais-tu ?",
-            options = listOf("À l'époque des dinosaures 🦖", "Dans le futur 🌌", "À l'ère des grandes civilisations anciennes 🏛️")
-        )
-
-        QuestionCard(
-            question = "Quel budget es-tu prêt à investir pour ton prochain voyage ?",
-            options = listOf("Moins de 500 TND 💸", "500–1000 TND 💰", "Plus de 1000 TND 💎")
-        )
-
-        // Additional Questions
-        QuestionCard(
-            question = "Quel genre d'activités te font vibrer pendant un voyage ?",
-            options = listOf("Explorer des musées 🎨", "Découvrir de nouveaux restaurants 🍽️", "Faire du sport 🏅", "Se détendre au spa 💆‍♂️")
-        )
-
-        QuestionCard(
-            question = "Es-tu plutôt du matin ou du soir ?",
-            options = listOf("Le matin 🌅", "Le soir 🌙")
-        )
-
-        QuestionCard(
-            question = "Quel est ton animal spirituel en voyage ?",
-            options = listOf("Lion 🦁", "Aigle 🦅", "Dauphin 🐬", "Koala 🐨")
-        )
-
-        // New Fun Question
-        QuestionCard(
-            question = "Si tu pouvais vivre dans une époque différente, laquelle choisirais-tu ?",
-            options = listOf("Les années 60 🎉", "L’ère victorienne 👑", "Le futur du XXIIe siècle 🚀")
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Submit Button
-        Button(
-            onClick = { /* TODO: Handle the submit action or navigate to next screen */ },
+        Text(text = "Question ${progress.current} of ~${progress.total ?: 8}", color = Color.Gray)
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = progress.current.toFloat() / (progress.total?.toFloat() ?: 8f), // FIX: Direct float calculation
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Soumettre")
-        }
-    }
-}
+        )
 
-// Composable for each question card with options
-@Composable
-fun QuestionCard(question: String, options: List<String>) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }
+        Spacer(modifier = Modifier.weight(1f))
 
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(text = question, style = MaterialTheme.typography.bodyLarge) // Corrected: M3 typography
+        Text(text = question.text, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
-        options.forEach { option ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { selectedOption = option } // Make the whole row clickable
-                    .padding(vertical = 4.dp)
-            ) {
-                RadioButton(
-                    selected = (selectedOption == option), // Manage selection state here
-                    onClick = { selectedOption = option } // Handle selection
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = option, style = MaterialTheme.typography.bodyMedium) // Corrected: M3 typography
+        Spacer(modifier = Modifier.height(32.dp))
+
+        when (question.type) {
+            "single_choice" -> {
+                question.options?.forEach { option ->
+                    val isSelected = selectedOption == option.value
+                    Button(
+                        onClick = { selectedOption = option.value },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) Color(0xFF1976D2) else Color.White,
+                            contentColor = if (isSelected) Color.White else Color.Black
+                        )
+                    ) {
+                        Text(option.label)
+                    }
+                }
             }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = { if (selectedOption != null) onAnswer(selectedOption!!) },
+            enabled = selectedOption != null,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Next")
         }
     }
 }
@@ -142,7 +103,7 @@ fun QuestionCard(question: String, options: List<String>) {
 @Preview(showBackground = true)
 @Composable
 fun SurveyScreenPreview() {
-    MaterialTheme {
-        SurveyScreen(navController = rememberNavController())
+    WayFinderTheme {
+        SurveyScreen(rememberNavController())
     }
 }

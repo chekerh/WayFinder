@@ -1,253 +1,162 @@
 package tn.esprit.wayfinder.ui.screens
 
+import android.app.Application
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.R
+import tn.esprit.wayfinder.models.LoginRequest
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.viewmodels.AuthViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController) { // Removed viewModel from signature
+    val context = LocalContext.current
+    // FIX: Correctly initialize the ViewModel using the factory with context.
+    val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isChecked by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    val isLoading by authViewModel.loading
+    val loginResult by authViewModel.loginResult
+    val errorMessage by authViewModel.errorMessage
+
+    // Handle navigation after login result changes
+    LaunchedEffect(loginResult) {
+        loginResult?.onSuccess { response ->
+            Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+            if (response.onboardingCompleted) {
+                navController.navigate("main_app") { popUpTo(0) }
+            } else {
+                navController.navigate("ai_onboarding_form") { popUpTo(0) }
+            }
+            authViewModel.clearMessages() // Reset state
+        }
+    }
+    
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            authViewModel.clearMessages()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFEAF2FF))
-            .padding(horizontal = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(Color(0xFFF0F8FF))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.weight(0.3f))
-        // Title
-        Row {
-            Text(
-                text = "Bienvenue sur ",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = "Way",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFFD32F2F) // Red
-            )
-            Text(
-                text = "findr",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color(0xFF1976D2) // Blue
-            )
-        }
-
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Bienvenue sur Wayfindr", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(24.dp))
+        // Image placeholder
+        Spacer(modifier = Modifier.height(140.dp))
         Spacer(modifier = Modifier.height(16.dp))
+        Text("Veuillez vous connecter pour commencer", fontSize = 16.sp, color = Color.Gray)
+        Text("Powered by Gemini", fontSize = 14.sp, color = Color(0xFFF44336), fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Logo
-        Image(
-            painter = painterResource(id = R.drawable.wayfinder_logo), // Assuming this is the yin-yang logo
-            contentDescription = "Wayfinder Logo",
-            modifier = Modifier.size(200.dp)
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Username") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Subtitle
-            Text(
-                text = "Veuillez vous connecter pour commencer",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.DarkGray
-            )
-
-            // Powered by Gemini
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(style = SpanStyle(color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)) { // Red
-                        append("Powered by ")
-                    }
-                    withStyle(style = SpanStyle(color = Color(0xFFFBC02D), fontWeight = FontWeight.Bold)) { // Yellow
-                        append("Gemini")
-                    }
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = image, contentDescription = null)
+                }
+            },
+            shape = RoundedCornerShape(12.dp)
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Text Fields
-        Column {
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Mot de passe") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
-                shape = RoundedCornerShape(16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        // Checkbox and terms
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        ) {
-            Checkbox(
-                checked = isChecked,
-                onCheckedChange = { isChecked = it },
-                colors = CheckboxDefaults.colors(checkedColor = Color(0xFF6200EE))
-            )
-            val annotatedString = buildAnnotatedString {
-                append("J'''accepte la ")
-                withStyle(style = SpanStyle(color = Color(0xFFF57C00))) { // Orange
-                    pushStringAnnotation(tag = "URL", annotation = "policy")
-                    append("Politique de Confidentialité")
-                    pop()
-                }
-                append(" et les ")
-                withStyle(style = SpanStyle(color = Color(0xFFF57C00))) { // Orange
-                    pushStringAnnotation(tag = "URL", annotation = "terms")
-                    append("Conditions d'''Utilisation")
-                    pop()
-                }
-            }
-            ClickableText(
-                text = annotatedString,
-                style = MaterialTheme.typography.bodySmall,
-                onClick = { offset ->
-                    annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                        .firstOrNull()?.let { annotation ->
-                            // TODO: Handle click on annotation.item (e.g., open a browser)
-                        }
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Login Button
         Button(
-            onClick = { navController.navigate("home_screen") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(16.dp),
-            enabled = email.isNotEmpty() && password.isNotEmpty() && isChecked,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3682E3))
+            onClick = {
+                val request = LoginRequest(username, password)
+                authViewModel.login(context, request)
+            },
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text(text = "Se connecter", fontSize = 18.sp, color = Color.White)
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Filled.Language,
-                contentDescription = "Connect",
-                tint = Color.White
-            )
-        }
-        Spacer(Modifier.weight(0.2f))
-        // Other options
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Pas de compte ?",
-                    color = Color.Gray,
-                    modifier = Modifier.clickable {  navController.navigate("SingUpScreen") }
-                )
-                Text(
-                    text = "Mot de passe oublié ?",
-                    color = Color(0xFF1976D2), // Blue
-                    modifier = Modifier.clickable { navController.navigate("VerificationScreen") }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("OU", color = Color.Gray)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Social Logins
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = { /* TODO: Handle Google login */ }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_google),
-                        contentDescription = "Google",
-                        modifier = Modifier.size(35.dp),
-                        tint = Color.Unspecified
-                    )
-                }
-                Spacer(modifier = Modifier.width(24.dp))
-                IconButton(onClick = { /* TODO: Handle Apple login */ }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_apple),
-                        contentDescription = "Apple",
-                        modifier = Modifier.size(90.dp),
-                        tint = Color.Unspecified
-                    )
-                }
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text("Se connecter", fontSize = 16.sp)
             }
         }
-        Spacer(Modifier.weight(0.5f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = { navController.navigate("signup_screen") }) {
+                Text("Pas de compte ?")
+            }
+            TextButton(onClick = { /* TODO */ }) {
+                Text("Mot de passe oublié ?")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text("Ou", color = Color.Gray)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Social Logins would be implemented here
     }
 }
 
-@Preview(showBackground = true, widthDp = 360, heightDp = 800)
+@Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    // You might need a theme wrapper if your composable uses MaterialTheme.
-    // For example: YourAppTheme { LoginScreen(navController = rememberNavController()) }
-    LoginScreen(navController = rememberNavController())
+    WayFinderTheme {
+        LoginScreen(rememberNavController())
+    }
 }
