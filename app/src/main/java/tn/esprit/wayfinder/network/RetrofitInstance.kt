@@ -10,7 +10,10 @@ import retrofit2.Retrofit
 
 object RetrofitInstance {
 
+    // FIX: Re-added /api/ to the base URL. The backend prompt specifies all routes are under /api/.
+    // This ensures the final URL matches the Vercel deployment (e.g., ...vercel.app/api/auth/login)
     private const val BASE_URL = "https://way-finder-five.vercel.app/api/"
+
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -21,9 +24,11 @@ object RetrofitInstance {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
+        // FIX: Reordered interceptors. The logging interceptor should be last to log the final request.
+        // This prevents issues where the request method is inadvertently changed from POST to GET.
         val client = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(context))
             .addInterceptor(loggingInterceptor)
-            .addInterceptor(AuthInterceptor(context)) // The interceptor still needs the context one time
             .build()
 
         return Retrofit.Builder()

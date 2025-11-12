@@ -1,23 +1,42 @@
 package tn.esprit.wayfinder.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.ui.screens.*
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    NavHost(navController, startDestination = "splash_screen") {
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val savedToken = tokenManager.getToken()
+    val savedUser = tokenManager.getUser()
+    val startDestination = when {
+        savedToken == null -> "splash_screen"
+        savedUser?.onboardingCompleted == true -> "home"
+        else -> "onboarding"
+    }
+
+    NavHost(navController, startDestination = startDestination) {
         composable("splash_screen") { SplashScreen(navController = navController) }
         composable("after_splash_screen") { AfterSplashScreen(navController = navController) }
-        composable("login_screen") { LoginScreen(navController = navController) }
+        composable("login") { LoginScreen(navController = navController) }
         composable("signup_screen") { SignUpScreen(navController = navController) }
-        // FIX: The route was pointing to a screen I deleted. This now points to the correct OTP screen.
         composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
-        // FIX: The MainApp composable was deleted in my cleanup. This now directly composes your existing HomeScreen.
-        composable("main_app") { HomeScreen(navController = navController) }
-        composable("ai_onboarding_form") { SurveyScreen(navController = navController) }
+        composable("home") { HomeScreen(navController = navController) }
+        composable("onboarding") {
+            // FIX: Pointing to SurveyScreen which now contains the correct onboarding logic
+            SurveyScreen(onComplete = {
+                navController.navigate("home") {
+                    popUpTo("onboarding") { inclusive = true }
+                }
+            })
+        }
     }
 }

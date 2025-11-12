@@ -1,6 +1,5 @@
 package tn.esprit.wayfinder.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,12 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 
-// FIX: Moved data classes back inside the screen file as they are UI-specific.
+// FIX: Re-added UI-specific models as private data classes inside the file.
 private data class ChatMessage(val text: String, val isFromGemini: Boolean, val isQuickReply: Boolean = false)
 private data class Pack(val title: String, val price: String)
 
@@ -66,15 +64,15 @@ fun ChatScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(messages) {
-                when (it) {
+            items(messages) { item ->
+                when (item) {
                     is ChatMessage -> {
-                        if (it.isFromGemini) {
-                            GeminiMessageBubble(it)
+                        if (item.isFromGemini) {
+                            GeminiMessageBubble(item)
                         }
                     }
                     is Pack -> {
-                        PackItem(it)
+                        PackItem(item)
                     }
                 }
             }

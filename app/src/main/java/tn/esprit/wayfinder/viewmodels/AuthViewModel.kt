@@ -1,59 +1,75 @@
 package tn.esprit.wayfinder.viewmodels
 
 import android.content.Context
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import retrofit2.HttpException
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.LoginRequest
-import tn.esprit.wayfinder.models.LoginResponse
 import tn.esprit.wayfinder.models.SignUpRequest
 import tn.esprit.wayfinder.presentation.auth.AuthRepository
 
-// FIX: ViewModel now takes repository in constructor for testability and DI
+sealed class LoginResult {
+    object Idle : LoginResult()
+    object Loading : LoginResult()
+    data class Success(val navigateTo: String) : LoginResult()
+    data class Error(val message: String) : LoginResult()
+}
+
+sealed class SignUpResult {
+    object Idle : SignUpResult()
+    object Loading : SignUpResult()
+    data class Success(val message: String) : SignUpResult()
+    data class Error(val message: String) : SignUpResult()
+}
+
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
-    val loading = mutableStateOf(false)
-    val successMessage = mutableStateOf<String?>(null)
-    val errorMessage = mutableStateOf<String?>(null)
-    
-    val loginResult = mutableStateOf<Result<LoginResponse>?>(null)
+    private val _loginResult = MutableStateFlow<LoginResult>(LoginResult.Idle)
+    val loginResult: StateFlow<LoginResult> = _loginResult
+
+    private val _signUpResult = MutableStateFlow<SignUpResult>(SignUpResult.Idle)
+    val signUpResult: StateFlow<SignUpResult> = _signUpResult
 
     fun clearMessages() {
-        successMessage.value = null
-        errorMessage.value = null
-        loginResult.value = null
+        _loginResult.value = LoginResult.Idle
+        _signUpResult.value = SignUpResult.Idle
     }
 
     fun login(context: Context, request: LoginRequest) {
         viewModelScope.launch {
-            loading.value = true
+            _loginResult.value = LoginResult.Loading
             try {
                 val response = authRepository.login(request)
                 val tokenManager = TokenManager(context)
                 tokenManager.saveToken(response.accessToken)
-                loading.value = false
-                loginResult.value = Result.success(response)
+                tokenManager.saveUser(response.user)
+
+                if (response.onboardingCompleted) {
+                    _loginResult.value = LoginResult.Success("home")
+                } else {
+                    _loginResult.value = LoginResult.Success("onboarding")
+                }
             } catch (e: Exception) {
-                loading.value = false
-                errorMessage.value = e.message ?: "An unexpected error occurred"
-                loginResult.value = Result.failure(e)
+                _loginResult.value = LoginResult.Error(parseError(e))
             }
         }
     }
 
-    fun signup(request: SignUpRequest, onSignUpSuccess: () -> Unit) {
+    fun signup(request: SignUpRequest) {
         viewModelScope.launch {
-            loading.value = true
+            _signUpResult.value = SignUpResult.Loading
             try {
                 val response = authRepository.register(request)
-                loading.value = false
-                successMessage.value = response.message
-                onSignUpSuccess()
+                _signUpResult.value = SignUpResult.Success(response.message)
             } catch (e: Exception) {
-                loading.value = false
-                errorMessage.value = e.message ?: "An unexpected error occurred"
+                _signUpResult.value = SignUpResult.Error(parseError(e))
             }
         }
     }
@@ -61,5 +77,25 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     fun logout(context: Context) {
         val tokenManager = TokenManager(context)
         tokenManager.deleteToken()
+    }
+
+    private fun parseError(throwable: Throwable): String {
+        return when (throwable) {
+            is HttpException -> {
+                val errorBody = throwable.response()?.errorBody()?.string()
+                if (!errorBody.isNullOrBlank()) {
+                    val parsedMessage = try {
+                        val element = Json.parseToJsonElement(errorBody)
+                        element.jsonObject["message"]?.jsonPrimitive?.content
+                    } catch (_: Exception) {
+                        null
+                    }
+                    parsedMessage ?: errorBody
+                } else {
+                    throwable.message()
+                }
+            }
+            else -> throwable.message ?: "Une erreur inattendue est survenue"
+        }
     }
 }

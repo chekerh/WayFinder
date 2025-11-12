@@ -61,7 +61,7 @@ fun PersonalizedResultsScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(16.dp))
                     options.forEach { option ->
                         OptionItem(option)
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) // FIX: Changed to HorizontalDivider
                     }
                 }
             }

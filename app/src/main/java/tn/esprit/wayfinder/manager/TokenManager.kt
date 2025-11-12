@@ -3,6 +3,9 @@ package tn.esprit.wayfinder.manager
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import tn.esprit.wayfinder.models.User
 
 class TokenManager(context: Context) {
 
@@ -27,6 +30,26 @@ class TokenManager(context: Context) {
     }
 
     fun deleteToken() {
-        sharedPreferences.edit().remove("jwt_token").apply()
+        sharedPreferences.edit()
+            .remove("jwt_token")
+            .remove("user_data")
+            .apply()
+    }
+
+    fun saveUser(user: User) {
+        val json = Json.encodeToString(user)
+        sharedPreferences.edit().putString("user_data", json).apply()
+    }
+
+    fun getUser(): User? {
+        val json = sharedPreferences.getString("user_data", null)
+        return json?.let {
+            try {
+                Json.decodeFromString<User>(it)
+            } catch (e: Exception) {
+                // Handle possible deserialization errors
+                null
+            }
+        }
     }
 }
