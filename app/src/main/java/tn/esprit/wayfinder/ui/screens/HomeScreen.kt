@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,7 +50,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
 
-data class Region(val name: String, val imageRes: Int)
+data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,22 +59,46 @@ fun HomeScreen(navController: NavController) {
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
 
+    // Selected region state
+    var selectedRegion by remember { mutableStateOf<String?>(null) }
+    
     // Load flights on first composition
     LaunchedEffect(Unit) {
         catalogViewModel.loadRecommendedFlights()
     }
 
-    // Dummy data for regions
+    // Regions data with country filters
     val regions = listOf(
-        Region("Europe", R.drawable.europe),
-        Region("Asie", R.drawable.asia),
-        Region("Amerique", R.drawable.travel_image),
-        Region("Australie", R.drawable.australia)
+        Region(
+            name = "Préférences",
+            imageRes = R.drawable.travel_image, // Not used - we use Star icon instead
+            filterCountries = emptyList() // No filter - show personalized preferences
+        ),
+        Region(
+            name = "Europe",
+            imageRes = R.drawable.europe,
+            filterCountries = listOf("France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland")
+        ),
+        Region(
+            name = "Asie",
+            imageRes = R.drawable.asia,
+            filterCountries = listOf("China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel")
+        ),
+        Region(
+            name = "Amerique",
+            imageRes = R.drawable.travel_image,
+            filterCountries = listOf("United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru")
+        ),
+        Region(
+            name = "Australie",
+            imageRes = R.drawable.australia,
+            filterCountries = listOf("Australia", "New Zealand", "Fiji")
+        )
     )
 
     Scaffold(
         containerColor = Color(0xFFEAF2FF),
-        bottomBar = { CustomBottomNavigationBar() }
+        bottomBar = { CustomBottomNavigationBar(navController = navController) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -88,15 +113,27 @@ fun HomeScreen(navController: NavController) {
             Column {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        text = "Explore le monde à ta façon",
+                        text = "Personnalisé par Gemini",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Voyages adaptés à vos préférences",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
                 
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    RegionSection(regions = regions)
+                    RegionSection(
+                        regions = regions,
+                        selectedRegion = selectedRegion,
+                        onRegionSelected = { regionName ->
+                            selectedRegion = if (selectedRegion == regionName) null else regionName
+                        }
+                    )
                     Spacer(modifier = Modifier.height(32.dp))
                 }
                 
@@ -115,8 +152,17 @@ fun HomeScreen(navController: NavController) {
                         )
                         Text(
                             text = "Voir tous",
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium
+                            color = Color(0xFF1976D2),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.clickable {
+                                // Pass selected region as route argument
+                                val route = if (selectedRegion != null) {
+                                    "all_flights/${selectedRegion}"
+                                } else {
+                                    "all_flights/null"
+                                }
+                                navController.navigate(route)
+                            }
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -133,10 +179,26 @@ fun HomeScreen(navController: NavController) {
                             }
                         }
                         is CatalogUiState.Success -> {
-                            // Limit to 3 destinations as per design
-                            val limitedDestinations = state.destinations.take(3)
+                            // Filter destinations based on selected region
+                            val filteredDestinations = if (selectedRegion != null && selectedRegion != "Préférences") {
+                                val selectedRegionData = regions.find { it.name == selectedRegion }
+                                val filterCountries = selectedRegionData?.filterCountries ?: emptyList()
+                                if (filterCountries.isNotEmpty()) {
+                                    state.destinations.filter { destination ->
+                                        filterCountries.any { country ->
+                                            destination.country.contains(country, ignoreCase = true)
+                                        }
+                                    }
+                                } else {
+                                    state.destinations
+                                }
+                            } else {
+                                // Show all destinations for "Préférences" or no selection
+                                state.destinations
+                            }
+                            
                             DestinationsSection(
-                                destinations = limitedDestinations,
+                                destinations = filteredDestinations,
                                 navController = navController
                             )
                         }
@@ -175,7 +237,7 @@ fun TopBar(context: android.content.Context) {
     val user = remember { tokenManager.getUser() }
     
     // Get user's first name or username, fallback to "Explorateur"
-    val userName = user?.first_name?.takeIf { it.isNotBlank() } 
+    val userName = user?.firstName?.takeIf { it.isNotBlank() } 
         ?: user?.username?.takeIf { it.isNotBlank() }
         ?: "Explorateur"
     
@@ -221,33 +283,64 @@ fun TopBar(context: android.content.Context) {
 }
 
 @Composable
-fun RegionSection(regions: List<Region>) {
+fun RegionSection(
+    regions: List<Region>,
+    selectedRegion: String?,
+    onRegionSelected: (String) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(24.dp)
+        modifier = Modifier.horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        regions.forEach { region -> RegionChip(region = region) }
+        regions.forEach { region -> 
+            RegionChip(
+                region = region,
+                isSelected = selectedRegion == region.name,
+                onClick = { onRegionSelected(region.name) }
+            )
+        }
     }
 }
 
 @Composable
-fun RegionChip(region: Region) {
+fun RegionChip(
+    region: Region,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
-            .background(Color.White, RoundedCornerShape(20.dp))
+            .background(
+                if (isSelected) Color(0xFF1976D2) else Color.White,
+                RoundedCornerShape(20.dp)
+            )
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = region.imageRes),
-            contentDescription = region.name,
-            modifier = Modifier.size(32.dp).clip(CircleShape)
-        )
+        // Use icon for "Préférences", image for others
+        if (region.name == "Préférences") {
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = region.name,
+                modifier = Modifier.size(24.dp),
+                tint = if (isSelected) Color.White else Color(0xFFFFC107)
+            )
+        } else {
+            Image(
+                painter = painterResource(id = region.imageRes),
+                contentDescription = region.name,
+                modifier = Modifier.size(32.dp).clip(CircleShape)
+            )
+        }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = region.name,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) Color.White else Color.Black
         )
     }
 }
@@ -264,9 +357,8 @@ fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDest
         return
     }
 
-    // Limit to 3 destinations for the pager
-    val limitedDestinations = destinations.take(3)
-    val pagerState = rememberPagerState(pageCount = { limitedDestinations.size })
+    // Show all destinations - user wants to see multiple flights
+    val pagerState = rememberPagerState(pageCount = { destinations.size })
 
     HorizontalPager(
         state = pagerState,
@@ -285,12 +377,12 @@ fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDest
                 .width(290.dp)
                 .height(340.dp)
                 .clickable {
-                    navController.navigate("flight_detail/${limitedDestinations[page].id}")
+                    navController.navigate("flight_detail/${destinations[page].id}")
                 },
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            DestinationCardContent(destination = limitedDestinations[page])
+            DestinationCardContent(destination = destinations[page])
         }
     }
 }
@@ -300,8 +392,8 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
     // State for favorite button
     var isFavorite by remember { mutableStateOf(false) }
     
-    // Generate image URL from city name (using Unsplash API for beautiful city images)
-    val imageUrl = destination.imageUrl ?: "https://source.unsplash.com/400x600/?${destination.name.replace(" ", "+")},city"
+    // Use the image URL from the destination (already set in ViewModel with city-specific images)
+    val imageUrl = destination.imageUrl ?: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80"
     
     Box(modifier = Modifier.fillMaxSize()) {
         // Load image from URL using Coil
@@ -377,7 +469,7 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
 }
 
 @Composable
-fun CustomBottomNavigationBar() {
+fun CustomBottomNavigationBar(navController: NavController? = null) {
     var selectedIndex by remember { mutableStateOf(0) }
     
     NavigationBar(
@@ -386,47 +478,65 @@ fun CustomBottomNavigationBar() {
     ) {
         NavigationBarItem(
             selected = selectedIndex == 0,
-            onClick = { selectedIndex = 0 },
+            onClick = { 
+                selectedIndex = 0
+                navController?.navigate("home") {
+                    popUpTo("home") { inclusive = true }
+                }
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Filled.Home,
                     contentDescription = "Home",
-                    tint = if (selectedIndex == 0) Color(0xFF1976D2) else Color.Gray
+                    tint = if (selectedIndex == 0) Color(0xFF1976D2) else Color(0xFF9E9E9E)
                 )
-            }
+            },
+            label = { Text("Accueil", style = MaterialTheme.typography.labelSmall) }
         )
         NavigationBarItem(
             selected = selectedIndex == 1,
-            onClick = { selectedIndex = 1 },
+            onClick = { 
+                selectedIndex = 1
+                // TODO: Navigate to favorites screen
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
                     contentDescription = "Favorites",
-                    tint = if (selectedIndex == 1) Color(0xFF1976D2) else Color.Gray
+                    tint = if (selectedIndex == 1) Color(0xFF1976D2) else Color(0xFF9E9E9E)
                 )
-            }
+            },
+            label = { Text("Favoris", style = MaterialTheme.typography.labelSmall) }
         )
         NavigationBarItem(
             selected = selectedIndex == 2,
-            onClick = { selectedIndex = 2 },
+            onClick = { 
+                selectedIndex = 2
+                // TODO: Navigate to chat screen
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Outlined.ChatBubbleOutline,
                     contentDescription = "Chat",
-                    tint = if (selectedIndex == 2) Color(0xFF1976D2) else Color.Gray
+                    tint = if (selectedIndex == 2) Color(0xFF1976D2) else Color(0xFF9E9E9E)
                 )
-            }
+            },
+            label = { Text("Chat", style = MaterialTheme.typography.labelSmall) }
         )
         NavigationBarItem(
             selected = selectedIndex == 3,
-            onClick = { selectedIndex = 3 },
+            onClick = { 
+                selectedIndex = 3
+                // TODO: Navigate to profile screen
+            },
             icon = {
                 Icon(
                     imageVector = Icons.Default.PersonOutline,
                     contentDescription = "Profile",
-                    tint = if (selectedIndex == 3) Color(0xFF1976D2) else Color.Gray
+                    tint = if (selectedIndex == 3) Color(0xFF1976D2) else Color(0xFF9E9E9E)
                 )
-            }
+            },
+            label = { Text("Profil", style = MaterialTheme.typography.labelSmall) }
         )
     }
 }

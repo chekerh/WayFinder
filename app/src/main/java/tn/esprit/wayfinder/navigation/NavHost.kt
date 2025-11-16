@@ -33,6 +33,20 @@ fun AppNavigation() {
         composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
         composable("home") { HomeScreen(navController = navController) }
         composable(
+            route = "all_flights/{region}",
+            arguments = listOf(
+                navArgument("region") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val region = backStackEntry.arguments?.getString("region")
+            // Convert "null" string to actual null
+            val selectedRegion = if (region == "null" || region.isNullOrBlank()) null else region
+            AllFlightsScreen(navController = navController, selectedRegion = selectedRegion)
+        }
+        composable(
             "flight_detail/{destinationId}",
             arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
         ) { backStackEntry ->

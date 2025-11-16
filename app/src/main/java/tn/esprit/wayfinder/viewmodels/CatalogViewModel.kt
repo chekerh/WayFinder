@@ -37,28 +37,14 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
 
                 val destinations = mutableListOf<FlightDestination>()
                 var exploreOffers: List<ExploreOffer>? = null
+                var networkError: Exception? = null
 
-                // Primary: Get recommended flights from Amadeus (personalized based on user preferences)
-                try {
-                    val flightsResponse = catalogRepository.getRecommendedFlights(
-                        maxResults = 10
-                    )
-                    flightsResponse.data?.forEach { flight ->
-                        val destination = convertFlightToDestination(flight)
-                        if (destination != null) {
-                            destinations.add(destination)
-                        }
-                    }
-                } catch (e: Exception) {
-                    // Log but don't fail - we'll try explore as fallback
-                }
-
-                // Fallback: Try to get explore offers (Tequila API - optional, restricted to B2B partners)
-                // This is just a bonus - Amadeus alone is sufficient
+                // PRIORITY: Try to get explore offers first (Tequila API - returns multiple destinations)
+                // This gives us variety in destinations
                 try {
                     val exploreResponse = catalogRepository.getExploreOffers(
                         origin = "TUN",
-                        limit = 10
+                        limit = 20  // Get more to have variety
                     )
                     exploreOffers = exploreResponse.data
                     exploreResponse.data?.forEach { offer ->
@@ -68,24 +54,69 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
                         }
                     }
                 } catch (e: Exception) {
+                    // Check for network connectivity issues
+                    if (e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException) {
+                        networkError = e
+                    }
                     // Tequila is optional - if it fails, we continue with Amadeus results only
-                    // No error thrown - this is expected if Tequila API key is not available
                 }
 
-                if (destinations.isEmpty()) {
+                // Get recommended flights from Amadeus (now returns multiple destinations from backend)
+                // Add ALL flights - we want to show multiple flight options even to the same destination
+                try {
+                    val flightsResponse = catalogRepository.getRecommendedFlights(
+                        maxResults = 15  // Request more flights
+                    )
+                    flightsResponse.data?.forEach { flight ->
+                        val destination = convertFlightToDestination(flight)
+                        if (destination != null) {
+                            // Add all flights - don't filter by city, show multiple options
+                            destinations.add(destination)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Check for network connectivity issues
+                    if (e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException) {
+                        networkError = e
+                    }
+                    // Log but don't fail - we'll use explore results if available
+                }
+
+                // If we have a network error, show a specific message
+                if (networkError != null) {
+                    _uiState.value = CatalogUiState.Error(
+                        "Unable to connect to server. Please check your internet connection. " +
+                        "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
+                    )
+                } else if (destinations.isEmpty()) {
                     _uiState.value = CatalogUiState.Error(
                         "No flights available. Please ensure Amadeus API keys are configured in the backend."
                     )
                 } else {
+                    // Remove duplicates by ID only (keep flights with same city but different IDs)
+                    // This allows multiple flight options to the same destination
+                    val uniqueDestinations = destinations.distinctBy { it.id }
+                    
                     _uiState.value = CatalogUiState.Success(
-                        destinations = destinations.distinctBy { it.id },
+                        destinations = uniqueDestinations,
                         exploreOffers = exploreOffers
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = CatalogUiState.Error(
-                    e.message ?: "Failed to load flights. Please check backend API configuration."
-                )
+                // Check for network connectivity issues
+                val errorMessage = when {
+                    e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException -> {
+                        "Unable to connect to server. Please check your internet connection. " +
+                        "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
+                    }
+                    e is java.net.SocketTimeoutException -> {
+                        "Connection timeout. The server may be slow to respond. Please try again."
+                    }
+                    else -> {
+                        e.message ?: "Failed to load flights. Please check backend API configuration."
+                    }
+                }
+                _uiState.value = CatalogUiState.Error(errorMessage)
             }
         }
     }
@@ -122,14 +153,21 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
 
         val price = flight.price?.total?.replace("[^0-9.]".toRegex(), "")?.toDoubleOrNull() ?: 0.0
 
+        // Generate better image URL using Unsplash with city-specific search
+        val imageUrl = getCityImageUrl(cityName)
+        
+        // Generate unique ID that includes airline and time to differentiate flights
+        val uniqueId = flight.id ?: "${destinationCode}_${firstSegment.carrierCode}_${firstSegment.departure?.at}_${UUID.randomUUID()}"
+        
         return FlightDestination(
-            id = flight.id ?: UUID.randomUUID().toString(),
+            id = uniqueId,
             name = cityName,
             city = cityName,
             country = countryName,
+            imageUrl = imageUrl,
             price = price,
             currency = flight.price?.currency ?: "EUR",
-            description = "Flight to $cityName",
+            description = "Flight to $cityName via ${firstSegment.carrierCode ?: "various airlines"}",
             departureDate = firstSegment.departure?.at,
             arrivalDate = lastSegment.arrival?.at,
             airline = firstSegment.carrierCode
@@ -139,12 +177,16 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
     private fun convertExploreOfferToDestination(offer: ExploreOffer): FlightDestination? {
         val cityName = offer.cityTo ?: return null
         val countryName = offer.countryTo?.name ?: "Unknown"
+        
+        // Generate better image URL using Unsplash with city-specific search
+        val imageUrl = getCityImageUrl(cityName)
 
         return FlightDestination(
             id = offer.id ?: UUID.randomUUID().toString(),
             name = cityName,
             city = cityName,
             country = countryName,
+            imageUrl = imageUrl,
             price = offer.price?.toDouble() ?: 0.0,
             currency = offer.currency ?: "EUR",
             description = "Flight to $cityName, ${countryName}",
@@ -189,6 +231,27 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
             "CAI" -> "Egypt"
             "TUN" -> "Tunisia"
             else -> "Unknown"
+        }
+    }
+
+    private fun getCityImageUrl(cityName: String): String {
+        // Return city-specific high-quality Unsplash images
+        return when (cityName.lowercase()) {
+            "paris" -> "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=600&fit=crop&q=80"
+            "london" -> "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=600&fit=crop&q=80"
+            "new york" -> "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop&q=80"
+            "dubai" -> "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&h=600&fit=crop&q=80"
+            "rome" -> "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&h=600&fit=crop&q=80"
+            "madrid" -> "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+            "barcelona" -> "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+            "amsterdam" -> "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&h=600&fit=crop&q=80"
+            "frankfurt" -> "https://images.unsplash.com/photo-1587330979470-3585ac3ac6cd?w=800&h=600&fit=crop&q=80"
+            "munich" -> "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&q=80"
+            "istanbul" -> "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&h=600&fit=crop&q=80"
+            "cairo" -> "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
+            "tunis" -> "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
+            "los angeles" -> "https://images.unsplash.com/photo-1515895306158-439192690299?w=800&h=600&fit=crop&q=80"
+            else -> "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80" // Generic travel image
         }
     }
 }
