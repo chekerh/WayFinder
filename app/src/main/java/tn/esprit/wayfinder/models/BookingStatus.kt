@@ -1,4 +1,4 @@
-//package tn.esprit.wayfinder.models
+package tn.esprit.wayfinder.models
 //
 //import kotlinx.serialization.Serializable
 //

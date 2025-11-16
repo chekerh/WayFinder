@@ -31,7 +31,7 @@ fun AppNavigation() {
         composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
         composable("home") { HomeScreen(navController = navController) }
         composable("onboarding") {
-            // FIX: Pointing to SurveyScreen which now contains the correct onboarding logic
+            // FIX: Pointing to SurveyScreen which contains the onboarding logic
             SurveyScreen(onComplete = {
                 navController.navigate("home") {
                     popUpTo("onboarding") { inclusive = true }

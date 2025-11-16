@@ -1,8 +1,8 @@
 package tn.esprit.wayfinder.models
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class OnboardingQuestion(
@@ -26,8 +26,8 @@ data class QuestionOption(
 @Serializable
 data class OnboardingResponse(
     @SerialName("session_id") val sessionId: String,
-    val question: OnboardingQuestion,
-    val progress: Progress,
+    val question: OnboardingQuestion? = null,
+    val progress: Progress? = null,
     val completed: Boolean,
     @SerialName("redirect_to") val redirectTo: String? = null,
     val message: String? = null
@@ -57,7 +57,7 @@ data class OnboardingProgress(
 data class AnswerRequest(
     @SerialName("session_id") val sessionId: String,
     @SerialName("question_id") val questionId: String,
-    @Contextual val answer: Any
+    val answer: JsonElement
 )
 
 @Serializable

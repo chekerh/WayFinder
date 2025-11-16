@@ -173,7 +173,7 @@ fun LoginScreen(navController: NavController) {
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         if (loginResult is LoginResult.Loading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(color = Color.Blue, modifier = Modifier.size(24.dp))
                         } else {
                             Text("Se connecter", fontSize = 16.sp)
                         }
