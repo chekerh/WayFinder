@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.ui.screens.*
 
@@ -30,6 +32,13 @@ fun AppNavigation() {
         composable("signup_screen") { SignUpScreen(navController = navController) }
         composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
         composable("home") { HomeScreen(navController = navController) }
+        composable(
+            "flight_detail/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            FlightDetailsScreen(navController = navController, destinationId = destinationId)
+        }
         composable("onboarding") {
             // FIX: Pointing to SurveyScreen which contains the onboarding logic
             SurveyScreen(onComplete = {

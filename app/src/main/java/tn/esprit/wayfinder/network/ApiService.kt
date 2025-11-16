@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.network
 
+import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -69,4 +70,36 @@ interface ApiService {
 
     @GET("recommendations/regenerate")
     suspend fun regenerateRecommendations(): PersonalizedRecommendations
+
+    // --- CATALOG --- //
+    @GET("catalog/recommended")
+    suspend fun getRecommendedFlights(
+        @Query("originLocationCode") originLocationCode: String? = null,
+        @Query("destinationLocationCode") destinationLocationCode: String? = null,
+        @Query("departureDate") departureDate: String? = null,
+        @Query("returnDate") returnDate: String? = null,
+        @Query("adults") adults: Int? = null,
+        @Query("travelClass") travelClass: String? = null,
+        @Query("currencyCode") currencyCode: String? = null,
+        @Query("maxResults") maxResults: Int? = null,
+        @Query("maxPrice") maxPrice: Double? = null
+    ): RecommendedFlightsResponse
+
+    @GET("catalog/explore")
+    suspend fun getExploreOffers(
+        @Query("origin") origin: String? = null,
+        @Query("destination") destination: String? = null,
+        @Query("dateFrom") dateFrom: String? = null,
+        @Query("dateTo") dateTo: String? = null,
+        @Query("budget") budget: Int? = null,
+        @Query("limit") limit: Int? = null
+    ): ExploreOffersResponse
+
+    @GET("catalog/activities")
+    suspend fun getActivities(
+        @Query("city") city: String? = null,
+        @Query("themes") themes: String? = null,
+        @Query("limit") limit: Int? = null,
+        @Query("radiusMeters") radiusMeters: Int? = null
+    ): JsonElement
 }

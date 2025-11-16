@@ -1,8 +1,8 @@
 package tn.esprit.wayfinder.models
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class User(
@@ -14,7 +14,7 @@ data class User(
     val preferences: List<String>,
     val status: String,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
-    @SerialName("onboarding_preferences") val onboardingPreferences: Map<String, @Contextual Any>? = null,
+    @SerialName("onboarding_preferences") val onboardingPreferences: Map<String, JsonElement>? = null,
     @SerialName("createdAt") val createdAt: String? = null,
     @SerialName("updatedAt") val updatedAt: String? = null
 )

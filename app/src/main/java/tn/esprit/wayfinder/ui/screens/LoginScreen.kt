@@ -66,7 +66,9 @@ fun LoginScreen(navController: NavController) {
         when (val result = loginResult) {
             is LoginResult.Success -> {
                 Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-                navController.navigate(result.navigateTo) { popUpTo(0) }
+                navController.navigate(result.navigateTo) {
+                    popUpTo("login") { inclusive = true }
+                }
                 authViewModel.clearMessages()
             }
             is LoginResult.Error -> {

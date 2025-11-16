@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import tn.esprit.wayfinder.WayfinderApp
 import tn.esprit.wayfinder.presentation.auth.OnboardingRepository
+import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
+import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
@@ -22,6 +24,11 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = OnboardingRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 OnboardingViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(CatalogViewModel::class.java) -> {
+                val repository = CatalogRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                CatalogViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
