@@ -45,8 +45,10 @@ import coil.compose.AsyncImage
 import kotlin.math.absoluteValue
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.manager.TokenManager
+import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
 
@@ -377,7 +379,12 @@ fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDest
                 .width(290.dp)
                 .height(340.dp)
                 .clickable {
-                    navController.navigate("flight_detail/${destinations[page].id}")
+                    val selectedDestination = destinations[page]
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        SELECTED_DESTINATION_KEY,
+                        selectedDestination
+                    )
+                    navController.navigate("flight_detail/${selectedDestination.id}")
                 },
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
@@ -468,78 +475,6 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
     }
 }
 
-@Composable
-fun CustomBottomNavigationBar(navController: NavController? = null) {
-    var selectedIndex by remember { mutableStateOf(0) }
-    
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
-        NavigationBarItem(
-            selected = selectedIndex == 0,
-            onClick = { 
-                selectedIndex = 0
-                navController?.navigate("home") {
-                    popUpTo("home") { inclusive = true }
-                }
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Filled.Home,
-                    contentDescription = "Home",
-                    tint = if (selectedIndex == 0) Color(0xFF1976D2) else Color(0xFF9E9E9E)
-                )
-            },
-            label = { Text("Accueil", style = MaterialTheme.typography.labelSmall) }
-        )
-        NavigationBarItem(
-            selected = selectedIndex == 1,
-            onClick = { 
-                selectedIndex = 1
-                // TODO: Navigate to favorites screen
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorites",
-                    tint = if (selectedIndex == 1) Color(0xFF1976D2) else Color(0xFF9E9E9E)
-                )
-            },
-            label = { Text("Favoris", style = MaterialTheme.typography.labelSmall) }
-        )
-        NavigationBarItem(
-            selected = selectedIndex == 2,
-            onClick = { 
-                selectedIndex = 2
-                // TODO: Navigate to chat screen
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
-                    contentDescription = "Chat",
-                    tint = if (selectedIndex == 2) Color(0xFF1976D2) else Color(0xFF9E9E9E)
-                )
-            },
-            label = { Text("Chat", style = MaterialTheme.typography.labelSmall) }
-        )
-        NavigationBarItem(
-            selected = selectedIndex == 3,
-            onClick = { 
-                selectedIndex = 3
-                // TODO: Navigate to profile screen
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.PersonOutline,
-                    contentDescription = "Profile",
-                    tint = if (selectedIndex == 3) Color(0xFF1976D2) else Color(0xFF9E9E9E)
-                )
-            },
-            label = { Text("Profil", style = MaterialTheme.typography.labelSmall) }
-        )
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

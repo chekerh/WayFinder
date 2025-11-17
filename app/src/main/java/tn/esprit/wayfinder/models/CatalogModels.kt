@@ -3,6 +3,7 @@ package tn.esprit.wayfinder.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import java.io.Serializable as JavaSerializable
 
 @Serializable
 data class FlightOffer(
@@ -115,7 +116,7 @@ data class FlightDestination(
     val departureDate: String? = null,
     val arrivalDate: String? = null,
     val airline: String? = null
-)
+) : JavaSerializable
 
 // Response wrapper for recommended flights
 @Serializable

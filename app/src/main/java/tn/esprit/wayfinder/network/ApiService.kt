@@ -22,7 +22,7 @@ interface ApiService {
     suspend fun getProfile(): User
 
     @PUT("user/profile")
-    suspend fun updateProfile(@Body request: Map<String, Any>): User
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): User
 
     // --- BOOKING --- //
     @GET("booking/offers")

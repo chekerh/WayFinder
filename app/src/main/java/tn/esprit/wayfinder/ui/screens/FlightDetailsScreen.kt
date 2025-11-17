@@ -1,7 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,31 +13,42 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
-    // In a real app, fetch destination details by ID from ViewModel
-    // For now, using a placeholder destination
-    val destination = remember(destinationId) {
-        FlightDestination(
+    val savedDestination = remember(destinationId) {
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
+    }
+    val destination = remember(destinationId, savedDestination) {
+        savedDestination ?: FlightDestination(
             id = destinationId,
-            name = "Paris",
-            city = "Paris",
-            country = "France",
-            price = 450.0,
+            name = "Destination surprise",
+            city = "À définir",
+            country = "",
+            price = 0.0,
             currency = "EUR",
-            description = "Discover the City of Light",
-            departureDate = "2025-12-01T10:00:00",
-            arrivalDate = "2025-12-01T14:30:00",
-            airline = "AF"
+            description = "Impossible de charger les détails depuis la sélection précédente.",
+            departureDate = null,
+            arrivalDate = null,
+            airline = null
         )
+    }
+
+    LaunchedEffect(destination) {
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.set(SELECTED_DESTINATION_KEY, destination)
     }
 
     Scaffold(
@@ -251,6 +261,9 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             Button(
                 onClick = {
                     // Navigate to booking screen
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(SELECTED_DESTINATION_KEY, destination)
                     navController.navigate("booking/${destination.id}")
                 },
                 modifier = Modifier

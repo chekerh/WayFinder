@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.material3.Text
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.ui.screens.*
 
@@ -32,6 +33,16 @@ fun AppNavigation() {
         composable("signup_screen") { SignUpScreen(navController = navController) }
         composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
         composable("home") { HomeScreen(navController = navController) }
+        composable("profile") { ProfileScreen(navController = navController) }
+        composable("edit_profile") { EditProfileScreen(navController = navController) }
+        composable("favorites") { 
+            // TODO: Create FavoritesScreen
+            Text("Favorites Screen")
+        }
+        composable("chat") { 
+            ChatScreen(navController = navController)
+        }
+        composable("booking_history") { BookingHistoryScreen(navController = navController) }
         composable(
             route = "all_flights/{region}",
             arguments = listOf(
@@ -52,6 +63,20 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
             FlightDetailsScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "booking/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            ReservationScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "booking_confirmation/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+            BookingConfirmationScreen(navController = navController, bookingId = bookingId)
         }
         composable("onboarding") {
             // FIX: Pointing to SurveyScreen which contains the onboarding logic

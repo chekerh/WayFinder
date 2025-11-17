@@ -11,6 +11,9 @@ data class User(
     val email: String,
     @SerialName("first_name") val firstName: String,
     @SerialName("last_name") val lastName: String,
+    val phone: String? = null,
+    val location: String? = null,
+    val bio: String? = null,
     val preferences: List<String>,
     val status: String,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
@@ -30,6 +33,16 @@ data class LoginResponse(
     @SerialName("access_token") val accessToken: String,
     val user: User,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean
+)
+
+@Serializable
+data class UpdateProfileRequest(
+    @SerialName("first_name") val firstName: String? = null,
+    @SerialName("last_name") val lastName: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val location: String? = null,
+    val bio: String? = null
 )
 
 @Serializable

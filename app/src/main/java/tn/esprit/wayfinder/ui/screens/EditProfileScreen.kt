@@ -1,0 +1,223 @@
+package tn.esprit.wayfinder.ui.screens
+
+import android.app.Application
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.compose.ui.platform.LocalContext
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
+import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.viewmodels.UserViewModel
+import tn.esprit.wayfinder.viewmodels.UserUiState
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val uiState by userViewModel.uiState.collectAsState()
+    
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
+    
+    // Load user data
+    LaunchedEffect(Unit) {
+        userViewModel.loadProfile()
+    }
+    
+    // Update fields when user data is loaded
+    LaunchedEffect(uiState) {
+        if (uiState is UserUiState.Success) {
+            val user = (uiState as UserUiState.Success).user
+            firstName = user.firstName
+            lastName = user.lastName
+            email = user.email
+            phone = user.phone.orEmpty()
+            location = user.location.orEmpty()
+            bio = user.bio.orEmpty()
+        }
+    }
+    
+    // Handle successful update
+    LaunchedEffect(uiState) {
+        if (uiState is UserUiState.Success && firstName.isNotBlank()) {
+            // Could show a snackbar or navigate back
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Modifier le profil", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFEAF2FF)
+                )
+            )
+        },
+        bottomBar = {
+            CustomBottomNavigationBar(navController = navController)
+        },
+        containerColor = Color(0xFFEAF2FF)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            when (uiState) {
+                is UserUiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is UserUiState.Error -> {
+                    Text(
+                        text = (uiState as UserUiState.Error).message,
+                        color = Color.Red
+                    )
+                }
+                else -> {
+                    // First Name
+                    OutlinedTextField(
+                        value = firstName,
+                        onValueChange = { firstName = it },
+                        label = { Text("Prénom") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    
+                    // Last Name
+                    OutlinedTextField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        label = { Text("Nom") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    
+                    // Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Email
+                        ),
+                        singleLine = true
+                    )
+                    
+                    // Phone
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Téléphone") },
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Phone
+                        ),
+                        singleLine = true,
+                        placeholder = { Text("+123456789") }
+                    )
+                    
+                    // Location
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = { Text("Localisation") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Paris, France") }
+                    )
+                    
+                    // Bio
+                    OutlinedTextField(
+                        value = bio,
+                        onValueChange = { bio = it },
+                        label = { Text("Bio") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        maxLines = 5
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Save Button
+                    Button(
+                        onClick = {
+                            userViewModel.updateProfile(
+                                firstName = firstName,
+                                lastName = lastName,
+                                email = email,
+                                phone = phone.ifBlank { null },
+                                location = location.ifBlank { null },
+                                bio = bio.ifBlank { null }
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1976D2)
+                        ),
+                        enabled = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
+                    ) {
+                        if (uiState is UserUiState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White
+                            )
+                        } else {
+                            Text(
+                                text = "Enregistrer",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    // Show success message
+                    if (uiState is UserUiState.Success && firstName.isNotBlank()) {
+                        Text(
+                            text = "Profil mis à jour avec succès!",
+                            color = Color(0xFF4CAF50),
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
