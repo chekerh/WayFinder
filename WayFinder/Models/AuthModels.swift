@@ -5,10 +5,22 @@ struct LoginRequest: Encodable {
     let password: String
 }
 
+struct GoogleLoginRequest: Encodable {
+    let idToken: String
+}
+
+struct AppleLoginRequest: Encodable {
+    let identityToken: String
+    let email: String?
+    let firstName: String?
+    let lastName: String?
+}
+
 struct LoginResponse: Decodable {
     let accessToken: String
     let refreshToken: String?
     let user: UserProfile?
+    let onboardingCompleted: Bool?
 }
 
 struct UserProfile: Decodable {
@@ -29,20 +41,7 @@ struct RegisterRequest: Encodable {
 }
 
 struct RegisterResponse: Decodable {
-    let id: String
-    let username: String
-    let email: String
-}
-
-enum BookingStatus: String, Decodable {
-    case pending
-    case confirmed
-    case cancelled
-}
-
-struct Booking: Decodable {
-    let id: String
-    let status: BookingStatus
-    let createdAt: Date
+    let message: String
+    let user: UserProfile?
 }
 

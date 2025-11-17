@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3EC115822EC540BD002BFE19 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3EC115812EC540BD002BFE19 /* GoogleSignIn */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3ECAE3EB2EBA8FAB00751992 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,15 +28,34 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3E5B404C2EC92F4B002D8476 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3ECAE3D82EBA8FAB00751992 /* WayFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WayFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3EA2EBA8FAB00751992 /* WayFinderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WayFinderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3F42EBA8FAC00751992 /* WayFinderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WayFinderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3F82EBA8FAC00751992 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		3ED28F4C2ECAD9D200C657E7 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3EC115E92EC5516D002BFE19 /* Exceptions for "WayFinder" folder in "WayFinder" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3ECAE3D72EBA8FAB00751992 /* WayFinder */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3ECAE3DA2EBA8FAB00751992 /* WayFinder */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3EC115E92EC5516D002BFE19 /* Exceptions for "WayFinder" folder in "WayFinder" target */,
+			);
 			path = WayFinder;
 			sourceTree = "<group>";
 		};
@@ -53,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3EC115822EC540BD002BFE19 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,6 +97,31 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3E5B404E2EC92F4B002D8476 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E6B3AEA2EC650870052FA2C /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E9ADD092EC9DD06003B961F /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3EC1157E2EC54074002BFE19 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3EC115BC2EC541E1002BFE19 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		3ECAE3CF2EBA8FAB00751992 = {
 			isa = PBXGroup;
 			children = (
@@ -91,6 +140,11 @@
 				3ECAE3EA2EBA8FAB00751992 /* WayFinderTests.xctest */,
 				3ECAE3F42EBA8FAC00751992 /* WayFinderUITests.xctest */,
 			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3ED28F4E2ECAD9D200C657E7 /* Products */ = {
+			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
 		};
@@ -114,6 +168,7 @@
 			);
 			name = WayFinder;
 			packageProductDependencies = (
+				3EC115812EC540BD002BFE19 /* GoogleSignIn */,
 			);
 			productName = WayFinder;
 			productReference = 3ECAE3D82EBA8FAB00751992 /* WayFinder.app */;
@@ -199,9 +254,38 @@
 			);
 			mainGroup = 3ECAE3CF2EBA8FAB00751992;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3ECAE3D92EBA8FAB00751992 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 3EC115BC2EC541E1002BFE19 /* Products */;
+					ProjectRef = 3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E9ADD092EC9DD06003B961F /* Products */;
+					ProjectRef = 3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3ED28F4E2ECAD9D200C657E7 /* Products */;
+					ProjectRef = 3ED28F4C2ECAD9D200C657E7 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E5B404E2EC92F4B002D8476 /* Products */;
+					ProjectRef = 3E5B404C2EC92F4B002D8476 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E6B3AEA2EC650870052FA2C /* Products */;
+					ProjectRef = 3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3EC1157E2EC54074002BFE19 /* Products */;
+					ProjectRef = 3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				3ECAE3D72EBA8FAB00751992 /* WayFinder */,
@@ -401,6 +485,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WayFinder/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,6 +513,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WayFinder/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -554,6 +640,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3EC115812EC540BD002BFE19 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3ECAE3D02EBA8FAB00751992 /* Project object */;
 }

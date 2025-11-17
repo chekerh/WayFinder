@@ -10,10 +10,70 @@ import SwiftUI
 
 struct SurveyScreen: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var selectedOptions: [String: String] = [:] // Pour stocker les réponses
+    @State private var selectedOptions: [String: String] = [:] // Stocke les valeurs envoyées au backend
     @State private var isSubmitting = false
     @State private var submissionError: String?
     @State private var navigateToHome = false
+    
+    private let tripOptions: [SurveyOption] = [
+        .init(value: "beach", labelKey: "survey_option_trip_beach"),
+        .init(value: "mountain_adventure", labelKey: "survey_option_trip_mountain"),
+        .init(value: "cultural", labelKey: "survey_option_trip_cultural"),
+        .init(value: "roadtrip", labelKey: "survey_option_trip_roadtrip")
+    ]
+    private let feelingsOptions: [SurveyOption] = [
+        .init(value: "relaxed", labelKey: "survey_option_feelings_relaxed"),
+        .init(value: "curious", labelKey: "survey_option_feelings_curious"),
+        .init(value: "excited", labelKey: "survey_option_feelings_excited")
+    ]
+    private let teleportOptions: [SurveyOption] = [
+        .init(value: "tropical_islands", labelKey: "survey_option_teleport_tropical"),
+        .init(value: "cultural_capital", labelKey: "survey_option_teleport_capital"),
+        .init(value: "snowy_mountains", labelKey: "survey_option_teleport_mountains")
+    ]
+    private let transportOptions: [SurveyOption] = [
+        .init(value: "plane", labelKey: "survey_option_transport_plane"),
+        .init(value: "train", labelKey: "survey_option_transport_train"),
+        .init(value: "boat", labelKey: "survey_option_transport_boat"),
+        .init(value: "car", labelKey: "survey_option_transport_car")
+    ]
+    private let hobbyOptions: [SurveyOption] = [
+        .init(value: "photography", labelKey: "survey_option_hobby_photo"),
+        .init(value: "hiking", labelKey: "survey_option_hobby_hiking"),
+        .init(value: "cooking", labelKey: "survey_option_hobby_cooking"),
+        .init(value: "extreme_sports", labelKey: "survey_option_hobby_extreme")
+    ]
+    private let timeTravelOptions: [SurveyOption] = [
+        .init(value: "dinosaurs", labelKey: "survey_option_timetravel_dinosaurs"),
+        .init(value: "future", labelKey: "survey_option_timetravel_future"),
+        .init(value: "ancient_civilizations", labelKey: "survey_option_timetravel_civilizations")
+    ]
+    private let budgetOptions: [SurveyOption] = [
+        .init(value: "under_500", labelKey: "survey_option_budget_under_500"),
+        .init(value: "between_500_1000", labelKey: "survey_option_budget_500_1000"),
+        .init(value: "over_1000", labelKey: "survey_option_budget_over_1000")
+    ]
+    private let activitiesOptions: [SurveyOption] = [
+        .init(value: "museums", labelKey: "survey_option_activities_museums"),
+        .init(value: "food", labelKey: "survey_option_activities_food"),
+        .init(value: "sports", labelKey: "survey_option_activities_sports"),
+        .init(value: "spa", labelKey: "survey_option_activities_spa")
+    ]
+    private let daytimeOptions: [SurveyOption] = [
+        .init(value: "morning", labelKey: "survey_option_daytime_morning"),
+        .init(value: "evening", labelKey: "survey_option_daytime_evening")
+    ]
+    private let animalOptions: [SurveyOption] = [
+        .init(value: "lion", labelKey: "survey_option_animal_lion"),
+        .init(value: "eagle", labelKey: "survey_option_animal_eagle"),
+        .init(value: "dolphin", labelKey: "survey_option_animal_dolphin"),
+        .init(value: "koala", labelKey: "survey_option_animal_koala")
+    ]
+    private let epochOptions: [SurveyOption] = [
+        .init(value: "sixties", labelKey: "survey_option_epoch_sixties"),
+        .init(value: "victorian", labelKey: "survey_option_epoch_victorian"),
+        .init(value: "future", labelKey: "survey_option_epoch_future")
+    ]
     
     var body: some View {
         NavigationStack {
@@ -53,49 +113,49 @@ struct SurveyScreen: View {
                     .padding(.bottom, 16)
                 
                 // Questions et réponses
-                QuestionCard(question: "survey_question_trip",
-                             options: ["Vacances à la plage 🏖️", "Aventure en montagne 🏔️", "Voyage culturel 🏛️", "Road trip 🚗"],
-                             selectedOption: $selectedOptions["vacationType"])
+                QuestionCard(questionKey: "survey_question_trip",
+                             options: tripOptions,
+                             selectedValue: $selectedOptions["vacationType"])
                 
-                QuestionCard(question: "survey_question_feelings",
-                             options: ["Détendu et zen 😌", "Énergisé et curieux 🌍", "Excité et aventureux 🏄‍♂️"],
-                             selectedOption: $selectedOptions["vacationFeeling"])
+                QuestionCard(questionKey: "survey_question_feelings",
+                             options: feelingsOptions,
+                             selectedValue: $selectedOptions["vacationFeeling"])
                 
-                QuestionCard(question: "survey_question_teleport",
-                             options: ["Îles tropicales 🏝️", "Capitale culturelle 🏙️", "Montagnes enneigées 🏔️"],
-                             selectedOption: $selectedOptions["teleportDestination"])
+                QuestionCard(questionKey: "survey_question_teleport",
+                             options: teleportOptions,
+                             selectedValue: $selectedOptions["teleportDestination"])
                 
-                QuestionCard(question: "survey_question_transport",
-                             options: ["Avion ✈️", "Train 🚄", "Bateau ⛴️", "Voiture 🚗"],
-                             selectedOption: $selectedOptions["transportMode"])
+                QuestionCard(questionKey: "survey_question_transport",
+                             options: transportOptions,
+                             selectedValue: $selectedOptions["transportMode"])
                 
-                QuestionCard(question: "survey_question_hobby",
-                             options: ["Photographie 📸", "Randonnée 🥾", "Cuisine locale 🍽️", "Sports extrêmes 🧗"],
-                             selectedOption: $selectedOptions["hobby"])
+                QuestionCard(questionKey: "survey_question_hobby",
+                             options: hobbyOptions,
+                             selectedValue: $selectedOptions["hobby"])
                 
-                QuestionCard(question: "survey_question_timetravel",
-                             options: ["À l'époque des dinosaures 🦖", "Dans le futur 🌌", "À l'ère des grandes civilisations anciennes 🏛️"],
-                             selectedOption: $selectedOptions["timeTravelDestination"])
+                QuestionCard(questionKey: "survey_question_timetravel",
+                             options: timeTravelOptions,
+                             selectedValue: $selectedOptions["timeTravelDestination"])
                 
-                QuestionCard(question: "survey_question_budget",
-                             options: ["Moins de 500 TND 💸", "500–1000 TND 💰", "Plus de 1000 TND 💎"],
-                             selectedOption: $selectedOptions["budget"])
+                QuestionCard(questionKey: "survey_question_budget",
+                             options: budgetOptions,
+                             selectedValue: $selectedOptions["budget"])
                 
-                QuestionCard(question: "survey_question_activities",
-                             options: ["Explorer des musées 🎨", "Découvrir de nouveaux restaurants 🍽️", "Faire du sport 🏅", "Se détendre au spa 💆‍♂️"],
-                             selectedOption: $selectedOptions["activities"])
+                QuestionCard(questionKey: "survey_question_activities",
+                             options: activitiesOptions,
+                             selectedValue: $selectedOptions["activities"])
                 
-                QuestionCard(question: "survey_question_daytime",
-                             options: ["Le matin 🌅", "Le soir 🌙"],
-                             selectedOption: $selectedOptions["morningOrNight"])
+                QuestionCard(questionKey: "survey_question_daytime",
+                             options: daytimeOptions,
+                             selectedValue: $selectedOptions["morningOrNight"])
                 
-                QuestionCard(question: "survey_question_animal",
-                             options: ["Lion 🦁", "Aigle 🦅", "Dauphin 🐬", "Koala 🐨"],
-                             selectedOption: $selectedOptions["spiritualAnimal"])
+                QuestionCard(questionKey: "survey_question_animal",
+                             options: animalOptions,
+                             selectedValue: $selectedOptions["spiritualAnimal"])
                 
-                QuestionCard(question: "survey_question_epoch",
-                             options: ["Les années 60 🎉", "L’ère victorienne 👑", "Le futur du XXIIe siècle 🚀"],
-                             selectedOption: $selectedOptions["historicalEra"])
+                QuestionCard(questionKey: "survey_question_epoch",
+                             options: epochOptions,
+                             selectedValue: $selectedOptions["historicalEra"])
                 
                 // Bouton de soumission
                 Button(action: {
@@ -126,21 +186,21 @@ struct SurveyScreen: View {
 }
 
 struct QuestionCard: View {
-    var question: String
-    var options: [String]
-    @Binding var selectedOption: String?
+    var questionKey: String
+    var options: [SurveyOption]
+    @Binding var selectedValue: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(LocalizedStringKey(question))
+            Text(LocalizedStringKey(questionKey))
                 .font(.body)
             
-            ForEach(options, id: \.self) { option in
+            ForEach(options) { option in
                 HStack {
-                    RadioButton(isSelected: option == selectedOption, action: {
-                        selectedOption = option
+                    RadioButton(isSelected: option.value == selectedValue, action: {
+                        selectedValue = option.value
                     })
-                    Text(option)
+                    Text(option.localizedLabel)
                         .font(.body)
                 }
                 .padding(.vertical, 4)
@@ -158,14 +218,31 @@ struct RadioButton: View {
             Circle()
                 .strokeBorder(Color.gray, lineWidth: 1)
                 .frame(width: 20, height: 20)
-                .background(Circle().fill(isSelected ? Color.blue : Color.clear))
+                .background(Circle().fill(isSelected ? ThemeColors.accent() : Color.clear))
                 .overlay(
                     Circle()
-                        .fill(isSelected ? Color.white : Color.clear)
+                        .fill(Color.white)
                         .frame(width: 12, height: 12)
+                        .opacity(isSelected ? 1 : 0)
                 )
         }
         .buttonStyle(PlainButtonStyle()) // Suppression de la style de bouton par défaut
+    }
+}
+
+struct SurveyOption: Identifiable, Hashable {
+    let id: String
+    let value: String
+    let labelKey: String
+    
+    init(value: String, labelKey: String) {
+        self.id = value
+        self.value = value
+        self.labelKey = labelKey
+    }
+    
+    var localizedLabel: LocalizedStringKey {
+        LocalizedStringKey(labelKey)
     }
 }
 

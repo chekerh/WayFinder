@@ -7,7 +7,11 @@
 
 import Foundation
 import SwiftUI
-
+import AuthenticationServices
+#if canImport(GoogleSignIn)
+import GoogleSignIn
+#endif
+import UIKit
 struct LoginView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var email = ""
@@ -19,8 +23,12 @@ struct LoginView: View {
     @State private var passwordError: String?
     @State private var showTermsAlert = false
     @State private var loginError: String?
-    @State private var isLoading = false
     @State private var isLoggedIn = false // Etat pour déterminer si l'utilisateur est connecté
+    @State private var activeLoginFlow: LoginFlow?
+    @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
+    @State private var loggedInUserName: String?
+    
+    private let googleLoginEnabled = true
     
     var body: some View {
         NavigationStack {
@@ -32,245 +40,201 @@ struct LoginView: View {
                     ScrollView {
                         VStack(spacing: 0) {
                             // Titre "Bienvenue sur Wayfindr" - en haut
-                        HStack(spacing: 0) {
-                            Text("login_title_prefix")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(ThemeColors.primaryText(colorScheme))
-                            
-                            Text("login_title_way")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.red)
-                            
-                            Text("login_title_findr")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.blue)
-                        }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, geometry.safeAreaInsets.top > 0 ? 10 : 20)
+                            Spacer().frame(height: geometry.safeAreaInsets.top > 0 ? 10 : 20)
                         
-                            // Logo circulaire - juste en dessous du titre
+                            // Logo
                             Image("LogoWayFinder")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 200, height: 200)
-                                .clipShape(Circle())
-                                .padding(.top, 20)
-            
-            // Message
-                        Text("login_message")
+                                .frame(width: 150, height: 150)
+                                .padding(.top, 16)
+                            
+                            // Message
+                            Text("login_message")
                                 .font(.system(size: 16))
                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
-                                .padding(.top, 20)
+                                .padding(.top, 12)
                             
-                            // Powered by Gemini
-                        HStack(spacing: 4) {
-                            Text("login_powered_prefix")
-                                .font(.system(size: 14))
-                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                            Text("login_powered_provider")
-                                .font(.system(size: 14))
-                                .foregroundColor(ThemeColors.accent())
-                        }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 5)
-                
-                            // Champs de saisie
-                            VStack(spacing: 15) {
-                                // Email field
-                            TextField(LocalizedStringKey("login_email_placeholder"), text: $email)
-                                .padding()
-                                    .background(ThemeColors.surface(colorScheme))
-                                    .cornerRadius(10)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(borderColor(for: emailError, isFocused: isEmailFocused), lineWidth: isEmailFocused ? 2 : 1)
-                                    )
-                .autocapitalization(.none)
-                                    .keyboardType(.emailAddress)
-                                    .textContentType(.emailAddress)
-                                    .autocorrectionDisabled(true)
-                                    .onTapGesture {
-                                        isEmailFocused = true
-                                        isPasswordFocused = false
-                                    }
-                                    .onChange(of: email) { _ in
-                                        emailError = nil
-                                    }
-
-                                if let emailError {
-                                    Text(emailError)
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                
-                                // Password field
-                            SecureField(LocalizedStringKey("login_password_placeholder"), text: $password)
-                                .padding()
-                                    .background(ThemeColors.surface(colorScheme))
-                                    .cornerRadius(10)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(borderColor(for: passwordError, isFocused: isPasswordFocused), lineWidth: isPasswordFocused ? 2 : 1)
-                                    )
-                                    .onTapGesture {
-                                        isPasswordFocused = true
-                                        isEmailFocused = false
-                                    }
-                                    .onChange(of: password) { _ in
-                                        passwordError = nil
-                                    }
-
-                                if let passwordError {
-                                    Text(passwordError)
-                                        .font(.caption)
-                                        .foregroundColor(.red)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                .padding(.horizontal, 40)
-                            .padding(.top, 30)
-                
-                            // Bouton Se connecter
-                            NavigationLink(
-                                destination: SurveyScreen(),
-                                isActive: $isLoggedIn
-                            ) {
-                                Button {
-                                    Task { await validateAndSubmit() }
-                                } label: {
-                                    HStack {
-                                        if isLoading {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        } else {
-                                            Text("login_sign_in_button")
-                                                .font(.system(size: 18, weight: .bold))
-                                        }
-
-                                        Spacer()
-
-                                        Image(systemName: "globe")
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 18))
-                                    }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(ThemeColors.accent())
-                                    .cornerRadius(10)
-                                }
-                                .disabled(isLoading)
-                            }
-                            .padding(.horizontal, 40)
-                            .padding(.top, 10)
-                            
-                            if let loginError {
-                                Text(loginError)
-                                    .font(.caption)
+                            // Card container
+                            VStack(spacing: 18) {
+                                Text("login_powered_provider")
+                                    .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.red)
                                     .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.top, 4)
-                            }
-                
-                            // Checkbox avec conditions
-                        HStack(alignment: .top, spacing: 10) {
-                                Button(action: {
-                                    acceptTerms.toggle()
-                                }) {
-                                    Image(systemName: acceptTerms ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(acceptTerms ? .purple : .gray)
-                                        .font(.system(size: 20))
-                                }
                                 
-                            consentText
-                                .font(.system(size: 14))
-                            }
-                            .padding(.horizontal, 40)
-                            .padding(.top, 10)
-                
-                            // Liens Pas de compte et Mot de passe oublié
-                        NavigationLink(destination: SignInView()) {
-                            HStack(spacing: 4) {
-                                Text("login_no_account")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                Text("login_create_account")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.18, green: 0.55, blue: 0.99))
-                            }
-                        }
-                            .padding(.horizontal, 40)
-                            .padding(.top, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Button(action: {
-                            // TODO: reset password flow
-                        }) {
-                            Text("login_forgot_password")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color(red: 0.18, green: 0.55, blue: 0.99))
-                        }
-                        .padding(.horizontal, 40)
-                        .padding(.top, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                
-                            // Séparateur OU
-            HStack {
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 1)
-                                
-                            Text("login_or")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 10)
-                                
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(height: 1)
-                            }
-                            .padding(.horizontal, 40)
-                            .padding(.top, 20)
-                        
-                            // Social login buttons
-                            HStack(spacing: 30) {
-                                // Google button
-                Button(action: {
-                                    // Action Google login
-                                }) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 60, height: 60)
-                                            .shadow(color: .gray.opacity(0.3), radius: 5, x: 0, y: 2)
-                                        
-                                        Image("ic_google")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 40, height: 40)
+                                VStack(spacing: 15) {
+                                    TextField(LocalizedStringKey("login_email_placeholder"), text: $email)
+                                        .padding()
+                                        .background(Color.white)
+                                        .cornerRadius(14)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(borderColor(for: emailError, isFocused: isEmailFocused), lineWidth: 1.5)
+                                        )
+                                        .autocapitalization(.none)
+                                        .keyboardType(.emailAddress)
+                                        .textContentType(.emailAddress)
+                                        .autocorrectionDisabled(true)
+                                        .onTapGesture {
+                                            isEmailFocused = true
+                                            isPasswordFocused = false
+                                        }
+                                        .onChange(of: email) { _ in
+                                            emailError = nil
+                                        }
+                                    
+                                    if let emailError {
+                                        Text(emailError)
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    
+                                    SecureField(LocalizedStringKey("login_password_placeholder"), text: $password)
+                                        .padding()
+                                        .background(Color.white)
+                                        .cornerRadius(14)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(borderColor(for: passwordError, isFocused: isPasswordFocused), lineWidth: 1.5)
+                                        )
+                                        .onTapGesture {
+                                            isPasswordFocused = true
+                                            isEmailFocused = false
+                                        }
+                                        .onChange(of: password) { _ in
+                                            passwordError = nil
+                                        }
+                                    
+                                    if let passwordError {
+                                        Text(passwordError)
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
                                 
-                                // Apple button
-                Button(action: {
-                                    // Action Apple login
-                                }) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 60, height: 60)
-                                            .shadow(color: .gray.opacity(0.3), radius: 5, x: 0, y: 2)
-                                        
-                                        Image("ic_apple")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 30, height: 30)
+                                NavigationLink(
+                                    destination: HomeScreen(initialName: loggedInUserName)
+                                        .navigationBarBackButtonHidden(true),
+                                    isActive: $isLoggedIn
+                                ) {
+                                    Button {
+                                        Task { await validateAndSubmit() }
+                                    } label: {
+                                        Text("login_sign_in_button")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 14)
+                                            .background(ThemeColors.accent())
+                                            .cornerRadius(14)
                                     }
+                                    .disabled(activeLoginFlow != nil || !canUseGoogleSignIn())
+                                }
+                                
+                                if let loginError {
+                                    Text(loginError)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                }
+                                
+                                HStack(alignment: .top, spacing: 10) {
+                                    Button(action: {
+                                        acceptTerms.toggle()
+                                    }) {
+                                        Image(systemName: acceptTerms ? "checkmark.square.fill" : "square")
+                                            .foregroundColor(acceptTerms ? ThemeColors.accent() : Color.gray)
+                                            .font(.system(size: 20))
+                                    }
+                                    
+                                    consentText
+                                        .font(.system(size: 13))
+                                }
+                                
+                                HStack {
+                                    Button(action: {
+                                        // TODO: reset password flow
+                                    }) {
+                                        Text("login_forgot_password")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(ThemeColors.accent())
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                
+                                HStack {
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(height: 1)
+                                    
+                                    Text("login_or")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal, 8)
+                                    
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(height: 1)
+                                }
+                                
+                                HStack(spacing: 16) {
+                                    // Google button
+                                    Button(action: {
+                                        Task { await handleGoogleSignIn() }
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            Image("ic_google")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 20, height: 20)
+                                            Text("Google")
+                                                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                                        }
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal, 18)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                                .fill(Color.white)
+                                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+                                        )
+                                    }
+                                    .disabled(activeLoginFlow != nil || !googleLoginEnabled)
+                                    
+                                    // Apple button
+                                    Button(action: {
+                                        Task { await handleAppleSignIn() }
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            Image("ic_apple")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 18, height: 18)
+                                            Text("Apple")
+                                                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                                        }
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal, 18)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                                .fill(Color.white)
+                                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+                                        )
+                                    }
+                                    .disabled(activeLoginFlow != nil)
                                 }
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 20)
+                            .padding(24)
+                            .frame(maxWidth: 420)
+                            .background(
+                                RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                    .fill(Color.white)
+                            )
+                            .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 24)
                             .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 30 : 50)
                         } // Fin VStack
                     } // Fin ScrollView
@@ -312,6 +276,7 @@ private extension LoginView {
             .underline()
     }
     
+    @MainActor
     func validateAndSubmit() async {
         emailError = nil
         passwordError = nil
@@ -332,17 +297,120 @@ private extension LoginView {
             return
         }
         
-        isLoading = true
-        defer { isLoading = false }
+        activeLoginFlow = .password
+        defer { activeLoginFlow = nil }
         
         do {
-            let profile = try await AuthService.shared.login(email: email, password: password)
-            loginError = nil
-            isLoggedIn = true
+            let user = try await AuthService.shared.login(email: email, password: password)
+            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
+            completeLogin()
         } catch {
             loginError = error.localizedDescription
             print("Login error: \(error)")
         }
+    }
+    
+    @MainActor
+    func handleGoogleSignIn() async {
+#if canImport(GoogleSignIn)
+        guard googleLoginEnabled else {
+            loginError = SocialLoginError.googleDisabled.localizedDescription
+            return
+        }
+        guard activeLoginFlow == nil else { return }
+        loginError = nil
+        
+        guard let presentingViewController = findPresentingViewController() else {
+            loginError = SocialLoginError.missingPresenter.localizedDescription
+            return
+        }
+        
+        activeLoginFlow = .google
+        defer { activeLoginFlow = nil }
+        
+        do {
+            if GIDSignIn.sharedInstance.configuration == nil {
+                guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String else {
+                    throw SocialLoginError.missingGoogleClientID
+                }
+                GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+            }
+
+            let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController)
+            guard let idToken = signInResult.user.idToken?.tokenString else {
+                throw SocialLoginError.missingGoogleToken
+            }
+            
+            let user = try await AuthService.shared.loginWithGoogle(idToken: idToken)
+            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
+            completeLogin()
+        } catch {
+            loginError = error.localizedDescription
+        }
+#else
+        loginError = SocialLoginError.googleDisabled.localizedDescription
+#endif
+    }
+    
+    @MainActor
+    func handleAppleSignIn() async {
+        guard activeLoginFlow == nil else { return }
+        loginError = nil
+        
+        activeLoginFlow = .apple
+        defer { activeLoginFlow = nil }
+        
+        do {
+            let credential = try await appleSignInCoordinator.signIn()
+            guard let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8) else {
+                throw SocialLoginError.missingAppleToken
+            }
+            
+            let email = credential.email
+            let firstName = credential.fullName?.givenName
+            let lastName = credential.fullName?.familyName
+            
+            let user = try await AuthService.shared.loginWithApple(
+                identityToken: identityToken,
+                email: email,
+                firstName: firstName,
+                lastName: lastName
+            )
+            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
+            completeLogin()
+        } catch {
+            loginError = error.localizedDescription
+        }
+    }
+    
+    @MainActor
+    func completeLogin() {
+        loginError = nil
+        isLoggedIn = true
+    }
+    
+    func findPresentingViewController(base: UIViewController? = UIApplication.shared.connectedScenes
+        .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+        .first?.rootViewController) -> UIViewController? {
+        if let nav = base as? UINavigationController {
+            return findPresentingViewController(base: nav.visibleViewController)
+        }
+        if let tab = base as? UITabBarController, let selected = tab.selectedViewController {
+            return findPresentingViewController(base: selected)
+        }
+        if let presented = base?.presentedViewController {
+            return findPresentingViewController(base: presented)
+        }
+        return base
+    }
+    
+    func canUseGoogleSignIn() -> Bool {
+#if canImport(GoogleSignIn)
+        return googleLoginEnabled
+#else
+        return false
+#endif
     }
     
     func isValidEmail(_ email: String) -> Bool {
@@ -353,6 +421,80 @@ private extension LoginView {
     func isValidPassword(_ password: String) -> Bool {
         let pattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[ !$&'()*+,-./:;<=>?@\\[\\]^_`{|}~\"])[A-Za-z\\d !$&'()*+,-./:;<=>?@\\[\\]^_`{|}~\"]{8,}$"
         return NSPredicate(format: "SELF MATCHES %@", pattern).evaluate(with: password)
+    }
+}
+
+private enum LoginFlow {
+    case password
+    case google
+    case apple
+}
+
+private enum SocialLoginError: LocalizedError {
+    case missingPresenter
+    case missingGoogleClientID
+    case missingGoogleToken
+    case missingAppleToken
+    case missingGoogleSDK
+    case googleDisabled
+
+    var errorDescription: String? {
+        switch self {
+        case .missingPresenter:
+            return "Impossible d'afficher l'écran de connexion."
+        case .missingGoogleClientID:
+            return "Client ID Google manquant. Vérifiez la configuration."
+        case .missingGoogleToken:
+            return "Token Google introuvable. Veuillez réessayer."
+        case .missingAppleToken:
+            return "Token Apple introuvable. Veuillez réessayer."
+        case .missingGoogleSDK:
+            return "Module GoogleSignIn absent. Ajoutez-le via Swift Package Manager."
+        case .googleDisabled:
+            return "Google login n'est pas encore disponible sur le backend."
+        }
+    }
+}
+
+final class AppleSignInCoordinator: NSObject, ObservableObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private var continuation: CheckedContinuation<ASAuthorizationAppleIDCredential, Error>?
+
+    @MainActor
+    func signIn() async throws -> ASAuthorizationAppleIDCredential {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ASAuthorizationAppleIDCredential, Error>) in
+            self.continuation = continuation
+
+            let provider = ASAuthorizationAppleIDProvider()
+            let request = provider.createRequest()
+            request.requestedScopes = [.fullName, .email]
+
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = self
+            controller.presentationContextProvider = self
+            controller.performRequests()
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            continuation?.resume(throwing: SocialLoginError.missingAppleToken)
+            continuation = nil
+            return
+        }
+        continuation?.resume(returning: credential)
+        continuation = nil
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }
 }
 

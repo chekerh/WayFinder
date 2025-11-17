@@ -7,54 +7,102 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 struct HomeScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = HomeViewModel()
+    @State private var selectedTab: FloatingTab = .activity
+    let initialName: String?
+    
+    init(initialName: String? = nil) {
+        self.initialName = initialName
+    }
     
     var body: some View {
-        VStack(spacing: 0) {
-            TopBar(name: viewModel.greetingName)
-                .padding(.top, 12)
+        ZStack(alignment: .bottom) {
+            ThemeColors.background(colorScheme)
+                .ignoresSafeArea()
             
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    headlineSection
-                    regionSection
-                    highlightSection
+            Group {
+                switch selectedTab {
+                case .activity:
+            VStack(spacing: 0) {
+                TopBar(name: initialName ?? viewModel.greetingName)
+                    .padding(.top, 12)
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        regionSection
+                        highlightSection
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 120)
+                        }
+                        .safeAreaPadding(.top, 8)
+                    }
+                case .favorites:
+                    VStack {
+                        Text("Favoris")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            .padding()
+                        Spacer()
+                    }
+                case .explore:
+                    VStack {
+                        Text("Explorer")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            .padding()
+                        Spacer()
+                    }
+                case .alerts:
+                    VStack {
+                        Text("Notifications")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            .padding()
+                        Spacer()
+                    }
+                case .profile:
+                    NavigationStack {
+                        ProfileView()
+                    }
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
             }
         }
-        .background(ThemeColors.background(colorScheme).ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $selectedTab)
+                .padding(.bottom, 0)
+        }
         .task {
             await viewModel.load()
+            // Si les régions sont vides, charger les pays de la première région par défaut (Europe)
+            if viewModel.regions.isEmpty {
+                await viewModel.loadCountries(for: "europe")
+            }
         }
     }
     
     private var headlineSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("home_headline")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                .lineLimit(2)
-            
-            Text("home_subheadline")
-                .font(.subheadline)
-                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text("home_headline")
+            .font(.system(size: 30, weight: .bold))
+            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     private var regionSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
-                ForEach(viewModel.regions) { region in
-                    RegionChip(region: region,
-                               isSelected: viewModel.selectedRegionId == region.id) {
-                        viewModel.selectRegion(region)
+                ForEach(displayRegions) { region in
+                    NavigationLink(destination: CountryListView(region: region)) {
+                        RegionChip(region: region,
+                                   isSelected: viewModel.selectedRegionId == region.id) {
+                            viewModel.selectRegion(region)
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.vertical, 6)
@@ -64,56 +112,121 @@ struct HomeScreen: View {
     private var highlightSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("home_comparator_title")
+                Text("Comparateur avec Gemini")
                     .font(.title3.bold())
                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                 Spacer()
-                Button(action: {
-                    // TODO: navigation vers la liste complète
+                NavigationLink(destination: {
+                    if let selectedRegionId = viewModel.selectedRegionId,
+                       let region = viewModel.regions.first(where: { $0.id == selectedRegionId }) ?? displayRegions.first(where: { $0.id == selectedRegionId }) {
+                        CountryListView(region: region)
+                    }
                 }) {
-                    Text("home_view_all")
+                    Text("Voir tous")
                         .font(.subheadline)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
             }
             
-            if viewModel.isLoading {
+            if viewModel.isLoadingCountries {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 60)
-            } else if let error = viewModel.errorMessage {
-                VStack(spacing: 12) {
-                    Text("home_error_title")
-                        .font(.headline)
-                        .foregroundColor(.red)
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                        .multilineTextAlignment(.center)
-                    Button(String(localized: "home_retry")) {
-                        Task { await viewModel.load() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-            } else {
+            } else if viewModel.countries.isEmpty {
+                // Aucun pays chargé - afficher un message ou les highlights par défaut
                 TabView {
-                    ForEach(filteredHighlights) { destination in
-                        DestinationCard(destination: destination)
-                            .padding(.trailing, 12)
+                    ForEach(displayHighlights) { destination in
+                        DestinationCard(
+                            destination: destination,
+                            localAssetName: resolveLocalAssetName(for: destination)
+                        )
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
                     }
                 }
-                .frame(height: 360)
-                .tabViewStyle(.page(indexDisplayMode: .automatic))
+                .frame(height: 300)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+            } else {
+                // Afficher les pays chargés depuis l'API
+                TabView {
+                    ForEach(viewModel.countries) { country in
+                        NavigationLink(destination: CountryDetailView(countryId: country.id)) {
+                            CountryCard(country: country)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 16)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(height: 300)
+                .tabViewStyle(.page(indexDisplayMode: .never))
             }
         }
+    }
+    
+    private func resolveLocalAssetName(for highlight: RecommendationHighlight) -> String? {
+        // Prioritize specific highlight assets first
+        var candidates: [String] = [
+            highlight.id.lowercased(),
+            highlight.title.lowercased()
+        ]
+        if let regionId = highlight.regionId {
+            candidates.append(regionId.lowercased())
+        }
+        
+        // Common fallbacks
+        if let regionId = highlight.regionId?.lowercased() {
+            if regionId.contains("europe") { candidates.append("rome") }
+            if regionId.contains("asia") { candidates.append("asia") }
+            if regionId.contains("australia") { candidates.append("australia") }
+        }
+        
+        for name in candidates {
+            if imageAssetExists(name) { return name }
+        }
+        return "rome"
+    }
+    
+    private func imageAssetExists(_ name: String) -> Bool {
+        UIImage(named: name) != nil
     }
     
     private var filteredHighlights: [RecommendationHighlight] {
         guard let selectedId = viewModel.selectedRegionId else { return viewModel.highlights }
         let filtered = viewModel.highlights.filter { $0.regionId == selectedId || $0.regionId == nil }
         return filtered.isEmpty ? viewModel.highlights : filtered
+    }
+    
+    /// Utilisé pour l'affichage : tombe sur des données de démonstration si l'API ne répond pas.
+    private var displayHighlights: [RecommendationHighlight] {
+        // Ne montrer que les 3 cartes souhaitées avec assets locaux
+        return defaultHighlights
+    }
+    
+    /// Utilisé pour l'affichage des régions : remplace par Europe/Asie/Australie si vide.
+    private var displayRegions: [RecommendationRegion] {
+        viewModel.regions.isEmpty ? defaultRegions : viewModel.regions
+    }
+    
+    private var defaultRegions: [RecommendationRegion] {
+        [
+            RecommendationRegion(id: "europe", title: "Europe", imageUrl: nil),
+            RecommendationRegion(id: "asia", title: "Asie", imageUrl: nil),
+            RecommendationRegion(id: "australia", title: "Australie", imageUrl: nil)
+        ]
+    }
+    
+    private var defaultHighlights: [RecommendationHighlight] {
+        [
+            RecommendationHighlight(
+                id: "central-asia",
+                title: "Asie centrale",
+                subtitle: "Parcourez l'Asie centrale époustouflante",
+                rating: 4.9,
+                imageUrl: nil,
+                regionId: "asia"
+            )
+        ]
     }
 }
 
@@ -122,40 +235,39 @@ struct TopBar: View {
     let name: String
     
     var body: some View {
-        let greetingFormat = NSLocalizedString("home_salutation_format", comment: "Greeting with user name")
-        let greetingText = String(format: greetingFormat, name)
-        
-        HStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                Circle()
-                    .fill(ThemeColors.surface(colorScheme))
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Text(name.prefix(1).uppercased())
-                            .font(.headline)
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    )
+                // Placeholder gris
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 40, height: 40)
                 
-                Text(greetingText)
+                Text("Salut, \(name)")
                     .font(.headline)
                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
+                
+                Spacer()
+                
+                Button(action: {
+                    // TODO: notifications
+                }) {
+                    Image(systemName: "bell")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        .padding(12)
+                        .background(
+                            Circle()
+                                .fill(ThemeColors.surface(colorScheme).opacity(0.7))
+                        )
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             
-            Button(action: {
-                // TODO: notifications
-            }) {
-                Image(systemName: "bell")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    .padding(12)
-                    .background(
-                        Circle()
-                            .fill(ThemeColors.surface(colorScheme).opacity(0.7))
-                    )
-            }
+            // Titre principal
+            Text("home_headline")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 20)
     }
@@ -175,18 +287,31 @@ struct RegionChip: View {
         }
     }
     
+    private var regionImage: String? {
+        let title = region.title.lowercased()
+        if title.contains("europe") {
+            return "europe"
+        } else if title.contains("asie") || title.contains("asia") {
+            return "east-asia-context-dot"
+        } else if title.contains("australie") || title.contains("australia") {
+            return "australia"
+        }
+        return nil
+    }
+    
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
-                if let imageUrl = region.imageUrl, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { image in
-                        image.resizable()
-                    } placeholder: {
-                        Circle()
-                            .fill(ThemeColors.surface(colorScheme).opacity(0.4))
-                    }
-                    .frame(width: 28, height: 28)
-                    .clipShape(Circle())
+                if let imageName = regionImage {
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                } else {
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 28, height: 28)
                 }
                 
                 Text(region.title)
@@ -196,10 +321,18 @@ struct RegionChip: View {
             }
             .padding(.vertical, 10)
             .padding(.horizontal, 18)
-            .background(
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(ThemeColors.accentGradient(colorScheme))
+                } else {
+                    Capsule()
+                        .fill(Color.clear)
+                }
+            }
+            .overlay(
                 Capsule()
-                    .fill(backgroundStyle)
-                    .shadow(color: Color.black.opacity(isSelected ? 0.2 : 0.05), radius: 8, x: 0, y: 4)
+                    .stroke(isSelected ? Color.clear : ThemeColors.border(colorScheme), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -209,16 +342,17 @@ struct RegionChip: View {
 struct DestinationCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let destination: RecommendationHighlight
+    let localAssetName: String?
     
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack(alignment: .topLeading) {
             backgroundImage
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             contentOverlay
         }
-        .frame(width: 300, height: 340)
+        .frame(width: 280, height: 260)
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
     }
     
@@ -227,99 +361,193 @@ struct DestinationCard: View {
             if let imageUrl = destination.imageUrl, let url = URL(string: imageUrl) {
                 AsyncImage(url: url) { image in
                     image
-                .resizable()
-                .scaledToFill()
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 280, height: 260)
                 } placeholder: {
                     Rectangle()
                         .fill(ThemeColors.surface(colorScheme))
+                        .frame(width: 280, height: 260)
                 }
             } else {
-                Rectangle()
-                    .fill(ThemeColors.surface(colorScheme))
+                // Fallback vers un asset local résolu
+                Image(localAssetName ?? "rome")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 280, height: 260)
             }
         }
     }
     
     private var contentOverlay: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(destination.title)
-                .font(.headline)
-                .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(destination.title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                if let rating = destination.rating {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+                        Text(String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ","))
+                            .font(.caption.bold())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.2))
+                    .clipShape(Capsule())
+                }
+            }
+            
+            Spacer()
+            
             Text(destination.subtitle)
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.9))
+                .font(.title3.bold())
+                .foregroundColor(.white)
                 .lineLimit(2)
                 .minimumScaleFactor(0.9)
-            
-            Spacer(minLength: 0)
-            
-            if let rating = destination.rating {
-                HStack(spacing: 6) {
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
-                        .font(.footnote)
-                    Text(String(format: "%.1f", rating))
-                        .font(.footnote.bold())
-                    .foregroundColor(.white)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.2))
-                .clipShape(Capsule())
-            }
         }
         .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
-struct CustomBottomNavigationBar: View {
+// Nouvelle card pour afficher les pays depuis l'API
+struct CountryCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var selectedIndex = 0
+    let country: Country
     
     var body: some View {
-        HStack {
-            BottomNavItem(icon: "house", isSelected: selectedIndex == 0) { selectedIndex = 0 }
-            BottomNavItem(icon: "heart", isSelected: selectedIndex == 1) { selectedIndex = 1 }
-            BottomNavItem(icon: "message", isSelected: selectedIndex == 2) { selectedIndex = 2 }
-            BottomNavItem(icon: "person", isSelected: selectedIndex == 3) { selectedIndex = 3 }
+        ZStack(alignment: .topLeading) {
+            backgroundImage
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            contentOverlay
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(ThemeColors.accentGradient(colorScheme))
-        .clipShape(Capsule())
-        .padding(.bottom, 16)
+        .frame(width: 280, height: 260)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
+    }
+    
+    private var backgroundImage: some View {
+        Group {
+            if let imageUrl = country.thumbnailImageUrl, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 280, height: 260)
+                    case .failure(_), .empty:
+                        Rectangle()
+                            .fill(ThemeColors.surface(colorScheme))
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            }
+                            .frame(width: 280, height: 260)
+                    @unknown default:
+                        Rectangle()
+                            .fill(ThemeColors.surface(colorScheme))
+                            .frame(width: 280, height: 260)
+                    }
+                }
+            } else {
+                // Fallback vers un asset local
+                Rectangle()
+                    .fill(ThemeColors.surface(colorScheme))
+                    .overlay {
+                        Image(systemName: "photo")
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                    }
+                    .frame(width: 280, height: 260)
+            }
+        }
+    }
+    
+    private var contentOverlay: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(country.name)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                Spacer()
+            }
+            
+            Spacer()
+            
+            Text(country.summary)
+                .font(.title3.bold())
+                .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.9)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
-struct BottomNavItem: View {
+// MARK: - City carousel views
+struct CityItem: Identifiable {
+    let id = UUID().uuidString
+    let title: String
+    let subtitle: String
+    let imageName: String
+    let rating: Double
+}
+
+struct CityCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    let icon: String
-    let isSelected: Bool
-    let onClick: () -> Void
+    let city: CityItem
     
     var body: some View {
-        Button(action: onClick) {
-            Image(systemName: icon)
-                .foregroundColor(isSelected ? Color.white : ThemeColors.secondaryText(colorScheme))
-                .padding()
-                .background(Circle().fill(isSelected ? ThemeColors.accent() : ThemeColors.surface(colorScheme).opacity(0.4)))
+        ZStack(alignment: .topLeading) {
+            Image(city.imageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 320, height: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.8)],
+                           startPoint: .center, endPoint: .bottom)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(city.title)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
+                        Text(String(format: "%.1f", city.rating).replacingOccurrences(of: ".", with: ","))
+                            .font(.caption.bold())
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.2))
+                    .clipShape(Capsule())
+                }
+                Spacer()
+                Text(city.subtitle)
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+                    .lineLimit(3)
+            }
+            .padding(20)
         }
-        .frame(maxWidth: .infinity)
+        .frame(width: 320, height: 340)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
     }
-}
-
-// Models
-struct Region {
-    let name: String
-    let imageRes: String
-}
-
-struct Destination {
-    let name: String
-    let description: String
-    let imageRes: String
-    let rating: String
 }
 
 struct HomeScreen_Previews: PreviewProvider {

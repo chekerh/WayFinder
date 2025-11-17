@@ -19,3 +19,4 @@ final class SurveyService {
         return try await APIService.shared.request(builder, decodeTo: SurveyPreferenceResponse.self)
     }
 }
+ 

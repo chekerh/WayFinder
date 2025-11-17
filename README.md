@@ -108,9 +108,29 @@ Veillez à :
 - `LanguageManager` : stocke la langue via `UserDefaults`, force RTL pour l’arabe.
 - `ThemeColors` : palette claire/sombre partagée (fonds, surfaces, textes, dégradés).
 - `AuthService.login` : 
-  1. POST `/auth/login` → récupération JWT.
+  1. POST `/auth/login` → récupération JWTil ne spkleffacer le cadre blanc sous le lil.
   2. Si le profil n’est pas renvoyé, fallback `UserService.shared.fetchProfile()` (GET `/api/user/profile`).
 - `TokenStorage` : persistance du JWT en Keychain.
+
+#### Social Login (Google & Apple)
+> ℹ️ Google Sign-In côté iOS est désactivé tant que `/api/auth/google` n’est pas configuré dans le backend Render. Les instructions suivantes restent valables pour activer la fonctionnalité ultérieurement.
+
+1. **Google**
+   - Ajouter le package Swift Package Manager `https://github.com/google/GoogleSignIn-iOS` à la cible iOS (produit `GoogleSignIn`).
+   - Créer un client OAuth iOS dans la console Google et récupérer :
+     - `CLIENT_ID` (à placer dans `Info.plist` sous la clé `GOOGLE_CLIENT_ID`).
+     - `nowREVERSED_CLIENT_ID` (à ajouter dans `CFBundleURLTypes` pour l’ouverture d’URL).
+   - Si vous utilisez un fichier `GoogleService-Info.plist`, assurez-vous qu’il soit inclus dans la cible.
+2. **Apple**
+   - Activer la capability **Sign In with Apple** dans Xcode (Target ▸ Signing & Capabilities).
+   - Vérifier que l’identifiant d’application est associé au service “Sign In with Apple” dans l’Apple Developer Portal.
+3. **API**
+   - Les routes `/api/auth/google` et `/api/auth/apple` doivent renvoyer la même structure que `/api/auth/login` (`access_token`, `user`, `onboarding_completed`).
+4. **Tests rapides**
+   - Démarrer le backend (`npm run start:dev`).
+   - Lancer l’app (`⌘R`), cliquer sur « Continuer avec Google » ou « Continuer avec Apple ».
+   - Vérifier dans les logs Xcode que le token est bien reçu et que l’écran `SurveyScreen` s’affiche.
+   - Si la fenêtre Google ne s’ouvre pas, contrôler la présence du schéma d’URL inversé et du `GOOGLE_CLIENT_ID`.
 
 ### Côté NestJS
 - `POST /api/auth/register` : doit accepter `username`, `email`, `first_name`, `last_name`, `password`.

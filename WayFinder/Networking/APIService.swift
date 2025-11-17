@@ -35,6 +35,17 @@ final class APIService {
         if request.value(forHTTPHeaderField: "Content-Type") == nil {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
+        
+        if request.value(forHTTPHeaderField: "Authorization") == nil,
+           let token = TokenStorage.fetch(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        // Log de debug pour les tests
+        print("🌐 [API] \(builder.method) \(url.absoluteString)")
+        if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
+            print("📤 [API] Body: \(bodyString)")
+        }
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -42,10 +53,18 @@ final class APIService {
             throw APIError.invalidResponse
         }
 
+        // Log de la réponse
+        print("📥 [API] Status: \(httpResponse.statusCode)")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 [API] Response: \(responseString.prefix(500))")
+        }
+
         guard (200..<300).contains(httpResponse.statusCode) else {
             if let nestError = try? JSONDecoder().decode(NestError.self, from: data) {
+                print("❌ [API] Error: \(nestError.message.text)")
                 throw APIError.custom(nestError.message.text)
             }
+            print("❌ [API] HTTP Error: \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode, data)
         }
 
@@ -53,8 +72,11 @@ final class APIService {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(T.self, from: data)
+            let result = try decoder.decode(T.self, from: data)
+            print("✅ [API] Decode success")
+            return result
         } catch {
+            print("❌ [API] Decode error: \(error.localizedDescription)")
             throw APIError.decodingError(error)
         }
     }
