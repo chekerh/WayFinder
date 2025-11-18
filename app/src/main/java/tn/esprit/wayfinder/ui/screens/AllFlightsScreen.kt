@@ -8,11 +8,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.AirplanemodeActive
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,16 +37,26 @@ import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
+import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllFlightsScreen(navController: NavController, selectedRegion: String? = null) {
     val context = LocalContext.current
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
     
     var currentFilterRegion by remember { mutableStateOf(selectedRegion) }
     var showFilterMenu by remember { mutableStateOf(false) }
+    var showFilterDrawer by remember { mutableStateOf(false) }
+    
+    // Filter state
+    var minPrice by remember { mutableStateOf(0f) }
+    var maxPrice by remember { mutableStateOf(2000f) }
+    var selectedAirlines by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var maxDurationHours by remember { mutableStateOf(24f) }
+    var travelClass by remember { mutableStateOf<String?>(null) }
 
     // Region to country mapping (same as HomeScreen)
     val regions = listOf(
@@ -65,16 +80,24 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                 title = { Text("Tous les vols", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    // Filter button
+                    // Region filter button
                     IconButton(onClick = { showFilterMenu = true }) {
                         Icon(
-                            imageVector = Icons.Filled.FilterList,
-                            contentDescription = "Filtrer",
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "Filtrer par région",
                             tint = if (currentFilterRegion != null) Color(0xFF1976D2) else Color.Gray
+                        )
+                    }
+                    // Advanced filter button
+                    IconButton(onClick = { showFilterDrawer = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Tune,
+                            contentDescription = "Filtres avancés",
+                            tint = if (hasActiveFilters(minPrice, maxPrice, selectedAirlines, maxDurationHours, travelClass)) Color(0xFF1976D2) else Color.Gray
                         )
                     }
                 },
@@ -141,7 +164,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                     )
                 }
                 // Filter destinations based on current filter region
-                val filteredDestinations = if (currentFilterRegion != null && currentFilterRegion != "Préférences") {
+                var filteredDestinations = if (currentFilterRegion != null && currentFilterRegion != "Préférences") {
                     val filterCountries = regionCountries[currentFilterRegion] ?: emptyList()
                     if (filterCountries.isNotEmpty()) {
                         state.destinations.filter { destination ->
@@ -154,6 +177,29 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                     }
                 } else {
                     state.destinations
+                }
+                
+                // Get available airlines from all destinations (before filtering)
+                val allAvailableAirlines = state.destinations.mapNotNull { it.airline }.distinct()
+                
+                // Apply advanced filters
+                filteredDestinations = filteredDestinations.filter { destination ->
+                    // Price filter
+                    val price = destination.price ?: 0.0
+                    if (price < minPrice || price > maxPrice) return@filter false
+                    
+                    // Airline filter
+                    if (selectedAirlines.isNotEmpty() && destination.airline != null) {
+                        if (!selectedAirlines.contains(destination.airline)) return@filter false
+                    }
+                    
+                    // Duration filter (if we had duration data, we'd check it here)
+                    // For now, we'll skip this as FlightDestination doesn't have duration
+                    
+                    // Travel class filter (if we had class data, we'd check it here)
+                    // For now, we'll skip this as FlightDestination doesn't have travel class
+                    
+                    true
                 }
                 
                 if (filteredDestinations.isEmpty()) {
@@ -193,6 +239,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                         items(filteredDestinations) { destination ->
                             FlightCard(
                                 destination = destination,
+                                favoritesViewModel = favoritesViewModel,
                                 onClick = {
                                     navController.navigate("flight_detail/${destination.id}")
                                 }
@@ -225,15 +272,382 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
             }
             else -> {}
         }
+        
+        // Advanced Filter Drawer
+        if (showFilterDrawer) {
+            FilterDrawer(
+                onDismiss = { showFilterDrawer = false },
+                minPrice = minPrice,
+                maxPrice = maxPrice,
+                onPriceRangeChange = { min, max ->
+                    minPrice = min
+                    maxPrice = max
+                },
+                selectedAirlines = selectedAirlines,
+                onAirlinesChange = { selectedAirlines = it },
+                maxDurationHours = maxDurationHours,
+                onDurationChange = { maxDurationHours = it },
+                travelClass = travelClass,
+                onTravelClassChange = { travelClass = it },
+                availableAirlines = if (uiState is CatalogUiState.Success) {
+                    (uiState as CatalogUiState.Success).destinations.mapNotNull { it.airline }.distinct()
+                } else {
+                    emptyList()
+                },
+                onReset = {
+                    minPrice = 0f
+                    maxPrice = 2000f
+                    selectedAirlines = emptySet()
+                    maxDurationHours = 24f
+                    travelClass = null
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun hasActiveFilters(
+    minPrice: Float,
+    maxPrice: Float,
+    selectedAirlines: Set<String>,
+    maxDurationHours: Float,
+    travelClass: String?
+): Boolean {
+    return minPrice > 0f || maxPrice < 2000f || selectedAirlines.isNotEmpty() || maxDurationHours < 24f || travelClass != null
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterDrawer(
+    onDismiss: () -> Unit,
+    minPrice: Float,
+    maxPrice: Float,
+    onPriceRangeChange: (Float, Float) -> Unit,
+    selectedAirlines: Set<String>,
+    onAirlinesChange: (Set<String>) -> Unit,
+    maxDurationHours: Float,
+    onDurationChange: (Float) -> Unit,
+    travelClass: String?,
+    onTravelClassChange: (String?) -> Unit,
+    availableAirlines: List<String>,
+    onReset: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Tune,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "Filtres avancés",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row {
+                    TextButton(onClick = onReset) {
+                        Text("Réinitialiser", color = Color(0xFF1976D2), fontWeight = FontWeight.Medium)
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "Fermer", tint = Color.Gray)
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // Price Range Filter
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Euro,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Prix",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "${minPrice.toInt()} EUR",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1976D2),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    Text(
+                        text = "—",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "${maxPrice.toInt()} EUR",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1976D2),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+                RangeSlider(
+                    value = minPrice..maxPrice,
+                    onValueChange = { range ->
+                        onPriceRangeChange(range.start, range.endInclusive)
+                    },
+                    valueRange = 0f..2000f,
+                    steps = 19
+                )
+            }
+            
+            Divider()
+            
+            // Airline Filter
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AirplanemodeActive,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Compagnie aérienne",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (availableAirlines.isEmpty()) {
+                    Text(
+                        text = "Aucune compagnie disponible",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.height(150.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(availableAirlines) { airline ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val newSet = if (selectedAirlines.contains(airline)) {
+                                            selectedAirlines - airline
+                                        } else {
+                                            selectedAirlines + airline
+                                        }
+                                        onAirlinesChange(newSet)
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = selectedAirlines.contains(airline),
+                                    onCheckedChange = { checked ->
+                                        val newSet = if (checked) {
+                                            selectedAirlines + airline
+                                        } else {
+                                            selectedAirlines - airline
+                                        }
+                                        onAirlinesChange(newSet)
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = airline,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // Duration Filter
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AccessTime,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Durée maximale",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "${maxDurationHours.toInt()} heures",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1976D2),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+                Slider(
+                    value = maxDurationHours,
+                    onValueChange = onDurationChange,
+                    valueRange = 1f..48f,
+                    steps = 23
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "1h",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "48h",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            Divider()
+            
+            // Travel Class Filter
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AirplanemodeActive,
+                        contentDescription = null,
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Classe de voyage",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                val travelClasses = listOf("Économique", "Premium Économique", "Affaires", "Première")
+                travelClasses.chunked(2).forEach { rowClasses ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowClasses.forEach { className ->
+                            FilterChip(
+                                selected = travelClass == className,
+                                onClick = {
+                                    onTravelClassChange(if (travelClass == className) null else className)
+                                },
+                                label = { Text(className) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        // Fill remaining space if odd number
+                        if (rowClasses.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Apply Button
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Appliquer les filtres",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
 @Composable
 fun FlightCard(
     destination: tn.esprit.wayfinder.models.FlightDestination,
+    favoritesViewModel: FavoritesViewModel,
     onClick: () -> Unit
 ) {
     var isFavorite by remember { mutableStateOf(false) }
+    
+    // Check if favorite on composition
+    LaunchedEffect(destination.id) {
+        favoritesViewModel.checkFavorite("flight", destination.id) { favorite ->
+            isFavorite = favorite
+        }
+    }
     
     // Better image URL - use city name for more relevant images
     val imageUrl = destination.imageUrl ?: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80"
@@ -300,7 +714,26 @@ fun FlightCard(
             
             // Favorite button
             IconButton(
-                onClick = { isFavorite = !isFavorite },
+                onClick = {
+                    isFavorite = !isFavorite
+                    if (isFavorite) {
+                        favoritesViewModel.addFavorite(
+                            "flight",
+                            destination.id,
+                            mapOf(
+                                "name" to destination.name,
+                                "city" to destination.city,
+                                "country" to destination.country,
+                                "imageUrl" to (destination.imageUrl ?: ""),
+                                "price" to (destination.price ?: 0.0),
+                                "currency" to destination.currency,
+                                "airline" to (destination.airline ?: "")
+                            )
+                        )
+                    } else {
+                        favoritesViewModel.removeFavorite("flight", destination.id)
+                    }
+                },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(8.dp)

@@ -48,6 +48,13 @@ data class UpdateProfileRequest(
 )
 
 @Serializable
+data class UploadProfileImageResponse(
+    val message: String,
+    @SerialName("profile_image_url") val profileImageUrl: String,
+    val user: User
+)
+
+@Serializable
 data class SignUpRequest(
     val username: String,
     val email: String,

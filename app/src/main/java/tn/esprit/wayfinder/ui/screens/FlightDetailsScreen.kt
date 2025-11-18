@@ -19,12 +19,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
+import tn.esprit.wayfinder.ui.components.ReviewsSection
+import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
+    val context = LocalContext.current
+    val reviewsViewModel: ReviewsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    
     val savedDestination = remember(destinationId) {
         navController.previousBackStackEntry
             ?.savedStateHandle
@@ -256,6 +265,13 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                 }
             }
+
+            // Reviews Section
+            ReviewsSection(
+                itemType = "flight",
+                itemId = destination.id,
+                reviewsViewModel = reviewsViewModel
+            )
 
             // Reserve Button
             Button(

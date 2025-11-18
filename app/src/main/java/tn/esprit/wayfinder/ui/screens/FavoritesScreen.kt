@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,24 +19,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.viewmodels.FavoritesUiState
+import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(navController: NavController) {
-    // TODO: Load favorites from ViewModel/Repository
-    var favorites by remember { 
-        mutableStateOf<List<FlightDestination>>(emptyList())
+    val context = LocalContext.current
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val uiState by favoritesViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        favoritesViewModel.loadFavorites()
     }
 
     Scaffold(
@@ -63,7 +72,19 @@ fun FavoritesScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        if (favorites.isEmpty()) {
+        when (val state = uiState) {
+            is FavoritesUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            is FavoritesUiState.Success -> {
+                if (state.destinations.isEmpty()) {
             // Empty state
             Box(
                 modifier = Modifier
@@ -101,12 +122,11 @@ fun FavoritesScreen(navController: NavController) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(favorites, key = { it.id }) { destination ->
+                items(state.destinations, key = { it.id }) { destination ->
                     FavoriteCard(
                         destination = destination,
                         onRemove = {
-                            // TODO: Remove from favorites
-                            favorites = favorites.filter { it.id != destination.id }
+                            favoritesViewModel.removeFavorite("flight", destination.id)
                         },
                         onClick = {
                             navController.navigate("flight_detail/${destination.id}")
@@ -114,6 +134,31 @@ fun FavoritesScreen(navController: NavController) {
                     )
                 }
             }
+                }
+            }
+            is FavoritesUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            state.message,
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Button(onClick = { favoritesViewModel.loadFavorites() }) {
+                            Text("Réessayer")
+                        }
+                    }
+                }
+            }
+            else -> {}
         }
     }
 }

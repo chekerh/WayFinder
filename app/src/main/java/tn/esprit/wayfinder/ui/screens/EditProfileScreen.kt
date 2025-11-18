@@ -72,14 +72,30 @@ fun EditProfileScreen(navController: NavController) {
             // Upload image immediately when selected
             try {
                 val inputStream = context.contentResolver.openInputStream(it)
-                val file = File(context.cacheDir, "temp_profile_${System.currentTimeMillis()}.jpg")
+                // Get the actual MIME type from the content resolver
+                val mimeType = context.contentResolver.getType(it) ?: "image/jpeg"
+                // Ensure we have a valid image MIME type
+                val validMimeType = when {
+                    mimeType.startsWith("image/") -> mimeType
+                    else -> "image/jpeg" // Default fallback
+                }
+                
+                // Determine file extension from MIME type
+                val extension = when (validMimeType) {
+                    "image/png" -> "png"
+                    "image/jpeg", "image/jpg" -> "jpg"
+                    "image/gif" -> "gif"
+                    else -> "jpg"
+                }
+                
+                val file = File(context.cacheDir, "temp_profile_${System.currentTimeMillis()}.$extension")
                 inputStream?.use { stream ->
                     file.outputStream().use { output ->
                         stream.copyTo(output)
                     }
                 }
                 if (file.exists()) {
-                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    val requestFile = file.asRequestBody(validMimeType.toMediaTypeOrNull())
                     val imagePart = MultipartBody.Part.createFormData("image", file.name, requestFile)
                     userViewModel.uploadProfileImage(imagePart)
                 }

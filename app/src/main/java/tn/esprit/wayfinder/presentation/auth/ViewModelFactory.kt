@@ -11,13 +11,21 @@ import tn.esprit.wayfinder.presentation.booking.BookingRepository
 import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
 import tn.esprit.wayfinder.presentation.payment.FlouciRepository
 import tn.esprit.wayfinder.presentation.user.UserRepository
+import tn.esprit.wayfinder.presentation.discussion.DiscussionRepository
+import tn.esprit.wayfinder.presentation.favorites.FavoritesRepository
+import tn.esprit.wayfinder.presentation.reviews.ReviewsRepository
+import tn.esprit.wayfinder.presentation.itinerary.ItineraryRepository
 import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
+import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
+import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
+import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 import tn.esprit.wayfinder.viewmodels.PaymentViewModel
 import tn.esprit.wayfinder.viewmodels.UserViewModel
+import tn.esprit.wayfinder.viewmodels.ItineraryViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -60,6 +68,26 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = CatalogRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 ActivitiesViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(DiscussionViewModel::class.java) -> {
+                val repository = DiscussionRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                DiscussionViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(FavoritesViewModel::class.java) -> {
+                val repository = FavoritesRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                FavoritesViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(ReviewsViewModel::class.java) -> {
+                val repository = ReviewsRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                ReviewsViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(ItineraryViewModel::class.java) -> {
+                val repository = ItineraryRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                ItineraryViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

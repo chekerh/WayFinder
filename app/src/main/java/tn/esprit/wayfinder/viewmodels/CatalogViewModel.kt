@@ -117,10 +117,24 @@ class CatalogViewModel(
     }
 
     private fun prepareDestinations(destinations: List<FlightDestination>, showAll: Boolean): List<FlightDestination> {
+        // First, remove exact duplicates using stable ID
+        val uniqueById = destinations.distinctBy { it.id }
+        
         return if (showAll) {
-            destinations.distinctBy { destinationKey(it) }
+            // For "show all", group by city and show only the cheapest flight per city
+            // This prevents showing multiple flights to the same destination
+            uniqueById
+                .groupBy { it.city.lowercase() }
+                .flatMap { (_, cityFlights) ->
+                    // Sort by price and take only the cheapest per city
+                    cityFlights
+                        .sortedBy { it.price ?: Double.MAX_VALUE }
+                        .take(1) // Only show one flight per city
+                }
+                .sortedBy { it.price ?: Double.MAX_VALUE } // Sort all by price
         } else {
-            destinations
+            // For home screen, show up to 2 flights per city
+            uniqueById
                 .groupBy { it.city.lowercase() }
                 .flatMap { (_, cityFlights) ->
                     cityFlights

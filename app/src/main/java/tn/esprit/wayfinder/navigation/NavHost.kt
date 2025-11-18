@@ -43,6 +43,13 @@ fun AppNavigation() {
         }
         composable("booking_history") { BookingHistoryScreen(navController = navController) }
         composable(
+            "booking_detail/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+            BookingDetailScreen(navController = navController, bookingId = bookingId)
+        }
+        composable(
             route = "all_flights/{region}",
             arguments = listOf(
                 navArgument("region") {
@@ -98,6 +105,16 @@ fun AppNavigation() {
         composable("during_travel") {
             DuringTravelScreen(navController = navController)
         }
+        composable("discussions") {
+            DiscussionScreen(navController = navController)
+        }
+        composable(
+            "post_detail/{postId}",
+            arguments = listOf(navArgument("postId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: ""
+            PostDetailScreen(navController = navController, postId = postId)
+        }
         composable(
             "error/{code}",
             arguments = listOf(navArgument("code") { 
@@ -107,6 +124,19 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val errorCode = backStackEntry.arguments?.getString("code") ?: "404"
             ErrorScreen(navController = navController, errorCode = errorCode)
+        }
+        composable("itineraries") {
+            ItineraryListScreen(navController = navController)
+        }
+        composable(
+            "itinerary_detail/{itineraryId}",
+            arguments = listOf(navArgument("itineraryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val itineraryId = backStackEntry.arguments?.getString("itineraryId") ?: ""
+            ItineraryDetailScreen(navController = navController, itineraryId = itineraryId)
+        }
+        composable("create_itinerary") {
+            CreateItineraryScreen(navController = navController)
         }
     }
 }

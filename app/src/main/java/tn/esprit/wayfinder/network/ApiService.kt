@@ -23,7 +23,7 @@ interface ApiService {
 
     @Multipart
     @POST("user/profile/upload-image")
-    suspend fun uploadProfileImage(@Part image: MultipartBody.Part): Map<String, Any>
+    suspend fun uploadProfileImage(@Part image: MultipartBody.Part): UploadProfileImageResponse
 
     // --- BOOKING --- //
     @GET("booking/offers")
@@ -164,4 +164,72 @@ interface ApiService {
 
     @DELETE("discussion/comments/{id}")
     suspend fun deleteComment(@Path("id") commentId: String): Map<String, String>
+
+    // --- FAVORITES --- //
+    @GET("favorites")
+    suspend fun getFavorites(@Query("type") type: String? = null): List<Favorite>
+
+    @GET("favorites/count")
+    suspend fun getFavoriteCount(@Query("type") type: String? = null): FavoriteCountResponse
+
+    @GET("favorites/check/{type}/{id}")
+    suspend fun checkFavorite(@Path("type") type: String, @Path("id") id: String): FavoriteCheckResponse
+
+    @POST("favorites")
+    suspend fun addFavorite(@Body request: CreateFavoriteRequest): Favorite
+
+    @DELETE("favorites/{type}/{id}")
+    suspend fun removeFavorite(@Path("type") type: String, @Path("id") id: String): Map<String, String>
+
+    // --- REVIEWS --- //
+    @GET("reviews/{itemType}/{itemId}")
+    suspend fun getReviews(@Path("itemType") itemType: String, @Path("itemId") itemId: String): List<Review>
+
+    @GET("reviews/{itemType}/{itemId}/stats")
+    suspend fun getReviewStats(@Path("itemType") itemType: String, @Path("itemId") itemId: String): ReviewStatsResponse
+
+    @GET("reviews/check/{itemType}/{itemId}")
+    suspend fun checkUserReview(@Path("itemType") itemType: String, @Path("itemId") itemId: String): Review?
+
+    @GET("reviews/user/my-reviews")
+    suspend fun getUserReviews(@Query("type") itemType: String? = null): List<Review>
+
+    @POST("reviews")
+    suspend fun createReview(@Body request: CreateReviewRequest): Review
+
+    @PUT("reviews/{id}")
+    suspend fun updateReview(@Path("id") reviewId: String, @Body request: UpdateReviewRequest): Review
+
+    @DELETE("reviews/{id}")
+    suspend fun deleteReview(@Path("id") reviewId: String): Map<String, String>
+
+    // --- ITINERARY --- //
+    @GET("itinerary")
+    suspend fun getItineraries(@Query("includePublic") includePublic: Boolean = false): List<Itinerary>
+
+    @GET("itinerary/{id}")
+    suspend fun getItinerary(@Path("id") id: String): Itinerary
+
+    @POST("itinerary")
+    suspend fun createItinerary(@Body request: CreateItineraryRequest): Itinerary
+
+    @PUT("itinerary/{id}")
+    suspend fun updateItinerary(@Path("id") id: String, @Body request: UpdateItineraryRequest): Itinerary
+
+    @DELETE("itinerary/{id}")
+    suspend fun deleteItinerary(@Path("id") id: String): Map<String, String>
+
+    @POST("itinerary/{id}/days/{dayDate}/activities")
+    suspend fun addActivity(
+        @Path("id") id: String,
+        @Path("dayDate") dayDate: String,
+        @Body activity: AddActivityRequest
+    ): Itinerary
+
+    @DELETE("itinerary/{id}/days/{dayDate}/activities/{activityIndex}")
+    suspend fun removeActivity(
+        @Path("id") id: String,
+        @Path("dayDate") dayDate: String,
+        @Path("activityIndex") activityIndex: Int
+    ): Itinerary
 }

@@ -34,28 +34,7 @@ class UserRepository(private val apiService: ApiService) {
     
     suspend fun uploadProfileImage(imagePart: MultipartBody.Part): User {
         val response = apiService.uploadProfileImage(imagePart)
-        // Extract user from response
-        val userJson = response["user"] as? Map<*, *>
-        return if (userJson != null) {
-            // Convert map to User - in production, use proper deserialization
-            // For now, return a basic user object
-            User(
-                id = userJson["_id"] as? String ?: "",
-                username = userJson["username"] as? String ?: "",
-                email = userJson["email"] as? String ?: "",
-                firstName = userJson["first_name"] as? String ?: "",
-                lastName = userJson["last_name"] as? String ?: "",
-                phone = userJson["phone"] as? String,
-                location = userJson["location"] as? String,
-                bio = userJson["bio"] as? String,
-                profileImageUrl = userJson["profile_image_url"] as? String,
-                preferences = (userJson["preferences"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                status = userJson["status"] as? String ?: "ACTIVE",
-                onboardingCompleted = userJson["onboarding_completed"] as? Boolean ?: false
-            )
-        } else {
-            throw Exception("Failed to parse user from upload response")
-        }
+        return response.user
     }
 }
 

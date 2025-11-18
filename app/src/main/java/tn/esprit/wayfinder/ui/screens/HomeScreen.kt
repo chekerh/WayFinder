@@ -54,6 +54,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
+import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -62,6 +63,7 @@ data class Region(val name: String, val imageRes: Int, val filterCountries: List
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
 
     // Selected region state
@@ -225,7 +227,8 @@ fun HomeScreen(navController: NavController) {
                             
                             DestinationsSection(
                                 destinations = displayDestinations,
-                                navController = navController
+                                navController = navController,
+                                favoritesViewModel = favoritesViewModel
                             )
                         }
                         is CatalogUiState.Error -> {
@@ -253,12 +256,12 @@ fun HomeScreen(navController: NavController) {
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Discussion Section
+            // Discussion Section - Placed after Comparateur avec Gemini section
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 DiscussionCard(navController = navController)
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -396,7 +399,11 @@ fun RegionChip(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDestination>, navController: NavController) {
+fun DestinationsSection(
+    destinations: List<tn.esprit.wayfinder.models.FlightDestination>,
+    navController: NavController,
+    favoritesViewModel: FavoritesViewModel
+) {
     if (destinations.isEmpty()) {
         Text(
             text = "Aucune destination disponible",
@@ -436,15 +443,28 @@ fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDest
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            DestinationCardContent(destination = destinations[page])
+            DestinationCardContent(
+                destination = destinations[page],
+                favoritesViewModel = favoritesViewModel
+            )
         }
     }
 }
 
 @Composable
-fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestination) {
+fun DestinationCardContent(
+    destination: tn.esprit.wayfinder.models.FlightDestination,
+    favoritesViewModel: FavoritesViewModel
+) {
     // State for favorite button
     var isFavorite by remember { mutableStateOf(false) }
+    
+    // Check if favorite on composition
+    LaunchedEffect(destination.id) {
+        favoritesViewModel.checkFavorite("flight", destination.id) { favorite ->
+            isFavorite = favorite
+        }
+    }
     
     // Use the image URL from the destination (already set in ViewModel with city-specific images)
     val imageUrl = destination.imageUrl ?: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80"
@@ -507,7 +527,26 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
                 .padding(12.dp)
         ) {
             IconButton(
-                onClick = { isFavorite = !isFavorite },
+                onClick = {
+                    isFavorite = !isFavorite
+                    if (isFavorite) {
+                        favoritesViewModel.addFavorite(
+                            "flight",
+                            destination.id,
+                            mapOf(
+                                "name" to destination.name,
+                                "city" to destination.city,
+                                "country" to destination.country,
+                                "imageUrl" to (destination.imageUrl ?: ""),
+                                "price" to (destination.price ?: 0.0),
+                                "currency" to destination.currency,
+                                "airline" to (destination.airline ?: "")
+                            )
+                        )
+                    } else {
+                        favoritesViewModel.removeFavorite("flight", destination.id)
+                    }
+                },
                 modifier = Modifier
                     .size(40.dp)
                     .background(Color.White.copy(alpha = 0.3f), CircleShape)
