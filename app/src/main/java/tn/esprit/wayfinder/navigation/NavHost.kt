@@ -144,5 +144,24 @@ fun AppNavigation() {
         composable("search_history") {
             SearchHistoryScreen(navController = navController)
         }
+        composable("price_alerts") {
+            PriceAlertsScreen(navController = navController)
+        }
+        composable(
+            "travel_tips/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            val destinationName = backStackEntry.savedStateHandle.get<String>("destinationName")
+            val city = backStackEntry.savedStateHandle.get<String>("city")
+            val country = backStackEntry.savedStateHandle.get<String>("country")
+            TravelTipsScreen(
+                navController = navController,
+                destinationId = destinationId,
+                destinationName = destinationName,
+                city = city,
+                country = country
+            )
+        }
     }
 }

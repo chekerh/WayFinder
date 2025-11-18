@@ -319,4 +319,48 @@ interface ApiService {
 
     @GET("search-history/stats")
     suspend fun getSearchStats(): SearchStatsResponse
+
+    // --- PRICE ALERTS --- //
+    @POST("price-alerts")
+    suspend fun createPriceAlert(@Body request: CreatePriceAlertRequest): PriceAlert
+
+    @GET("price-alerts")
+    suspend fun getPriceAlerts(@Query("activeOnly") activeOnly: Boolean = false): List<PriceAlert>
+
+    @GET("price-alerts/{id}")
+    suspend fun getPriceAlert(@Path("id") id: String): PriceAlert
+
+    @PUT("price-alerts/{id}")
+    suspend fun updatePriceAlert(@Path("id") id: String, @Body request: UpdatePriceAlertRequest): PriceAlert
+
+    @DELETE("price-alerts/{id}")
+    suspend fun deletePriceAlert(@Path("id") id: String): Map<String, String>
+
+    @POST("price-alerts/{id}/deactivate")
+    suspend fun deactivatePriceAlert(@Path("id") id: String): PriceAlert
+
+    // --- TRAVEL TIPS --- //
+    @GET("travel-tips")
+    suspend fun getTravelTips(
+        @Query("destinationId") destinationId: String,
+        @Query("category") category: String? = null,
+        @Query("limit") limit: Int = 10
+    ): List<TravelTip>
+
+    @GET("travel-tips/generate/{destinationId}")
+    suspend fun generateTravelTips(
+        @Path("destinationId") destinationId: String,
+        @Query("destinationName") destinationName: String,
+        @Query("city") city: String? = null,
+        @Query("country") country: String? = null
+    ): List<TravelTip>
+
+    @POST("travel-tips")
+    suspend fun createTravelTip(@Body request: CreateTravelTipRequest): TravelTip
+
+    @POST("travel-tips/{tipId}/helpful")
+    suspend fun markTipHelpful(@Path("tipId") tipId: String): TravelTip
+
+    @GET("travel-tips/{tipId}")
+    suspend fun getTravelTipById(@Path("tipId") tipId: String): TravelTip
 }

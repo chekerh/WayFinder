@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,13 +27,21 @@ import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.ReviewsSection
+import tn.esprit.wayfinder.ui.components.CreatePriceAlertDialog
+import tn.esprit.wayfinder.ui.components.TravelTipsSection
 import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
+import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
+import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     val context = LocalContext.current
     val reviewsViewModel: ReviewsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val priceAlertsViewModel: PriceAlertsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val travelTipsViewModel: TravelTipsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    
+    var showPriceAlertDialog by remember { mutableStateOf(false) }
     
     val savedDestination = remember(destinationId) {
         navController.previousBackStackEntry
@@ -266,6 +275,16 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 }
             }
 
+            // Travel Tips Section
+            TravelTipsSection(
+                destinationId = destination.id,
+                destinationName = destination.name,
+                city = destination.city,
+                country = destination.country,
+                travelTipsViewModel = travelTipsViewModel,
+                navController = navController
+            )
+
             // Reviews Section
             ReviewsSection(
                 itemType = "flight",
@@ -273,30 +292,68 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 reviewsViewModel = reviewsViewModel
             )
 
-            // Reserve Button
-            Button(
-                onClick = {
-                    // Navigate to booking screen
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set(SELECTED_DESTINATION_KEY, destination)
-                    navController.navigate("booking/${destination.id}")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1976D2)
-                )
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Réserver maintenant",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                OutlinedButton(
+                    onClick = { showPriceAlertDialog = true },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.NotificationsActive,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Alerte prix",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Button(
+                    onClick = {
+                        // Navigate to booking screen
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(SELECTED_DESTINATION_KEY, destination)
+                        navController.navigate("booking/${destination.id}")
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2)
+                    )
+                ) {
+                    Text(
+                        text = "Réserver",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
+    }
+
+    if (showPriceAlertDialog) {
+        CreatePriceAlertDialog(
+            destination = destination,
+            currentPrice = destination.price,
+            currency = destination.currency,
+            onDismiss = { showPriceAlertDialog = false },
+            onCreate = { request ->
+                priceAlertsViewModel.createPriceAlert(request) {
+                    // Show success message or navigate
+                }
+            }
+        )
     }
 }
 

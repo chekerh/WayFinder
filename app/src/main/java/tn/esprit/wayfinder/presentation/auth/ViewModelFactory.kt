@@ -18,6 +18,8 @@ import tn.esprit.wayfinder.presentation.itinerary.ItineraryRepository
 import tn.esprit.wayfinder.presentation.notifications.NotificationsRepository
 import tn.esprit.wayfinder.presentation.social.SocialRepository
 import tn.esprit.wayfinder.presentation.searchhistory.SearchHistoryRepository
+import tn.esprit.wayfinder.presentation.pricealerts.PriceAlertsRepository
+import tn.esprit.wayfinder.presentation.traveltips.TravelTipsRepository
 import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
@@ -32,6 +34,8 @@ import tn.esprit.wayfinder.viewmodels.ItineraryViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.SocialViewModel
 import tn.esprit.wayfinder.viewmodels.SearchHistoryViewModel
+import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
+import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -109,6 +113,16 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = SearchHistoryRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 SearchHistoryViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(PriceAlertsViewModel::class.java) -> {
+                val repository = PriceAlertsRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                PriceAlertsViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(TravelTipsViewModel::class.java) -> {
+                val repository = TravelTipsRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                TravelTipsViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
