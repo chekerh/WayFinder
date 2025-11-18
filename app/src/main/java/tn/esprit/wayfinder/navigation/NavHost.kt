@@ -36,8 +36,7 @@ fun AppNavigation() {
         composable("profile") { ProfileScreen(navController = navController) }
         composable("edit_profile") { EditProfileScreen(navController = navController) }
         composable("favorites") { 
-            // TODO: Create FavoritesScreen
-            Text("Favorites Screen")
+            FavoritesScreen(navController = navController)
         }
         composable("chat") { 
             ChatScreen(navController = navController)
@@ -85,6 +84,29 @@ fun AppNavigation() {
                     popUpTo("onboarding") { inclusive = true }
                 }
             })
+        }
+        composable(
+            "lodging_choice/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { 
+                type = NavType.StringType
+                nullable = true
+            })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId")
+            LodgingChoiceScreen(navController = navController, destinationId = destinationId)
+        }
+        composable("during_travel") {
+            DuringTravelScreen(navController = navController)
+        }
+        composable(
+            "error/{code}",
+            arguments = listOf(navArgument("code") { 
+                type = NavType.StringType
+                defaultValue = "404"
+            })
+        ) { backStackEntry ->
+            val errorCode = backStackEntry.arguments?.getString("code") ?: "404"
+            ErrorScreen(navController = navController, errorCode = errorCode)
         }
     }
 }

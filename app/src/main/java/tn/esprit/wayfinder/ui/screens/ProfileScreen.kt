@@ -136,6 +136,7 @@ fun ProfileScreen(navController: NavController) {
                     onBookingHistoryClick = {
                         navController.navigate("booking_history")
                     },
+                    navController = navController,
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -170,6 +171,7 @@ fun ProfileContent(
     user: tn.esprit.wayfinder.models.User,
     currentUser: tn.esprit.wayfinder.models.User?,
     onBookingHistoryClick: () -> Unit,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -348,6 +350,42 @@ fun ProfileContent(
             ) {
                 Text(
                     text = "Historique des réservations",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Filled.ArrowBack,
+                    contentDescription = "View",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            rotationZ = 180f
+                        }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Favorites Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    navController.navigate("favorites")
+                },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Mes favoris",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

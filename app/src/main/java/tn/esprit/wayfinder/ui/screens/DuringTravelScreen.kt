@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -90,62 +91,59 @@ fun DuringTravelScreen(navController: NavController) {
                 )
             )
         },
-        bottomBar = { CustomBottomNavigationBar(navController = navController) }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Category Filter
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        bottomBar = { CustomBottomNavigationBar(navController = navController) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // TODO: Show discovery options
+                },
+                containerColor = Color(0xFFFFC107),
+                contentColor = Color.Black
             ) {
-                items(categories) { category ->
-                    CategoryChip(
-                        category = category,
-                        isSelected = selectedCategory == category.name,
-                        onClick = {
-                            selectedCategory = if (selectedCategory == category.name) null else category.name
-                        }
-                    )
-                }
-            }
-            
-            // Activities Grid
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredActivities) { activity ->
-                    ActivityCard(
-                        activity = activity,
-                        onClick = {
-                            // TODO: Navigate to activity details
-                        }
-                    )
-                }
+                Text("Découvrir", fontWeight = FontWeight.Bold)
             }
         }
-        
-        // Discover Button (Floating)
-        FloatingActionButton(
-            onClick = {
-                // TODO: Show discovery options
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = Color(0xFFFFC107),
-            contentColor = Color.Black
-        ) {
-            Text("Découvrir", fontWeight = FontWeight.Bold)
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Category Filter
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(categories) { category ->
+                        CategoryChip(
+                            category = category,
+                            isSelected = selectedCategory == category.name,
+                            onClick = {
+                                selectedCategory = if (selectedCategory == category.name) null else category.name
+                            }
+                        )
+                    }
+                }
+                
+                // Activities Grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredActivities) { activity ->
+                        ActivityCard(
+                            activity = activity,
+                            onClick = {
+                                // TODO: Navigate to activity details
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }

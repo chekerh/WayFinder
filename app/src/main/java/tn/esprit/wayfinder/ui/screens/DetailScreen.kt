@@ -93,7 +93,10 @@ fun DetailScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { 
+                            // Navigate to comparison screen
+                            navController.navigate("all_flights/null")
+                        },
                         modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
@@ -101,7 +104,10 @@ fun DetailScreen(navController: NavController) {
                         Text(text = "Comparer les prix")
                     }
                     Button(
-                        onClick = { /* TODO */ },
+                        onClick = { 
+                            // Navigate to lodging choice screen
+                            navController.navigate("lodging_choice/null")
+                        },
                         modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107))

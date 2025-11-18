@@ -6,7 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Globe
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -70,7 +70,7 @@ fun LodgingChoiceScreen(
             
             // Globe Icon
             Icon(
-                imageVector = Icons.Default.Globe,
+                imageVector = Icons.Default.Public,
                 contentDescription = "Globe",
                 modifier = Modifier.size(80.dp),
                 tint = Color(0xFF1976D2)
