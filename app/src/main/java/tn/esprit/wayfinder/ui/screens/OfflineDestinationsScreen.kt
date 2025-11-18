@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,51 +93,54 @@ fun OfflineDestinationsScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else if (offlineDestinations.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.CloudOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color.Gray
-                    )
-                    Text(
-                        "Aucune destination hors ligne",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.Gray
-                    )
-                    Text(
-                        "Téléchargez des destinations depuis leur page de détails pour les consulter hors ligne",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
+                    CircularProgressIndicator()
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
+            offlineDestinations.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CloudOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.Gray
+                        )
+                        Text(
+                            "Aucune destination hors ligne",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.Gray
+                        )
+                        Text(
+                            "Téléchargez des destinations depuis leur page de détails pour les consulter hors ligne",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
@@ -165,6 +169,7 @@ fun OfflineDestinationsScreen(navController: NavController) {
                         }
                     )
                 }
+            }
             }
         }
     }
