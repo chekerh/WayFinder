@@ -87,13 +87,12 @@ fun FlouciPaymentScreen(
                             }
                             
                             override fun onReceivedError(
-                                view: WebView?,
-                                errorCode: Int,
-                                description: String?,
-                                failingUrl: String?
+                                view: WebView,
+                                request: android.webkit.WebResourceRequest,
+                                error: android.webkit.WebResourceError
                             ) {
-                                super.onReceivedError(view, errorCode, description, failingUrl)
-                                errorMessage = description ?: "Erreur de chargement"
+                                super.onReceivedError(view, request, error)
+                                errorMessage = error.description.toString()
                                 isLoading = false
                             }
                         }

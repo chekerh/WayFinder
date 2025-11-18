@@ -6,7 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -90,7 +90,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 title = { Text("Réservation", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -286,7 +286,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         )
                     }
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -320,7 +320,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         )
                     }
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),

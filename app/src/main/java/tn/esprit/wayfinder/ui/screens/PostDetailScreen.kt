@@ -11,9 +11,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -88,7 +88,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                         onLikeClick = { discussionViewModel.likePost(state.post.id) }
                     )
                     
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     
                     // Comments Section
                     Text(
@@ -155,7 +155,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                             enabled = commentText.isNotBlank()
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Send,
+                                imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Envoyer",
                                 tint = if (commentText.isNotBlank()) Color(0xFF1976D2) else Color.Gray
                             )

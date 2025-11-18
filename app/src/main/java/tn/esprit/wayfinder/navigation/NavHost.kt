@@ -138,5 +138,8 @@ fun AppNavigation() {
         composable("create_itinerary") {
             CreateItineraryScreen(navController = navController)
         }
+        composable("notifications") {
+            NotificationsScreen(navController = navController)
+        }
     }
 }

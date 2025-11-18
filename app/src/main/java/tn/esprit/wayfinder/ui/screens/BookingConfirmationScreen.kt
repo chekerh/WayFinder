@@ -102,7 +102,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                         fontWeight = FontWeight.Bold
                     )
                     
-                    Divider()
+                    HorizontalDivider()
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),

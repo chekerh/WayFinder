@@ -55,6 +55,8 @@ import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
+import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
+import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -64,10 +66,17 @@ fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
+    val notificationsState by notificationsViewModel.uiState.collectAsState()
 
     // Selected region state
     var selectedRegion by remember { mutableStateOf<String?>(null) }
+    
+    // Load notifications count on first composition
+    LaunchedEffect(Unit) {
+        notificationsViewModel.refreshUnreadCount()
+    }
     
     // Load flights on first composition and when region changes
     LaunchedEffect(selectedRegion) {
@@ -114,7 +123,7 @@ fun HomeScreen(navController: NavController) {
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             Spacer(modifier = Modifier.height(48.dp)) // Status bar padding
-            TopBar(context = context)
+            TopBar(context = context, navController = navController, notificationsViewModel = notificationsViewModel)
             Spacer(modifier = Modifier.height(28.dp))
             
             Column {
@@ -268,14 +277,24 @@ fun HomeScreen(navController: NavController) {
 }
 
 @Composable
-fun TopBar(context: android.content.Context) {
+fun TopBar(
+    context: android.content.Context,
+    navController: NavController,
+    notificationsViewModel: NotificationsViewModel
+) {
     val tokenManager = remember { TokenManager(context) }
     val user = remember { tokenManager.getUser() }
+    val notificationsState by notificationsViewModel.uiState.collectAsState()
     
     // Get user's first name or username, fallback to "Explorateur"
     val userName = user?.firstName?.takeIf { it.isNotBlank() } 
         ?: user?.username?.takeIf { it.isNotBlank() }
         ?: "Explorateur"
+    
+    val unreadCount = when (notificationsState) {
+        is NotificationsUiState.Success -> notificationsState.unreadCount
+        else -> 0
+    }
     
     Row(
         modifier = Modifier
@@ -294,7 +313,8 @@ fun TopBar(context: android.content.Context) {
                     contentDescription = "User Avatar",
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(CircleShape),
+                        .clip(CircleShape)
+                        .clickable { navController.navigate("profile") },
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(id = R.drawable.europe),
                     error = painterResource(id = R.drawable.europe)
@@ -305,7 +325,8 @@ fun TopBar(context: android.content.Context) {
                     contentDescription = "User Avatar",
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(CircleShape),
+                        .clip(CircleShape)
+                        .clickable { navController.navigate("profile") },
                     contentScale = ContentScale.Crop
                 )
             }
@@ -322,7 +343,7 @@ fun TopBar(context: android.content.Context) {
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.6f))
-                .clickable { /* Handle notification click */ },
+                .clickable { navController.navigate("notifications") },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -330,6 +351,23 @@ fun TopBar(context: android.content.Context) {
                 contentDescription = "Notifications",
                 tint = Color(0xFF0D47A1)
             )
+            if (unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF44336)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

@@ -232,4 +232,23 @@ interface ApiService {
         @Path("dayDate") dayDate: String,
         @Path("activityIndex") activityIndex: Int
     ): Itinerary
+
+    // --- NOTIFICATIONS --- //
+    @GET("notifications")
+    suspend fun getNotifications(@Query("unreadOnly") unreadOnly: Boolean = false): List<Notification>
+
+    @GET("notifications/unread-count")
+    suspend fun getUnreadCount(): UnreadCountResponse
+
+    @POST("notifications")
+    suspend fun createNotification(@Body request: CreateNotificationRequest): Notification
+
+    @PUT("notifications/{id}/read")
+    suspend fun markAsRead(@Path("id") id: String): Notification
+
+    @PUT("notifications/read-all")
+    suspend fun markAllAsRead(): Map<String, String>
+
+    @DELETE("notifications/{id}")
+    suspend fun deleteNotification(@Path("id") id: String): Map<String, String>
 }

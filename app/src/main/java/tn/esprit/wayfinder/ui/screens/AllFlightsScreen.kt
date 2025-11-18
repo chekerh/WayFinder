@@ -375,7 +375,7 @@ fun FilterDrawer(
                 }
             }
             
-            Divider()
+            HorizontalDivider()
             
             // Price Range Filter
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -441,7 +441,7 @@ fun FilterDrawer(
                 )
             }
             
-            Divider()
+            HorizontalDivider()
             
             // Airline Filter
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -509,7 +509,7 @@ fun FilterDrawer(
                 }
             }
             
-            Divider()
+            HorizontalDivider()
             
             // Duration Filter
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -566,7 +566,7 @@ fun FilterDrawer(
                 }
             }
             
-            Divider()
+            HorizontalDivider()
             
             // Travel Class Filter
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
