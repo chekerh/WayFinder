@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
@@ -64,9 +65,9 @@ fun HomeScreen(navController: NavController) {
     // Selected region state
     var selectedRegion by remember { mutableStateOf<String?>(null) }
     
-    // Load flights on first composition
-    LaunchedEffect(Unit) {
-        catalogViewModel.loadRecommendedFlights()
+    // Load flights on first composition and when region changes
+    LaunchedEffect(selectedRegion) {
+        catalogViewModel.loadRecommendedFlights(showAll = false)
     }
 
     // Regions data with country filters
@@ -199,8 +200,29 @@ fun HomeScreen(navController: NavController) {
                                 state.destinations
                             }
                             
+                            // Show at least 5-6 flights on home screen
+                            val displayDestinations = filteredDestinations.take(6)
+
+                            if (state.fromCache) {
+                                AssistChip(
+                                    onClick = { catalogViewModel.loadRecommendedFlights(showAll = false) },
+                                    label = { Text("Affichage hors ligne (cache)") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudOff,
+                                            contentDescription = "Mode hors ligne"
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = Color(0xFFFFF3E0),
+                                        labelColor = Color(0xFFEF6C00)
+                                    ),
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
+                            
                             DestinationsSection(
-                                destinations = filteredDestinations,
+                                destinations = displayDestinations,
                                 navController = navController
                             )
                         }
@@ -224,10 +246,10 @@ fun HomeScreen(navController: NavController) {
                             }
                         }
                         else -> {}
-                    }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -368,9 +390,9 @@ fun DestinationsSection(destinations: List<tn.esprit.wayfinder.models.FlightDest
         pageSpacing = (-120).dp
     ) { page ->
         val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-        
-        Card(
-            modifier = Modifier
+
+            Card(
+                modifier = Modifier
                 .zIndex(1f - pageOffset)
                 .graphicsLayer {
                     alpha = lerp(start = 0.5f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
@@ -414,9 +436,9 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
         )
         
         // Gradient overlay for better text readability
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
@@ -425,9 +447,9 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
                 )
         )
         
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
                 .padding(24.dp)
         ) {
             Text(

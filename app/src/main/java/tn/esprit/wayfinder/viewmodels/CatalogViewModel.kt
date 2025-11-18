@@ -6,13 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import tn.esprit.wayfinder.models.ExploreOffer
-import tn.esprit.wayfinder.models.ExploreOffersResponse
+import tn.esprit.wayfinder.data.FlightsCache
+import tn.esprit.wayfinder.data.CachedFlights
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.models.FlightOffer
-import tn.esprit.wayfinder.models.RecommendedFlightsResponse
 import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
-import java.text.SimpleDateFormat
 import java.util.*
 
 sealed class CatalogUiState {
@@ -20,125 +18,116 @@ sealed class CatalogUiState {
     object Loading : CatalogUiState()
     data class Success(
         val destinations: List<FlightDestination>,
-        val exploreOffers: List<ExploreOffer>? = null
+        val fromCache: Boolean = false,
+        val lastUpdated: Long? = null,
+        val source: String? = null
     ) : CatalogUiState()
     data class Error(val message: String) : CatalogUiState()
 }
 
-class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewModel() {
+class CatalogViewModel(
+    private val catalogRepository: CatalogRepository,
+    private val flightsCache: FlightsCache
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CatalogUiState>(CatalogUiState.Idle)
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
-    fun loadRecommendedFlights() {
+    fun loadRecommendedFlights(showAll: Boolean = false) {
         viewModelScope.launch {
+            _uiState.value = CatalogUiState.Loading
+            val cached = flightsCache.read()
+            if (cached != null) {
+                emitCachedFlights(cached, showAll)
+            }
+
             try {
-                _uiState.value = CatalogUiState.Loading
-
-                val destinations = mutableListOf<FlightDestination>()
-                var exploreOffers: List<ExploreOffer>? = null
-                var networkError: Exception? = null
-
-                // PRIORITY: Try to get explore offers first (Tequila API - returns multiple destinations)
-                // This gives us variety in destinations
-                try {
-                    val exploreResponse = catalogRepository.getExploreOffers(
-                        origin = "TUN",
-                        limit = 20  // Get more to have variety
-                    )
-                    exploreOffers = exploreResponse.data
-                    exploreResponse.data?.forEach { offer ->
-                        val destination = convertExploreOfferToDestination(offer)
-                        if (destination != null) {
-                            destinations.add(destination)
-                        }
+                val destinations = fetchDestinationsFromNetwork()
+                if (destinations.isEmpty()) {
+                    if (cached == null) {
+                        _uiState.value = CatalogUiState.Error(
+                            "No flights available. Please ensure Amadeus API keys are configured in the backend."
+                        )
                     }
-                } catch (e: Exception) {
-                    // Check for network connectivity issues
-                    if (e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException) {
-                        networkError = e
-                    }
-                    // Tequila is optional - if it fails, we continue with Amadeus results only
+                    return@launch
                 }
 
-                // Get recommended flights from Amadeus (now returns multiple destinations from backend)
-                // Add ALL flights - we want to show multiple flight options even to the same destination
-                try {
-                    val flightsResponse = catalogRepository.getRecommendedFlights(
-                        maxResults = 15  // Request more flights
-                    )
-                    flightsResponse.data?.forEach { flight ->
-                        val destination = convertFlightToDestination(flight)
-                        if (destination != null) {
-                            // Add all flights - don't filter by city, show multiple options
-                            destinations.add(destination)
-                        }
-                    }
-                } catch (e: Exception) {
-                    // Check for network connectivity issues
-                    if (e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException) {
-                        networkError = e
-                    }
-                    // Log but don't fail - we'll use explore results if available
-                }
-
-                // If we have a network error, show a specific message
-                if (networkError != null) {
-                    _uiState.value = CatalogUiState.Error(
-                        "Unable to connect to server. Please check your internet connection. " +
-                        "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
-                    )
-                } else if (destinations.isEmpty()) {
-                    _uiState.value = CatalogUiState.Error(
-                        "No flights available. Please ensure Amadeus API keys are configured in the backend."
-                    )
-                } else {
-                    // Remove duplicates by ID only (keep flights with same city but different IDs)
-                    // This allows multiple flight options to the same destination
-                    val uniqueDestinations = destinations.distinctBy { it.id }
-                    
-                    _uiState.value = CatalogUiState.Success(
-                        destinations = uniqueDestinations,
-                        exploreOffers = exploreOffers
-                    )
-                }
+                flightsCache.store(destinations, source = "network")
+                emitSuccess(destinations, showAll, fromCache = false, lastUpdated = System.currentTimeMillis(), source = "network")
             } catch (e: Exception) {
-                // Check for network connectivity issues
-                val errorMessage = when {
-                    e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException -> {
-                        "Unable to connect to server. Please check your internet connection. " +
-                        "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
+                if (cached != null) {
+                    emitCachedFlights(cached, showAll)
+                } else {
+                    val errorMessage = when {
+                        e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException -> {
+                            "Unable to connect to server. Please check your internet connection. " +
+                                "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
+                        }
+                        e is java.net.SocketTimeoutException -> {
+                            "Connection timeout. The server may be slow to respond. Please try again."
+                        }
+                        else -> e.message ?: "Failed to load flights. Please check backend API configuration."
                     }
-                    e is java.net.SocketTimeoutException -> {
-                        "Connection timeout. The server may be slow to respond. Please try again."
-                    }
-                    else -> {
-                        e.message ?: "Failed to load flights. Please check backend API configuration."
-                    }
+                    _uiState.value = CatalogUiState.Error(errorMessage)
                 }
-                _uiState.value = CatalogUiState.Error(errorMessage)
             }
         }
     }
 
-    fun loadExploreOffers(origin: String = "TUN", limit: Int = 10) {
-        viewModelScope.launch {
-            try {
-                _uiState.value = CatalogUiState.Loading
-                val response = catalogRepository.getExploreOffers(
-                    origin = origin,
-                    limit = limit
-                )
-
-                val destinations = response.data?.mapNotNull { convertExploreOfferToDestination(it) } ?: emptyList()
-
-                _uiState.value = CatalogUiState.Success(
-                    destinations = destinations,
-                    exploreOffers = response.data
-                )
-            } catch (e: Exception) {
-                _uiState.value = CatalogUiState.Error(e.message ?: "Failed to load explore offers")
+    private suspend fun fetchDestinationsFromNetwork(): List<FlightDestination> {
+        val result = mutableListOf<FlightDestination>()
+        val flightsResponse = catalogRepository.getRecommendedFlights(maxResults = 30)
+        flightsResponse.data?.forEach { flight ->
+            val destination = convertFlightToDestination(flight)
+            if (destination != null) {
+                result.add(destination)
             }
+        }
+        return result
+    }
+
+    private fun emitCachedFlights(cached: CachedFlights, showAll: Boolean) {
+        emitSuccess(
+            destinations = cached.destinations,
+            showAll = showAll,
+            fromCache = true,
+            lastUpdated = cached.updatedAt,
+            source = cached.source ?: "cache"
+        )
+    }
+
+    private fun emitSuccess(
+        destinations: List<FlightDestination>,
+        showAll: Boolean,
+        fromCache: Boolean,
+        lastUpdated: Long?,
+        source: String?
+    ) {
+        val prepared = prepareDestinations(destinations, showAll)
+        if (prepared.isEmpty()) {
+            _uiState.value = CatalogUiState.Error("No flights available for the selected filters.")
+            return
+        }
+        _uiState.value = CatalogUiState.Success(
+            destinations = prepared,
+            fromCache = fromCache,
+            lastUpdated = lastUpdated,
+            source = source
+        )
+    }
+
+    private fun prepareDestinations(destinations: List<FlightDestination>, showAll: Boolean): List<FlightDestination> {
+        return if (showAll) {
+            destinations.distinctBy { it.id }
+        } else {
+            destinations
+                .groupBy { it.city.lowercase() }
+                .flatMap { (_, cityFlights) ->
+                    cityFlights
+                        .sortedBy { it.price ?: Double.MAX_VALUE }
+                        .take(2)
+                }
+                .distinctBy { it.id }
         }
     }
 
@@ -171,28 +160,6 @@ class CatalogViewModel(private val catalogRepository: CatalogRepository) : ViewM
             departureDate = firstSegment.departure?.at,
             arrivalDate = lastSegment.arrival?.at,
             airline = firstSegment.carrierCode
-        )
-    }
-
-    private fun convertExploreOfferToDestination(offer: ExploreOffer): FlightDestination? {
-        val cityName = offer.cityTo ?: return null
-        val countryName = offer.countryTo?.name ?: "Unknown"
-        
-        // Generate better image URL using Unsplash with city-specific search
-        val imageUrl = getCityImageUrl(cityName)
-
-        return FlightDestination(
-            id = offer.id ?: UUID.randomUUID().toString(),
-            name = cityName,
-            city = cityName,
-            country = countryName,
-            imageUrl = imageUrl,
-            price = offer.price?.toDouble() ?: 0.0,
-            currency = offer.currency ?: "EUR",
-            description = "Flight to $cityName, ${countryName}",
-            departureDate = offer.localDeparture,
-            arrivalDate = offer.localArrival,
-            airline = offer.airlines?.firstOrNull()
         )
     }
 

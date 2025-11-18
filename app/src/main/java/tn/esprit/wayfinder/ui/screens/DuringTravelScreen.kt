@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,17 +21,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
+import tn.esprit.wayfinder.models.TravelActivity
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.viewmodels.ActivitiesUiState
+import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 
 data class ActivityCategory(
     val name: String,
@@ -38,42 +45,43 @@ data class ActivityCategory(
     val color: Color
 )
 
-data class Activity(
-    val id: String,
-    val name: String,
-    val imageUrl: String,
-    val category: String
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DuringTravelScreen(navController: NavController) {
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    
-    val categories = listOf(
-        ActivityCategory("Musées", Icons.Default.Museum, Color(0xFF1976D2)),
-        ActivityCategory("Hôtels", Icons.Default.Hotel, Color(0xFFFFC107)),
-        ActivityCategory("Restaurants", Icons.Default.Restaurant, Color(0xFF4CAF50)),
-        ActivityCategory("Activités", Icons.Default.LocalActivity, Color(0xFFE91E63))
+    val context = LocalContext.current
+    val activitiesViewModel: ActivitiesViewModel = viewModel(
+        factory = ViewModelFactory(context.applicationContext as Application)
     )
-    
-    // TODO: Load activities from ViewModel/Repository
-    val activities = remember {
-        listOf(
-            Activity("1", "Louvre Museum", "https://images.unsplash.com/photo-1591123720363-2633c8d2b1e4", "Musées"),
-            Activity("2", "Eiffel Tower", "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f", "Activités"),
-            Activity("3", "Le Jules Verne", "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4", "Restaurants"),
-            Activity("4", "Hotel Ritz", "https://images.unsplash.com/photo-1566073771259-6a8506099945", "Hôtels"),
-            Activity("5", "Notre-Dame", "https://images.unsplash.com/photo-1502602898669-a90b7b675c70", "Musées"),
-            Activity("6", "Seine Cruise", "https://images.unsplash.com/photo-1502602898669-a90b7b675c70", "Activités")
+    val uiState by activitiesViewModel.uiState.collectAsState()
+    val selectedCategory by activitiesViewModel.selectedCategoryFlow.collectAsState()
+    var selectedCity by remember { mutableStateOf("Paris") }
+
+    LaunchedEffect(Unit) {
+        activitiesViewModel.loadActivities(city = selectedCity)
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is ActivitiesUiState.Success) {
+            selectedCity = (uiState as ActivitiesUiState.Success).city
+        }
+    }
+
+    val activities = when (val state = uiState) {
+        is ActivitiesUiState.Success -> state.activities
+        else -> emptyList()
+    }
+
+    val categories = when (val state = uiState) {
+        is ActivitiesUiState.Success -> state.categories.map { toCategoryChip(it) }
+        else -> listOf(
+            ActivityCategory("Musées", Icons.Default.Museum, Color(0xFF1976D2)),
+            ActivityCategory("Hôtels", Icons.Default.Hotel, Color(0xFFFFC107)),
+            ActivityCategory("Restaurants", Icons.Default.Restaurant, Color(0xFF4CAF50)),
+            ActivityCategory("Activités", Icons.Default.LocalActivity, Color(0xFFE91E63))
         )
     }
-    
-    val filteredActivities = if (selectedCategory != null) {
-        activities.filter { it.category == selectedCategory }
-    } else {
-        activities
-    }
+
+    val availableCities = listOf("Paris", "Rome", "Dubai", "Tunis", "Barcelone")
 
     Scaffold(
         containerColor = Color(0xFFF0F8FF),
@@ -94,13 +102,11 @@ fun DuringTravelScreen(navController: NavController) {
         bottomBar = { CustomBottomNavigationBar(navController = navController) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    // TODO: Show discovery options
-                },
+                onClick = { activitiesViewModel.retry() },
                 containerColor = Color(0xFFFFC107),
                 contentColor = Color.Black
             ) {
-                Text("Découvrir", fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Refresh, contentDescription = "Rafraîchir")
             }
         }
     ) { paddingValues ->
@@ -108,7 +114,36 @@ fun DuringTravelScreen(navController: NavController) {
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                // City selector
+                Text(
+                    text = "Sélectionnez une ville",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontWeight = FontWeight.Medium
+                )
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(availableCities) { city ->
+                        CityChip(
+                            city = city,
+                            isSelected = city.equals(selectedCity, ignoreCase = true),
+                            onClick = {
+                                selectedCity = city
+                                activitiesViewModel.onCitySelected(city)
+                            }
+                        )
+                    }
+                }
+
                 // Category Filter
+                Text(
+                    text = "Catégories",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    fontWeight = FontWeight.Medium
+                )
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -120,27 +155,71 @@ fun DuringTravelScreen(navController: NavController) {
                             category = category,
                             isSelected = selectedCategory == category.name,
                             onClick = {
-                                selectedCategory = if (selectedCategory == category.name) null else category.name
+                                activitiesViewModel.onCategorySelected(category.name)
                             }
                         )
                     }
                 }
-                
-                // Activities Grid
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(filteredActivities) { activity ->
-                        ActivityCard(
-                            activity = activity,
-                            onClick = {
-                                // TODO: Navigate to activity details
+
+                when (val state = uiState) {
+                    is ActivitiesUiState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is ActivitiesUiState.Error -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(text = state.message, color = Color.Red, fontWeight = FontWeight.Medium)
+                                Button(onClick = { activitiesViewModel.retry() }) {
+                                    Text("Réessayer")
+                                }
                             }
-                        )
+                        }
+                    }
+                    is ActivitiesUiState.Success -> {
+                        if (state.activities.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Aucune activité trouvée pour ${state.city}")
+                            }
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(state.activities) { activity ->
+                                    ActivityCard(
+                                        activity = activity,
+                                        onClick = {
+                                            // TODO: Navigate to activity details
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Sélectionnez une ville pour commencer")
+                        }
                     }
                 }
             }
@@ -179,7 +258,7 @@ fun CategoryChip(
 
 @Composable
 fun ActivityCard(
-    activity: Activity,
+    activity: TravelActivity,
     onClick: () -> Unit
 ) {
     Card(
@@ -192,7 +271,7 @@ fun ActivityCard(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
-                model = activity.imageUrl,
+                model = activity.imageUrl ?: R.drawable.travel_image,
                 contentDescription = activity.name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
@@ -224,7 +303,56 @@ fun ActivityCard(
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
+            activity.category.let {
+                Text(
+                    text = it,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun CityChip(
+    city: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(city) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = city,
+                tint = if (isSelected) Color.White else Color(0xFF1976D2)
+            )
+        },
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = if (isSelected) Color(0xFF1976D2) else Color.White,
+            labelColor = if (isSelected) Color.White else Color.Black
+        )
+    )
+}
+
+private fun toCategoryChip(category: String): ActivityCategory {
+    val normalized = category.lowercase()
+    return when {
+        normalized.contains("mus") -> ActivityCategory(category, Icons.Default.Museum, Color(0xFF1976D2))
+        normalized.contains("hotel") || normalized.contains("hôtel") -> ActivityCategory(category, Icons.Default.Hotel, Color(0xFFFFC107))
+        normalized.contains("rest") -> ActivityCategory(category, Icons.Default.Restaurant, Color(0xFF4CAF50))
+        normalized.contains("park") -> ActivityCategory(category, Icons.Default.Nature, Color(0xFF81C784))
+        else -> ActivityCategory(category, Icons.Default.LocalActivity, Color(0xFFE91E63))
     }
 }
 

@@ -2,9 +2,11 @@ package tn.esprit.wayfinder.network
 
 import kotlinx.serialization.json.JsonElement
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 import tn.esprit.wayfinder.models.*
 
@@ -41,12 +43,34 @@ interface ApiService {
     @GET("booking/history")
     suspend fun getBookingHistory(): List<Booking>
 
+    @GET("booking")
+    suspend fun getBookings(): List<Booking>
+
+    @GET("booking/{id}")
+    suspend fun getBookingById(@Path("id") id: String): Booking
+
+    @POST("booking")
+    suspend fun createBooking(@Body request: CreateBookingRequest): Booking
+
+    @PUT("booking/{id}")
+    suspend fun updateBooking(@Path("id") id: String, @Body request: UpdateBookingRequest): Booking
+
+    @DELETE("booking/{id}")
+    suspend fun cancelBooking(@Path("id") id: String): Booking
+
     // --- PAYMENT --- //
     @GET("payment/history")
     suspend fun getPaymentHistory(): List<Payment>
 
     @POST("payment/record")
     suspend fun recordPayment(@Body request: Map<String, Any>): Payment
+
+    // --- FLOUCI PAYMENT --- //
+    @POST("payment/flouci/create")
+    suspend fun createFlouciPayment(@Body request: FlouciPaymentRequest): FlouciPaymentResponse
+
+    @GET("payment/flouci/status/{paymentId}")
+    suspend fun getFlouciPaymentStatus(@retrofit2.http.Path("paymentId") paymentId: String): FlouciPaymentStatusResponse
 
     // --- ONBOARDING --- //
     @POST("onboarding/start")
@@ -101,5 +125,5 @@ interface ApiService {
         @Query("themes") themes: String? = null,
         @Query("limit") limit: Int? = null,
         @Query("radiusMeters") radiusMeters: Int? = null
-    ): JsonElement
+    ): ActivityFeedResponse
 }

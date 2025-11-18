@@ -4,15 +4,19 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import tn.esprit.wayfinder.WayfinderApp
+import tn.esprit.wayfinder.data.FlightsCache
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.OnboardingRepository
 import tn.esprit.wayfinder.presentation.booking.BookingRepository
 import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
+import tn.esprit.wayfinder.presentation.payment.FlouciRepository
 import tn.esprit.wayfinder.presentation.user.UserRepository
+import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
+import tn.esprit.wayfinder.viewmodels.PaymentViewModel
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
@@ -32,8 +36,9 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
             }
             modelClass.isAssignableFrom(CatalogViewModel::class.java) -> {
                 val repository = CatalogRepository(apiService)
+                val cache = FlightsCache(application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
-                CatalogViewModel(repository) as T
+                CatalogViewModel(repository, cache) as T
             }
                    modelClass.isAssignableFrom(UserViewModel::class.java) -> {
                        val repository = UserRepository(apiService)
@@ -45,6 +50,16 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = BookingRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 BookingViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(PaymentViewModel::class.java) -> {
+                val repository = FlouciRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                PaymentViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(ActivitiesViewModel::class.java) -> {
+                val repository = CatalogRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                ActivitiesViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

@@ -9,8 +9,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,18 +39,24 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
     val context = LocalContext.current
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
+    
+    var currentFilterRegion by remember { mutableStateOf(selectedRegion) }
+    var showFilterMenu by remember { mutableStateOf(false) }
 
-    // Region to country mapping
-    val regionCountries = mapOf(
+    // Region to country mapping (same as HomeScreen)
+    val regions = listOf(
+        "Préférences" to emptyList<String>(),
         "Europe" to listOf("France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"),
         "Asie" to listOf("China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel"),
         "Amerique" to listOf("United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"),
         "Australie" to listOf("Australia", "New Zealand", "Fiji")
     )
+    
+    val regionCountries = regions.associate { it }
 
-    // Load all flights on first composition
+    // Load all flights on first composition (showAll = true to get all flights)
     LaunchedEffect(Unit) {
-        catalogViewModel.loadRecommendedFlights()
+        catalogViewModel.loadRecommendedFlights(showAll = true)
     }
 
     Scaffold(
@@ -60,6 +68,16 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    // Filter button
+                    IconButton(onClick = { showFilterMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Filtrer",
+                            tint = if (currentFilterRegion != null) Color(0xFF1976D2) else Color.Gray
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFEAF2FF)
                 )
@@ -67,6 +85,30 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
         },
         containerColor = Color(0xFFEAF2FF)
     ) { paddingValues ->
+        // Filter dropdown menu
+        DropdownMenu(
+            expanded = showFilterMenu,
+            onDismissRequest = { showFilterMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Tous") },
+                onClick = {
+                    currentFilterRegion = null
+                    showFilterMenu = false
+                }
+            )
+            regions.forEach { (regionName, _) ->
+                if (regionName != "Préférences") {
+                    DropdownMenuItem(
+                        text = { Text(regionName) },
+                        onClick = {
+                            currentFilterRegion = regionName
+                            showFilterMenu = false
+                        }
+                    )
+                }
+            }
+        }
         when (val state = uiState) {
             is CatalogUiState.Loading -> {
                 Box(
@@ -79,9 +121,28 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                 }
             }
             is CatalogUiState.Success -> {
-                // Filter destinations based on selected region
-                val filteredDestinations = if (selectedRegion != null && selectedRegion != "Préférences") {
-                    val filterCountries = regionCountries[selectedRegion] ?: emptyList()
+                if (state.fromCache) {
+                    AssistChip(
+                        onClick = { catalogViewModel.loadRecommendedFlights(showAll = true) },
+                        label = { Text("Résultats hors ligne (cache)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.CloudOff,
+                                contentDescription = "Mode hors ligne"
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color(0xFFFFF3E0),
+                            labelColor = Color(0xFFEF6C00)
+                        ),
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 8.dp)
+                    )
+                }
+                // Filter destinations based on current filter region
+                val filteredDestinations = if (currentFilterRegion != null && currentFilterRegion != "Préférences") {
+                    val filterCountries = regionCountries[currentFilterRegion] ?: emptyList()
                     if (filterCountries.isNotEmpty()) {
                         state.destinations.filter { destination ->
                             filterCountries.any { country ->

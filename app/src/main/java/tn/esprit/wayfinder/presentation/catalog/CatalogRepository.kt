@@ -45,7 +45,7 @@ class CatalogRepository(private val apiService: ApiService) {
         themes: String? = null,
         limit: Int? = null,
         radiusMeters: Int? = null
-    ): kotlinx.serialization.json.JsonElement {
+    ): ActivityFeedResponse {
         return apiService.getActivities(city, themes, limit, radiusMeters)
     }
 }
