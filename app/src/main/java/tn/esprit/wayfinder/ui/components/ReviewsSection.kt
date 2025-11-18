@@ -261,7 +261,16 @@ fun ReviewCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "${review.userId.firstName} ${review.userId.lastName}",
+                            text = buildString {
+                                val firstName = review.userId.firstName?.takeIf { it.isNotBlank() }
+                                val lastName = review.userId.lastName?.takeIf { it.isNotBlank() }
+                                when {
+                                    firstName != null && lastName != null -> append("$firstName $lastName")
+                                    firstName != null -> append(firstName)
+                                    lastName != null -> append(lastName)
+                                    else -> append(review.userId.username)
+                                }
+                            },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )

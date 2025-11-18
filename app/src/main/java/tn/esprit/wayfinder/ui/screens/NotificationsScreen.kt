@@ -63,14 +63,19 @@ fun NotificationsScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    if (uiState is NotificationsUiState.Success && (uiState as NotificationsUiState.Success).notifications.any { !it.isRead }) {
-                        TextButton(
-                            onClick = {
-                                notificationsViewModel.markAllAsRead()
+                    when (val state = uiState) {
+                        is NotificationsUiState.Success -> {
+                            if (state.notifications.any { !it.isRead }) {
+                                TextButton(
+                                    onClick = {
+                                        notificationsViewModel.markAllAsRead()
+                                    }
+                                ) {
+                                    Text("Tout marquer comme lu", fontSize = 12.sp)
+                                }
                             }
-                        ) {
-                            Text("Tout marquer comme lu", fontSize = 12.sp)
                         }
+                        else -> {}
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

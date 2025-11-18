@@ -33,11 +33,25 @@ class CatalogViewModel(
     private val _uiState = MutableStateFlow<CatalogUiState>(CatalogUiState.Idle)
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
+    init {
+        // Initialize with cached data if available to avoid showing loading state unnecessarily
+        viewModelScope.launch {
+            val cached = flightsCache.read()
+            if (cached != null && cached.destinations.isNotEmpty()) {
+                emitCachedFlights(cached, showAll = false)
+            }
+        }
+    }
+
     fun loadRecommendedFlights(showAll: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = CatalogUiState.Loading
+            // Only show loading if we don't have cached data
             val cached = flightsCache.read()
-            if (cached != null) {
+            if (cached == null || cached.destinations.isEmpty()) {
+                _uiState.value = CatalogUiState.Loading
+            }
+            
+            if (cached != null && cached.destinations.isNotEmpty()) {
                 emitCachedFlights(cached, showAll)
             }
 
@@ -55,16 +69,21 @@ class CatalogViewModel(
                 flightsCache.store(destinations, source = "network")
                 emitSuccess(destinations, showAll, fromCache = false, lastUpdated = System.currentTimeMillis(), source = "network")
             } catch (e: Exception) {
-                if (cached != null) {
-                    emitCachedFlights(cached, showAll)
+                // Always try to show cached data if available, even on error
+                val cachedOnError = flightsCache.read()
+                if (cachedOnError != null && cachedOnError.destinations.isNotEmpty()) {
+                    emitCachedFlights(cachedOnError, showAll)
                 } else {
+                    // Only show error if we have no cached data
                     val errorMessage = when {
                         e is java.net.UnknownHostException || e.cause is java.net.UnknownHostException -> {
-                            "Unable to connect to server. Please check your internet connection. " +
-                                "If using Render free tier, the service may be waking up (wait 30-60 seconds)."
+                            "Unable to connect to server. Please check your internet connection."
                         }
                         e is java.net.SocketTimeoutException -> {
-                            "Connection timeout. The server may be slow to respond. Please try again."
+                            "Connection timeout. The server is not responding. Please try again later."
+                        }
+                        e is java.io.IOException -> {
+                            "Network error. Please check your internet connection and try again."
                         }
                         else -> e.message ?: "Failed to load flights. Please check backend API configuration."
                     }

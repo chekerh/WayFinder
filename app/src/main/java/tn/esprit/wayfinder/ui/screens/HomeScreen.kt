@@ -291,8 +291,8 @@ fun TopBar(
         ?: user?.username?.takeIf { it.isNotBlank() }
         ?: "Explorateur"
     
-    val unreadCount = when (notificationsState) {
-        is NotificationsUiState.Success -> notificationsState.unreadCount
+    val unreadCount = when (val state = notificationsState) {
+        is NotificationsUiState.Success -> state.unreadCount
         else -> 0
     }
     

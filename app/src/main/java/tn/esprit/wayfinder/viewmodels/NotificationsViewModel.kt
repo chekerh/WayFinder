@@ -24,6 +24,11 @@ class NotificationsViewModel(private val notificationsRepository: NotificationsR
     private val _uiState = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Idle)
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
 
+    init {
+        // Initialize with empty list and 0 count
+        _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+    }
+
     fun loadNotifications(unreadOnly: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = NotificationsUiState.Loading
@@ -78,11 +83,21 @@ class NotificationsViewModel(private val notificationsRepository: NotificationsR
             try {
                 val unreadCount = notificationsRepository.getUnreadCount()
                 val currentState = _uiState.value
-                if (currentState is NotificationsUiState.Success) {
-                    _uiState.value = currentState.copy(unreadCount = unreadCount)
+                when (currentState) {
+                    is NotificationsUiState.Success -> {
+                        _uiState.value = currentState.copy(unreadCount = unreadCount)
+                    }
+                    else -> {
+                        // If state is not Success, create a new Success state with the count
+                        _uiState.value = NotificationsUiState.Success(emptyList(), unreadCount)
+                    }
                 }
             } catch (e: Exception) {
-                // Silently fail for unread count refresh
+                // On error, ensure we have a Success state (even with 0 count) so UI doesn't break
+                val currentState = _uiState.value
+                if (currentState !is NotificationsUiState.Success) {
+                    _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+                }
             }
         }
     }

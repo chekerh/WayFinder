@@ -251,4 +251,47 @@ interface ApiService {
 
     @DELETE("notifications/{id}")
     suspend fun deleteNotification(@Path("id") id: String): Map<String, String>
+
+    // --- SOCIAL --- //
+    @POST("social/follow")
+    suspend fun followUser(@Body request: FollowUserRequest): FollowResponse
+
+    @POST("social/unfollow")
+    suspend fun unfollowUser(@Body request: FollowUserRequest): FollowResponse
+
+    @GET("social/follow-status/{userId}")
+    suspend fun checkFollowStatus(@Path("userId") userId: String): FollowStatusResponse
+
+    @GET("social/followers")
+    suspend fun getFollowers(@Query("limit") limit: Int = 50, @Query("skip") skip: Int = 0): List<UserPreview>
+
+    @GET("social/following")
+    suspend fun getFollowing(@Query("limit") limit: Int = 50, @Query("skip") skip: Int = 0): List<UserPreview>
+
+    @GET("social/follow-counts")
+    suspend fun getFollowCounts(): FollowCountsResponse
+
+    @GET("social/follow-counts/{userId}")
+    suspend fun getFollowCountsByUserId(@Path("userId") userId: String): FollowCountsResponse
+
+    @POST("social/share-trip")
+    suspend fun shareTrip(@Body request: ShareTripRequest): SharedTrip
+
+    @PUT("social/share-trip/{id}")
+    suspend fun updateSharedTrip(@Path("id") id: String, @Body request: UpdateSharedTripRequest): SharedTrip
+
+    @DELETE("social/share-trip/{id}")
+    suspend fun deleteSharedTrip(@Path("id") id: String): Map<String, String>
+
+    @GET("social/share-trip/{id}")
+    suspend fun getSharedTrip(@Path("id") id: String): SharedTrip
+
+    @GET("social/user/{userId}/shared-trips")
+    suspend fun getUserSharedTrips(@Path("userId") userId: String, @Query("limit") limit: Int = 20, @Query("skip") skip: Int = 0): List<SharedTrip>
+
+    @GET("social/feed")
+    suspend fun getSocialFeed(@Query("limit") limit: Int = 20, @Query("skip") skip: Int = 0): List<SharedTrip>
+
+    @POST("social/share-trip/{id}/like")
+    suspend fun likeSharedTrip(@Path("id") id: String): LikeResponse
 }
