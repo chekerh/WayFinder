@@ -1,29 +1,45 @@
 package tn.esprit.wayfinder.ui.screens
 
 import android.app.Application
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.flowlayout.FlowRow
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,11 +55,39 @@ fun EditProfileScreen(navController: NavController) {
     var location by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var selectedPreferences by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var currentProfileImageUrl by remember { mutableStateOf<String?>(null) }
     
     val availablePreferences = listOf(
         "Beach", "Mountain", "City", "Culture", "Adventure", "Relaxation",
         "Food", "Nightlife", "Shopping", "Nature", "History", "Art"
     )
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            // Upload image immediately when selected
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val file = File(context.cacheDir, "temp_profile_${System.currentTimeMillis()}.jpg")
+                inputStream?.use { stream ->
+                    file.outputStream().use { output ->
+                        stream.copyTo(output)
+                    }
+                }
+                if (file.exists()) {
+                    val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+                    val imagePart = MultipartBody.Part.createFormData("image", file.name, requestFile)
+                    userViewModel.uploadProfileImage(imagePart)
+                }
+            } catch (e: Exception) {
+                // Handle error - could show a snackbar
+            }
+        }
+    }
     
     // Load user data
     LaunchedEffect(Unit) {
@@ -61,6 +105,7 @@ fun EditProfileScreen(navController: NavController) {
             location = user.location.orEmpty()
             bio = user.bio.orEmpty()
             selectedPreferences = user.preferences.toSet()
+            currentProfileImageUrl = user.profileImageUrl
         }
     }
     
@@ -77,7 +122,7 @@ fun EditProfileScreen(navController: NavController) {
                 title = { Text("Modifier le profil", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -114,6 +159,58 @@ fun EditProfileScreen(navController: NavController) {
                     )
                 }
                 else -> {
+                    // Profile Image Section
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box {
+                            // Profile Image
+                            val imageToShow = selectedImageUri ?: currentProfileImageUrl?.let { url ->
+                                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                            }
+                            if (imageToShow != null) {
+                                AsyncImage(
+                                    model = imageToShow.toString(),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(id = R.drawable.europe),
+                                    error = painterResource(id = R.drawable.europe)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.europe),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            
+                            // Camera Icon Overlay
+                            IconButton(
+                                onClick = { imagePickerLauncher.launch("image/*") },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(40.dp)
+                                    .background(Color(0xFF1976D2), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.CameraAlt,
+                                    contentDescription = "Change Profile Picture",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     // First Name
                     OutlinedTextField(
                         value = firstName,
@@ -194,23 +291,35 @@ fun EditProfileScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     // Preferences Chips
-                    FlowRow(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        availablePreferences.forEach { preference ->
-                            FilterChip(
-                                selected = selectedPreferences.contains(preference),
-                                onClick = {
-                                    selectedPreferences = if (selectedPreferences.contains(preference)) {
-                                        selectedPreferences - preference
-                                    } else {
-                                        selectedPreferences + preference
-                                    }
-                                },
-                                label = { Text(preference) }
-                            )
+                        // Display preferences in rows of 3
+                        availablePreferences.chunked(3).forEach { rowPreferences ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowPreferences.forEach { preference ->
+                                    FilterChip(
+                                        selected = selectedPreferences.contains(preference),
+                                        onClick = {
+                                            selectedPreferences = if (selectedPreferences.contains(preference)) {
+                                                selectedPreferences - preference
+                                            } else {
+                                                selectedPreferences + preference
+                                            }
+                                        },
+                                        label = { Text(preference) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                // Fill remaining space if row has less than 3 items
+                                repeat(3 - rowPreferences.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
                         }
                     }
                     

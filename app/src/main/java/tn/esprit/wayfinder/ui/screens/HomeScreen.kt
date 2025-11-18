@@ -22,6 +22,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -249,6 +251,13 @@ fun HomeScreen(navController: NavController) {
                 }
             }
             
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Discussion Section
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                DiscussionCard(navController = navController)
+            }
+            
             Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -273,14 +282,30 @@ fun TopBar(context: android.content.Context) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = R.drawable.europe),
-                contentDescription = "User Avatar",
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
+            val userImageUrl = user?.profileImageUrl?.let { url ->
+                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+            }
+            if (userImageUrl != null) {
+                AsyncImage(
+                    model = userImageUrl,
+                    contentDescription = "User Avatar",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = R.drawable.europe),
+                    error = painterResource(id = R.drawable.europe)
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.europe),
+                    contentDescription = "User Avatar",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Salut, $userName",
@@ -497,6 +522,72 @@ fun DestinationCardContent(destination: tn.esprit.wayfinder.models.FlightDestina
     }
 }
 
+
+@Composable
+fun DiscussionCard(navController: NavController) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("discussions")
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Chat Icon
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            Color(0xFF1976D2).copy(alpha = 0.1f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = "Discussions",
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                
+                Column {
+                    Text(
+                        text = "Discussions de la communauté",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Partagez vos expériences et découvrez les conseils des voyageurs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "Voir plus",
+                tint = Color(0xFF1976D2),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
 
 @Preview(showBackground = true)
 @Composable

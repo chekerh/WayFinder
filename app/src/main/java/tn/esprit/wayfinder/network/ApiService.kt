@@ -1,13 +1,8 @@
 package tn.esprit.wayfinder.network
 
 import kotlinx.serialization.json.JsonElement
-import retrofit2.http.Body
-import retrofit2.http.DELETE
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
-import retrofit2.http.Query
+import okhttp3.MultipartBody
+import retrofit2.http.*
 import tn.esprit.wayfinder.models.*
 
 interface ApiService {
@@ -25,6 +20,10 @@ interface ApiService {
 
     @PUT("user/profile")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): User
+
+    @Multipart
+    @POST("user/profile/upload-image")
+    suspend fun uploadProfileImage(@Part image: MultipartBody.Part): Map<String, Any>
 
     // --- BOOKING --- //
     @GET("booking/offers")
@@ -126,4 +125,43 @@ interface ApiService {
         @Query("limit") limit: Int? = null,
         @Query("radiusMeters") radiusMeters: Int? = null
     ): ActivityFeedResponse
+
+    // --- DISCUSSION --- //
+    @GET("discussion/posts")
+    suspend fun getPosts(
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null,
+        @Query("destination") destination: String? = null
+    ): PostsResponse
+
+    @GET("discussion/posts/{id}")
+    suspend fun getPost(@Path("id") id: String): DiscussionPost
+
+    @POST("discussion/posts")
+    suspend fun createPost(@Body request: CreatePostRequest): DiscussionPost
+
+    @PUT("discussion/posts/{id}")
+    suspend fun updatePost(@Path("id") id: String, @Body request: CreatePostRequest): DiscussionPost
+
+    @DELETE("discussion/posts/{id}")
+    suspend fun deletePost(@Path("id") id: String): Map<String, String>
+
+    @POST("discussion/posts/{id}/like")
+    suspend fun likePost(@Path("id") id: String): DiscussionPost
+
+    @GET("discussion/posts/{id}/comments")
+    suspend fun getComments(
+        @Path("id") postId: String,
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
+    ): CommentsResponse
+
+    @POST("discussion/posts/{id}/comments")
+    suspend fun createComment(@Path("id") postId: String, @Body request: CreateCommentRequest): DiscussionComment
+
+    @POST("discussion/comments/{id}/like")
+    suspend fun likeComment(@Path("id") commentId: String): DiscussionComment
+
+    @DELETE("discussion/comments/{id}")
+    suspend fun deleteComment(@Path("id") commentId: String): Map<String, String>
 }

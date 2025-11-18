@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MultipartBody
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.User
 import tn.esprit.wayfinder.presentation.user.UserRepository
@@ -66,6 +67,21 @@ class UserViewModel(
             } catch (e: Exception) {
                 _uiState.value = UserUiState.Error(
                     e.message ?: "Failed to update profile"
+                )
+            }
+        }
+    }
+
+    fun uploadProfileImage(imagePart: MultipartBody.Part) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = UserUiState.Loading
+                val updatedUser = userRepository.uploadProfileImage(imagePart)
+                cacheUser(updatedUser)
+                _uiState.value = UserUiState.Success(updatedUser)
+            } catch (e: Exception) {
+                _uiState.value = UserUiState.Error(
+                    e.message ?: "Failed to upload profile image"
                 )
             }
         }

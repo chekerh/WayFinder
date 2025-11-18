@@ -14,6 +14,7 @@ data class User(
     val phone: String? = null,
     val location: String? = null,
     val bio: String? = null,
+    @SerialName("profile_image_url") val profileImageUrl: String? = null,
     val preferences: List<String>,
     val status: String,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,

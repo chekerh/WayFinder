@@ -13,9 +13,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -92,7 +92,7 @@ fun ProfileScreen(navController: NavController) {
                                 text = { Text("Se déconnecter") },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Filled.Logout,
+                                        imageVector = Icons.AutoMirrored.Filled.Logout,
                                         contentDescription = null
                                     )
                                 },
@@ -209,8 +209,11 @@ fun ProfileContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Profile Picture
+                    val profileImageUrl = user.profileImageUrl?.let { url ->
+                        if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                    } ?: "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}"
                     AsyncImage(
-                        model = "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}",
+                        model = profileImageUrl,
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(80.dp)
@@ -354,7 +357,7 @@ fun ProfileContent(
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "View",
                     modifier = Modifier
                         .size(24.dp)
@@ -390,7 +393,7 @@ fun ProfileContent(
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
-                    imageVector = Icons.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "View",
                     modifier = Modifier
                         .size(24.dp)

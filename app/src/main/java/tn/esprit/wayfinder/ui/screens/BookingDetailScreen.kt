@@ -259,7 +259,7 @@ fun BookingDetailContent(
         // Price
         InfoCard(
             title = "Prix total",
-            value = "${booking.totalPrice} ${booking.currency ?: "EUR"}"
+            value = "${booking.totalPrice} EUR"
         )
 
         // Notes
