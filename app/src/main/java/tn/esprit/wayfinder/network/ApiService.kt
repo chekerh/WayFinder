@@ -294,4 +294,29 @@ interface ApiService {
 
     @POST("social/share-trip/{id}/like")
     suspend fun likeSharedTrip(@Path("id") id: String): LikeResponse
+
+    // --- SEARCH HISTORY --- //
+    @POST("search-history")
+    suspend fun recordSearch(@Body request: CreateSearchHistoryRequest): SearchHistory
+
+    @GET("search-history/recent")
+    suspend fun getRecentSearches(@Query("type") searchType: String? = null, @Query("limit") limit: Int = 20, @Query("skip") skip: Int = 0): List<SearchHistory>
+
+    @GET("search-history/saved")
+    suspend fun getSavedSearches(@Query("type") searchType: String? = null, @Query("limit") limit: Int = 50, @Query("skip") skip: Int = 0): List<SearchHistory>
+
+    @POST("search-history/{id}/save")
+    suspend fun saveSearch(@Path("id") id: String, @Body request: SaveSearchRequest): SearchHistory
+
+    @POST("search-history/{id}/unsave")
+    suspend fun unsaveSearch(@Path("id") id: String): SearchHistory
+
+    @DELETE("search-history/{id}")
+    suspend fun deleteSearchHistory(@Path("id") id: String): Map<String, String>
+
+    @DELETE("search-history/recent/clear")
+    suspend fun clearRecentSearches(@Query("type") searchType: String? = null): Map<String, String>
+
+    @GET("search-history/stats")
+    suspend fun getSearchStats(): SearchStatsResponse
 }

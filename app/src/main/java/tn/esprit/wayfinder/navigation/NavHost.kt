@@ -141,5 +141,8 @@ fun AppNavigation() {
         composable("notifications") {
             NotificationsScreen(navController = navController)
         }
+        composable("search_history") {
+            SearchHistoryScreen(navController = navController)
+        }
     }
 }
