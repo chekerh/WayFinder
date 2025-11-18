@@ -10,6 +10,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.LoginRequest
 import tn.esprit.wayfinder.models.SignUpRequest
@@ -95,6 +97,8 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                     throwable.message()
                 }
             }
+            is UnknownHostException -> "Impossible de se connecter au serveur. Vérifiez votre connexion Internet."
+            is SocketTimeoutException -> "Le serveur met trop de temps à répondre. Réessayez dans un instant."
             else -> throwable.message ?: "Une erreur inattendue est survenue"
         }
     }

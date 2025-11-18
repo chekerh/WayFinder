@@ -14,6 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +49,8 @@ fun ProfileScreen(navController: NavController) {
     val uiState by userViewModel.uiState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val currentUser = remember { tokenManager.getUser() }
+    val startDestination = remember { navController.graph.startDestinationRoute ?: "home" }
+    var isMenuExpanded by remember { mutableStateOf(false) }
 
     // Load profile on first composition
     LaunchedEffect(Unit) {
@@ -56,17 +60,59 @@ fun ProfileScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Profil",
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { isMenuExpanded = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "Options")
+                        }
+                        DropdownMenu(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = { isMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Modifier le profil") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Edit,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    navController.navigate("edit_profile")
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Se déconnecter") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Logout,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    isMenuExpanded = false
+                                    tokenManager.deleteToken()
+                                    navController.navigate("login") {
+                                        popUpTo(startDestination) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFEAF2FF)
                 )
             )
-        },
+            },
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
@@ -87,10 +133,6 @@ fun ProfileScreen(navController: NavController) {
                 ProfileContent(
                     user = state.user,
                     currentUser = currentUser,
-                    onEditProfile = {
-                        // Navigate to edit profile screen
-                        navController.navigate("edit_profile")
-                    },
                     onBookingHistoryClick = {
                         navController.navigate("booking_history")
                     },
@@ -127,7 +169,6 @@ fun ProfileScreen(navController: NavController) {
 fun ProfileContent(
     user: tn.esprit.wayfinder.models.User,
     currentUser: tn.esprit.wayfinder.models.User?,
-    onEditProfile: () -> Unit,
     onBookingHistoryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -158,9 +199,6 @@ fun ProfileContent(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* Menu */ }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
-                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -210,18 +248,7 @@ fun ProfileContent(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.weight(1f))
-                    
-                    // Edit Profile Button
-                    Button(
-                        onClick = onEditProfile,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF9800)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Edit Profile")
-                    }
+                        Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
