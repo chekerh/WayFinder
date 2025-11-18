@@ -10,6 +10,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +35,10 @@ import tn.esprit.wayfinder.ui.components.TravelTipsSection
 import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
+import tn.esprit.wayfinder.data.OfflineDestinationsManager
+import tn.esprit.wayfinder.utils.NetworkUtils
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +47,12 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     val reviewsViewModel: ReviewsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val priceAlertsViewModel: PriceAlertsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val travelTipsViewModel: TravelTipsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val offlineManager = remember { OfflineDestinationsManager(context) }
+    val coroutineScope = rememberCoroutineScope()
     
     var showPriceAlertDialog by remember { mutableStateOf(false) }
+    var isDownloaded by remember { mutableStateOf(false) }
+    var isDownloading by remember { mutableStateOf(false) }
     
     val savedDestination = remember(destinationId) {
         navController.previousBackStackEntry
@@ -61,6 +72,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             arrivalDate = null,
             airline = null
         )
+    }
+    
+    // Check if destination is already downloaded
+    LaunchedEffect(destination.id) {
+        isDownloaded = offlineManager.isDownloaded(destination.id)
     }
 
     LaunchedEffect(destination) {
@@ -291,6 +307,79 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 itemId = destination.id,
                 reviewsViewModel = reviewsViewModel
             )
+
+            // Download Button
+            if (isDownloaded) {
+                OutlinedButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            offlineManager.removeFromOffline(destination.id)
+                            isDownloaded = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF1976D2)
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CloudDone,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Téléchargé - Supprimer",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                OutlinedButton(
+                    onClick = {
+                        if (!isDownloading) {
+                            isDownloading = true
+                            coroutineScope.launch {
+                                val success = offlineManager.downloadForOffline(destination)
+                                if (success) {
+                                    isDownloaded = true
+                                }
+                                isDownloading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isDownloading,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF1976D2)
+                    )
+                ) {
+                    if (isDownloading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isDownloading) "Téléchargement..." else "Télécharger pour hors ligne",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
             // Action Buttons
             Row(

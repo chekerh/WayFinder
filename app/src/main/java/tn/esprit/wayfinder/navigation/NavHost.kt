@@ -163,5 +163,8 @@ fun AppNavigation() {
                 country = country
             )
         }
+        composable("offline_destinations") {
+            OfflineDestinationsScreen(navController = navController)
+        }
     }
 }
