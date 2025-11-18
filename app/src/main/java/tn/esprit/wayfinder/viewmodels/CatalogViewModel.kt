@@ -10,8 +10,8 @@ import tn.esprit.wayfinder.data.FlightsCache
 import tn.esprit.wayfinder.data.CachedFlights
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.models.FlightOffer
+import tn.esprit.wayfinder.models.FlightSegment
 import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
-import java.util.*
 
 sealed class CatalogUiState {
     object Idle : CatalogUiState()
@@ -118,7 +118,7 @@ class CatalogViewModel(
 
     private fun prepareDestinations(destinations: List<FlightDestination>, showAll: Boolean): List<FlightDestination> {
         return if (showAll) {
-            destinations.distinctBy { it.id }
+            destinations.distinctBy { destinationKey(it) }
         } else {
             destinations
                 .groupBy { it.city.lowercase() }
@@ -127,7 +127,7 @@ class CatalogViewModel(
                         .sortedBy { it.price ?: Double.MAX_VALUE }
                         .take(2)
                 }
-                .distinctBy { it.id }
+                .distinctBy { destinationKey(it) }
         }
     }
 
@@ -145,8 +145,8 @@ class CatalogViewModel(
         // Generate better image URL using Unsplash with city-specific search
         val imageUrl = getCityImageUrl(cityName)
         
-        // Generate unique ID that includes airline and time to differentiate flights
-        val uniqueId = flight.id ?: "${destinationCode}_${firstSegment.carrierCode}_${firstSegment.departure?.at}_${UUID.randomUUID()}"
+        // Generate stable ID based on flight characteristics to prevent duplicates
+        val uniqueId = flight.id ?: buildStableFlightId(destinationCode, firstSegment, lastSegment, price)
         
         return FlightDestination(
             id = uniqueId,
@@ -161,6 +161,28 @@ class CatalogViewModel(
             arrivalDate = lastSegment.arrival?.at,
             airline = firstSegment.carrierCode
         )
+    }
+
+    private fun buildStableFlightId(
+        destinationCode: String,
+        firstSegment: FlightSegment,
+        lastSegment: FlightSegment,
+        price: Double
+    ): String {
+        val carrier = firstSegment.carrierCode ?: "UNKNOWN"
+        val departure = firstSegment.departure?.at ?: "NA"
+        val arrival = lastSegment.arrival?.at ?: "NA"
+        val priceKey = "%.2f".format(price)
+        return listOf(destinationCode.uppercase(), carrier.uppercase(), departure, arrival, priceKey).joinToString("_")
+    }
+
+    private fun destinationKey(destination: FlightDestination): String {
+        val city = destination.city.lowercase()
+        val airline = destination.airline?.lowercase() ?: "unknown"
+        val departure = destination.departureDate ?: ""
+        val arrival = destination.arrivalDate ?: ""
+        val priceKey = destination.price?.let { "%.2f".format(it) } ?: "0"
+        return listOf(city, airline, departure, arrival, priceKey).joinToString("|")
     }
 
     private fun getCityName(airportCode: String): String {
