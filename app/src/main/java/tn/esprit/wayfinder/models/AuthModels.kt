@@ -42,7 +42,8 @@ data class UpdateProfileRequest(
     val email: String? = null,
     val phone: String? = null,
     val location: String? = null,
-    val bio: String? = null
+    val bio: String? = null,
+    val preferences: List<String>? = null
 )
 
 @Serializable

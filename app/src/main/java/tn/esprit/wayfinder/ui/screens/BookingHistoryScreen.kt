@@ -126,7 +126,12 @@ fun BookingHistoryScreen(navController: NavController) {
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(bookings) { booking ->
-                                BookingHistoryCard(booking = booking)
+                                BookingHistoryCard(
+                                    booking = booking,
+                                    onClick = {
+                                        navController.navigate("booking_detail/${booking.id}")
+                                    }
+                                )
                             }
                         }
                     }
@@ -155,11 +160,11 @@ fun BookingHistoryScreen(navController: NavController) {
 }
 
 @Composable
-fun BookingHistoryCard(booking: Booking) {
+fun BookingHistoryCard(booking: Booking, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Navigate to details */ },
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {

@@ -97,5 +97,98 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
     fun resetReservationState() {
         _reservationState.value = ReservationUiState.Idle
     }
+
+    // Single booking state
+    private val _singleBookingState = MutableStateFlow<ReservationUiState>(ReservationUiState.Idle)
+    val singleBookingState: StateFlow<ReservationUiState> = _singleBookingState.asStateFlow()
+
+    fun loadBooking(bookingId: String) {
+        viewModelScope.launch {
+            try {
+                _singleBookingState.value = ReservationUiState.Loading
+                val booking = bookingRepository.getBooking(bookingId)
+                _singleBookingState.value = ReservationUiState.Success(booking)
+            } catch (e: Exception) {
+                _singleBookingState.value = ReservationUiState.Error(
+                    e.message ?: "Failed to load booking"
+                )
+            }
+        }
+    }
+
+    fun createBooking(
+        offerId: String,
+        tripDetails: tn.esprit.wayfinder.models.TripDetails? = null,
+        passengers: List<tn.esprit.wayfinder.models.BookingPassenger>? = null,
+        notes: String? = null,
+        totalPrice: Double? = null,
+        paymentDetails: Map<String, Any> = emptyMap()
+    ) {
+        viewModelScope.launch {
+            try {
+                _reservationState.value = ReservationUiState.Loading
+                val request = tn.esprit.wayfinder.models.CreateBookingRequest(
+                    offerId = offerId,
+                    paymentDetails = paymentDetails,
+                    tripDetails = tripDetails,
+                    passengers = passengers,
+                    notes = notes,
+                    totalPrice = totalPrice
+                )
+                val booking = bookingRepository.createBooking(request)
+                _reservationState.value = ReservationUiState.Success(booking)
+            } catch (e: Exception) {
+                _reservationState.value = ReservationUiState.Error(
+                    e.message ?: "Failed to create booking"
+                )
+            }
+        }
+    }
+
+    fun updateBooking(
+        bookingId: String,
+        tripDetails: tn.esprit.wayfinder.models.TripDetails? = null,
+        passengers: List<tn.esprit.wayfinder.models.BookingPassenger>? = null,
+        notes: String? = null,
+        paymentDetails: Map<String, Any>? = null,
+        totalPrice: Double? = null
+    ) {
+        viewModelScope.launch {
+            try {
+                _singleBookingState.value = ReservationUiState.Loading
+                val request = tn.esprit.wayfinder.models.UpdateBookingRequest(
+                    paymentDetails = paymentDetails,
+                    tripDetails = tripDetails,
+                    passengers = passengers,
+                    notes = notes,
+                    totalPrice = totalPrice
+                )
+                val booking = bookingRepository.updateBooking(bookingId, request)
+                _singleBookingState.value = ReservationUiState.Success(booking)
+                // Refresh booking history
+                loadBookingHistory()
+            } catch (e: Exception) {
+                _singleBookingState.value = ReservationUiState.Error(
+                    e.message ?: "Failed to update booking"
+                )
+            }
+        }
+    }
+
+    fun cancelBooking(bookingId: String) {
+        viewModelScope.launch {
+            try {
+                _singleBookingState.value = ReservationUiState.Loading
+                val booking = bookingRepository.cancelBooking(bookingId)
+                _singleBookingState.value = ReservationUiState.Success(booking)
+                // Refresh booking history
+                loadBookingHistory()
+            } catch (e: Exception) {
+                _singleBookingState.value = ReservationUiState.Error(
+                    e.message ?: "Failed to cancel booking"
+                )
+            }
+        }
+    }
 }
 

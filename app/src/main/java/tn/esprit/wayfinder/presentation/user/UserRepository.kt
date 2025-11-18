@@ -16,7 +16,8 @@ class UserRepository(private val apiService: ApiService) {
         email: String? = null,
         phone: String? = null,
         location: String? = null,
-        bio: String? = null
+        bio: String? = null,
+        preferences: List<String>? = null
     ): User {
         val request = UpdateProfileRequest(
             firstName = firstName,
@@ -24,7 +25,8 @@ class UserRepository(private val apiService: ApiService) {
             email = email,
             phone = phone,
             location = location,
-            bio = bio
+            bio = bio,
+            preferences = preferences
         )
         return apiService.updateProfile(request)
     }

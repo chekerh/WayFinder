@@ -46,7 +46,8 @@ class UserViewModel(
         email: String? = null,
         phone: String? = null,
         location: String? = null,
-        bio: String? = null
+        bio: String? = null,
+        preferences: List<String>? = null
     ) {
         viewModelScope.launch {
             try {
@@ -57,7 +58,8 @@ class UserViewModel(
                     email = email,
                     phone = phone,
                     location = location,
-                    bio = bio
+                    bio = bio,
+                    preferences = preferences
                 )
                 cacheUser(updatedUser)
                 _uiState.value = UserUiState.Success(updatedUser)

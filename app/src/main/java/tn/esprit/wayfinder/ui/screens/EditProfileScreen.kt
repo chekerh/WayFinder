@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.flowlayout.FlowRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -37,6 +38,12 @@ fun EditProfileScreen(navController: NavController) {
     var phone by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
+    var selectedPreferences by remember { mutableStateOf<Set<String>>(emptySet()) }
+    
+    val availablePreferences = listOf(
+        "Beach", "Mountain", "City", "Culture", "Adventure", "Relaxation",
+        "Food", "Nightlife", "Shopping", "Nature", "History", "Art"
+    )
     
     // Load user data
     LaunchedEffect(Unit) {
@@ -53,6 +60,7 @@ fun EditProfileScreen(navController: NavController) {
             phone = user.phone.orEmpty()
             location = user.location.orEmpty()
             bio = user.bio.orEmpty()
+            selectedPreferences = user.preferences.toSet()
         }
     }
     
@@ -172,6 +180,42 @@ fun EditProfileScreen(navController: NavController) {
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
+                    // Preferences Section
+                    Text(
+                        text = "Préférences de voyage",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Sélectionnez vos intérêts pour des recommandations personnalisées",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Preferences Chips
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        availablePreferences.forEach { preference ->
+                            FilterChip(
+                                selected = selectedPreferences.contains(preference),
+                                onClick = {
+                                    selectedPreferences = if (selectedPreferences.contains(preference)) {
+                                        selectedPreferences - preference
+                                    } else {
+                                        selectedPreferences + preference
+                                    }
+                                },
+                                label = { Text(preference) }
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     // Save Button
                     Button(
                         onClick = {
@@ -181,7 +225,8 @@ fun EditProfileScreen(navController: NavController) {
                                 email = email,
                                 phone = phone.ifBlank { null },
                                 location = location.ifBlank { null },
-                                bio = bio.ifBlank { null }
+                                bio = bio.ifBlank { null },
+                                preferences = selectedPreferences.toList()
                             )
                         },
                         modifier = Modifier
