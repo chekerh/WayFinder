@@ -4,12 +4,15 @@ import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import kotlinx.coroutines.delay
 import tn.esprit.wayfinder.models.OnboardingQuestion
 import tn.esprit.wayfinder.models.Progress
@@ -194,5 +197,13 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
         Button(onClick = onRetry) {
             Text("Retry")
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SurveyScreenPreview() {
+    WayFinderTheme {
+        SurveyScreen(onComplete = {})
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +40,7 @@ fun ChatScreen(navController: NavController) {
             CenterAlignedTopAppBar(
                 title = { Text("Chat - Packs", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color(0xFFEAF2FF))
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         bottomBar = {
@@ -58,7 +59,7 @@ fun ChatScreen(navController: NavController) {
                 CustomBottomNavigationBar(navController = navController)
             }
         },
-        containerColor = Color(0xFFF0F8FF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -90,7 +91,7 @@ private fun GeminiMessageBubble(message: ChatMessage) {
     val colors = if (message.isQuickReply) {
         ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), contentColor = Color.White)
     } else {
-        ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)
     }
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
@@ -107,7 +108,7 @@ private fun PackItem(pack: Pack) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.White, 
+            containerColor = MaterialTheme.colorScheme.surface, 
             contentColor = Color.Black
         ),
         contentPadding = PaddingValues(16.dp)

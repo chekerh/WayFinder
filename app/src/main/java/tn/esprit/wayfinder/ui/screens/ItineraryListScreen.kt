@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,8 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.ItineraryUiState
 import tn.esprit.wayfinder.viewmodels.ItineraryViewModel
@@ -40,7 +44,7 @@ fun ItineraryListScreen(navController: NavController) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFF0F8FF),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { 
@@ -67,7 +71,7 @@ fun ItineraryListScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -183,7 +187,7 @@ fun ItineraryCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -279,6 +283,14 @@ private fun formatDateRange(startDate: String, endDate: String): String {
         "${formatter.format(start ?: Date())} - ${formatter.format(end ?: Date())}"
     } catch (e: Exception) {
         "$startDate - $endDate"
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ItineraryListScreenPreview() {
+    WayFinderTheme {
+        ItineraryListScreen(rememberNavController())
     }
 }
 

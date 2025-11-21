@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -113,7 +114,7 @@ fun HomeScreen(navController: NavController) {
     )
 
     Scaffold(
-        containerColor = Color(0xFFEAF2FF),
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { CustomBottomNavigationBar(navController = navController) }
     ) { paddingValues ->
         Column(
@@ -609,7 +610,7 @@ fun DiscussionCard(navController: NavController) {
                 navController.navigate("discussions")
             },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(

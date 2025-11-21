@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -21,8 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.painterResource
@@ -49,7 +53,7 @@ fun OfflineDestinationsScreen(navController: NavController) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFF0F8FF),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -88,7 +92,7 @@ fun OfflineDestinationsScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
@@ -214,7 +218,7 @@ fun OfflineDestinationCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
@@ -285,6 +289,14 @@ fun OfflineDestinationCard(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OfflineDestinationsScreenPreview() {
+    WayFinderTheme {
+        OfflineDestinationsScreen(rememberNavController())
     }
 }
 

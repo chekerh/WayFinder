@@ -9,16 +9,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import android.app.Application
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.models.Booking
 import tn.esprit.wayfinder.models.BookingStatus
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
@@ -58,14 +62,14 @@ fun BookingHistoryScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -166,7 +170,7 @@ fun BookingHistoryCard(booking: Booking, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
@@ -241,3 +245,10 @@ fun StatusChip(status: BookingStatus) {
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun BookingHistoryScreenPreview() {
+    WayFinderTheme {
+        BookingHistoryScreen(rememberNavController())
+    }
+}

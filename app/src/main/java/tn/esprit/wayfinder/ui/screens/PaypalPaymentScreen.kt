@@ -15,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,8 +27,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,11 +55,11 @@ fun PaypalPaymentScreen(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -122,7 +126,7 @@ fun PaypalPaymentScreen(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -155,6 +159,19 @@ private fun extractPaypalToken(url: String): String? {
         uri.getQueryParameter("token")
     } catch (e: Exception) {
         null
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PaypalPaymentScreenPreview() {
+    WayFinderTheme {
+        PaypalPaymentScreen(
+            navController = rememberNavController(),
+            approvalUrl = "https://www.sandbox.paypal.com/test",
+            onPaymentSuccess = { },
+            onPaymentFailed = { }
+        )
     }
 }
 

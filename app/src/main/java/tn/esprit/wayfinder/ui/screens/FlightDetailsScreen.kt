@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.tooling.preview.Preview
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import android.app.Application
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -95,11 +99,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -443,6 +447,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 }
             }
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FlightDetailsScreenPreview() {
+    WayFinderTheme {
+        FlightDetailsScreen(rememberNavController(), destinationId = "test-destination-id")
     }
 }
 

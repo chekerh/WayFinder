@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,7 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import java.util.Locale
 import tn.esprit.wayfinder.navigation.BOOKING_CURRENCY_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_DESTINATION_NAME_KEY
@@ -42,14 +46,14 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             TopAppBar(
                 title = { Text("Confirmation", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -88,7 +92,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier
@@ -191,6 +195,14 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun BookingConfirmationScreenPreview() {
+    WayFinderTheme {
+        BookingConfirmationScreen(rememberNavController(), bookingId = "test-booking-id")
     }
 }
 

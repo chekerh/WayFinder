@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +26,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.manager.TokenManager
@@ -63,7 +67,7 @@ fun DiscussionScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
@@ -78,7 +82,7 @@ fun DiscussionScreen(navController: NavController) {
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -97,7 +101,7 @@ fun DiscussionScreen(navController: NavController) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "Aucune discussion pour le moment",
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -162,6 +166,14 @@ fun DiscussionScreen(navController: NavController) {
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun DiscussionScreenPreview() {
+    WayFinderTheme {
+        DiscussionScreen(rememberNavController())
+    }
+}
+
 @Composable
 fun PostCard(
     post: DiscussionPost,
@@ -176,7 +188,7 @@ fun PostCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -219,7 +231,7 @@ fun PostCard(
                     Text(
                         text = formatDate(post.createdAt),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -239,7 +251,7 @@ fun PostCard(
             Text(
                 text = post.content,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             // Post Image
@@ -294,7 +306,7 @@ fun PostCard(
                         Icon(
                             imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Like",
-                            tint = if (isLiked) Color(0xFFFF1744) else Color.Gray
+                            tint = if (isLiked) Color(0xFFFF1744) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
@@ -305,7 +317,7 @@ fun PostCard(
                 Text(
                     text = "${post.commentsCount} commentaires",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

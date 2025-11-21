@@ -22,7 +22,10 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
@@ -36,11 +39,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.manager.TokenManager
+import tn.esprit.wayfinder.manager.ThemeManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.UserViewModel
@@ -58,9 +65,14 @@ fun ProfileScreen(navController: NavController) {
     val uiState by userViewModel.uiState.collectAsState()
     val canShareState by journeyViewModel.canShareState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
+    val themeManager = remember { ThemeManager(context) }
     val currentUser = remember { tokenManager.getUser() }
     val startDestination = remember { navController.graph.startDestinationRoute ?: "home" }
     var isMenuExpanded by remember { mutableStateOf(false) }
+    
+    // Dark mode state
+    var isDarkModeEnabled by remember { mutableStateOf(themeManager.isDarkModeEnabled()) }
+    var followSystemTheme by remember { mutableStateOf(themeManager.isFollowingSystem()) }
 
     // Load profile and check if user can share journey
     LaunchedEffect(Unit) {
@@ -131,14 +143,14 @@ fun ProfileScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
             },
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
-        containerColor = Color(0xFFEAF2FF)
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         when (val state = uiState) {
             is UserUiState.Loading -> {
@@ -166,6 +178,21 @@ fun ProfileScreen(navController: NavController) {
                     canShareJourney = canShareState?.canShare ?: false,
                     canShareState = canShareState,
                     navController = navController,
+                    themeManager = themeManager,
+                    isDarkModeEnabled = isDarkModeEnabled,
+                    followSystemTheme = followSystemTheme,
+                    onDarkModeToggle = { enabled ->
+                        isDarkModeEnabled = enabled
+                        themeManager.setDarkModeEnabled(enabled)
+                        // Reload activity to apply theme change
+                        (context as? android.app.Activity)?.recreate()
+                    },
+                    onFollowSystemToggle = { follow ->
+                        followSystemTheme = follow
+                        themeManager.setFollowSystemTheme(follow)
+                        // Reload activity to apply theme change
+                        (context as? android.app.Activity)?.recreate()
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -204,6 +231,11 @@ fun ProfileContent(
     canShareJourney: Boolean,
     canShareState: CanShareJourneyResponse?,
     navController: NavController,
+    themeManager: ThemeManager? = null,
+    isDarkModeEnabled: Boolean = false,
+    followSystemTheme: Boolean = true,
+    onDarkModeToggle: ((Boolean) -> Unit)? = null,
+    onFollowSystemToggle: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -218,7 +250,7 @@ fun ProfileContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -296,7 +328,7 @@ fun ProfileContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -323,7 +355,7 @@ fun ProfileContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -450,7 +482,7 @@ fun ProfileContent(
                     onBookingHistoryClick()
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -486,7 +518,7 @@ fun ProfileContent(
                     navController.navigate("journey_feed")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -525,6 +557,105 @@ fun ProfileContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Apparence / Dark Mode Settings Card
+        if (themeManager != null && onDarkModeToggle != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Apparence",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    // Follow System Theme Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (followSystemTheme) Icons.Default.CloudDone else Icons.Default.DarkMode,
+                                contentDescription = "System Theme",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Suivre le thème système",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = if (followSystemTheme) "Le thème suit les paramètres système" else "Le thème est défini manuellement",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = followSystemTheme,
+                            onCheckedChange = { enabled ->
+                                onFollowSystemToggle?.invoke(enabled)
+                            }
+                        )
+                    }
+                    
+                    // Dark Mode Toggle (only shown if not following system)
+                    if (!followSystemTheme) {
+                        HorizontalDivider()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isDarkModeEnabled) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                    contentDescription = "Dark Mode",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Mode sombre",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = if (isDarkModeEnabled) "Thème sombre activé" else "Thème clair activé",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = isDarkModeEnabled,
+                                onCheckedChange = { enabled ->
+                                    onDarkModeToggle.invoke(enabled)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+        
         // Favorites Card
         Card(
             modifier = Modifier
@@ -533,7 +664,7 @@ fun ProfileContent(
                     navController.navigate("favorites")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -569,7 +700,7 @@ fun ProfileContent(
                     navController.navigate("itineraries")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -605,7 +736,7 @@ fun ProfileContent(
                     navController.navigate("notifications")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -650,7 +781,7 @@ fun ProfileContent(
                     navController.navigate("search_history")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -695,7 +826,7 @@ fun ProfileContent(
                     navController.navigate("price_alerts")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -740,7 +871,7 @@ fun ProfileContent(
                     navController.navigate("offline_destinations")
                 },
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Row(
                 modifier = Modifier
@@ -883,6 +1014,14 @@ fun MemoryCard(album: MemoryAlbum) {
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    WayFinderTheme {
+        ProfileScreen(rememberNavController())
     }
 }
 

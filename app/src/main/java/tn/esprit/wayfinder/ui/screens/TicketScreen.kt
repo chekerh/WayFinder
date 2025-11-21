@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +26,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 @Composable
 fun TicketScreen(navController: NavController) {
     Scaffold(
-        containerColor = Color(0xFFF0F8FF),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Votre Ticket", fontWeight = FontWeight.Bold) },
@@ -80,7 +81,7 @@ fun TicketScreen(navController: NavController) {
                 Button(
                     onClick = { /*TODO*/ },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Text("Save PDF", color = Color.Black)
                 }

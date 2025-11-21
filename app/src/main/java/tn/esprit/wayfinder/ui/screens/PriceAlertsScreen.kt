@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,8 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.models.PriceAlert
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.PriceAlertsUiState
@@ -42,7 +46,7 @@ fun PriceAlertsScreen(navController: NavController) {
     }
 
     Scaffold(
-        containerColor = Color(0xFFF0F8FF),
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { /* Navigate to create alert screen */ },
@@ -80,7 +84,7 @@ fun PriceAlertsScreen(navController: NavController) {
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFEAF2FF)
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
@@ -368,6 +372,14 @@ private fun formatTimestamp(timestamp: String): String {
         formatter.format(date ?: Date())
     } catch (e: Exception) {
         timestamp
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PriceAlertsScreenPreview() {
+    WayFinderTheme {
+        PriceAlertsScreen(rememberNavController())
     }
 }
 
