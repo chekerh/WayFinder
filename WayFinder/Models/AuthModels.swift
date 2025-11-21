@@ -30,6 +30,61 @@ struct UserProfile: Decodable {
     let firstName: String?
     let lastName: String?
     let avatarUrl: String?
+    let profileImageUrl: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "_id"
+        case email
+        case username
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case avatarUrl
+        case profileImageUrl = "profile_image_url"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Handle MongoDB _id
+        if let idString = try? container.decode(String.self, forKey: .id) {
+            id = idString
+        } else if let idDict = try? container.decode([String: String].self, forKey: .id),
+                  let idValue = idDict["$oid"] {
+            id = idValue
+        } else {
+            id = nil
+        }
+        
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        username = try container.decodeIfPresent(String.self, forKey: .username)
+        firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
+        lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
+        avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
+        profileImageUrl = try container.decodeIfPresent(String.self, forKey: .profileImageUrl)
+    }
+}
+
+extension UserProfile {
+    var displayNameValue: String {
+        if let firstName = firstName, !firstName.isEmpty,
+           let lastName = lastName, !lastName.isEmpty {
+            return "\(firstName) \(lastName)"
+        }
+        if let firstName = firstName, !firstName.isEmpty {
+            return firstName
+        }
+        if let username = username, !username.isEmpty {
+            return username
+        }
+        if let email = email, !email.isEmpty {
+            return email
+        }
+        return "Utilisateur"
+    }
+    
+    var resolvedProfileImageUrl: String? {
+        profileImageUrl ?? avatarUrl
+    }
 }
 
 struct RegisterRequest: Encodable {

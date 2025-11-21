@@ -18,6 +18,8 @@ struct SignInView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
+    @State private var acceptTerms = false
+    @State private var showTermsAlert = false
     
     var body: some View {
         ZStack {
@@ -45,30 +47,37 @@ struct SignInView: View {
                 Spacer()
                 
                 VStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Button(action: {
+                            acceptTerms.toggle()
+                        }) {
+                            Image(systemName: acceptTerms ? "checkmark.square.fill" : "square")
+                                .foregroundColor(acceptTerms ? ThemeColors.accent() : Color.gray)
+                                .font(.system(size: 20))
+                        }
+                        
+                        consentText
+                            .font(.system(size: 13))
+                    }
+                    .padding(.horizontal, 24)
+                    
                     Button(action: {
                         Task { await submit() }
                     }) {
-                        HStack(spacing: 16) {
                             if isLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text("signin_button")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Image(systemName: "globe")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
+                                .padding(.horizontal, 24)
                         }
-                        .padding(.horizontal, 32)
+                    }
                         .padding(.vertical, 16)
                         .background(ThemeColors.accent())
                         .clipShape(Capsule())
-                    }
                     .disabled(isLoading)
-                    .padding(.horizontal, 80)
                     
                     if let errorMessage {
                         Text(errorMessage)
@@ -77,9 +86,6 @@ struct SignInView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
-                    
-                    termsText
-                        .padding(.horizontal, 24)
                 }
                 .padding(.bottom, 28)
             }
@@ -90,6 +96,12 @@ struct SignInView: View {
             }
         } message: {
             Text(String(localized: "signin_success_message"))
+        }
+        .alert(Text("alert_terms_title"), isPresented: $showTermsAlert) {
+            Button(role: .cancel) {}
+                label: { Text("generic_ok") }
+        } message: {
+            Text("alert_terms_message")
         }
     }
     
@@ -145,6 +157,23 @@ struct SignInView: View {
             .foregroundColor(accent)
             .underline()
     }
+    
+    var consentText: Text {
+        let accent = Color(red: 0.99, green: 0.70, blue: 0.19)
+        return Text("login_accept_prefix")
+            .foregroundColor(ThemeColors.primaryText(colorScheme))
+        + Text(" ")
+        + Text("login_privacy")
+            .foregroundColor(accent)
+            .underline()
+        + Text(" ")
+        + Text("login_terms_connector")
+            .foregroundColor(ThemeColors.primaryText(colorScheme))
+        + Text(" ")
+        + Text("login_terms_conditions")
+            .foregroundColor(accent)
+            .underline()
+    }
 }
 
 private extension SignInView {
@@ -167,6 +196,11 @@ private extension SignInView {
 
         guard password == confirmPassword else {
             errorMessage = String(localized: "signin_error_password_mismatch")
+            return
+        }
+        
+        guard acceptTerms else {
+            showTermsAlert = true
             return
         }
         

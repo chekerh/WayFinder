@@ -29,10 +29,36 @@ final class AuthService {
         TokenStorage.save(token: response.accessToken)
 
         if let user = response.user {
+            // Sauvegarder le profil avec l'email pour la persistance
+            UserStorage.saveProfile(user)
+            
+            // Restaurer l'image après reconnexion via ProfileImageService
+            if let email = user.email {
+                await ProfileImageService.shared.restoreAfterLogin(email: email)
+                if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                    await ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                }
+                print("✅ [AuthService] Profile saved and image restored for email: \(email)")
+            } else {
+                print("✅ [AuthService] Profile saved")
+            }
+            
             return user
         }
 
-        return try await UserService.shared.fetchProfile()
+        let profile = try await UserService.shared.fetchProfile()
+        // Sauvegarder le profil récupéré avec l'email
+        UserStorage.saveProfile(profile)
+        
+        // Restaurer l'image après reconnexion via ProfileImageService
+        if let email = profile.email {
+            await ProfileImageService.shared.restoreAfterLogin(email: email)
+            if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                await ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+            }
+        }
+        
+        return profile
     }
 
     func loginWithGoogle(idToken: String) async throws -> UserProfile {
@@ -50,10 +76,16 @@ final class AuthService {
         TokenStorage.save(token: response.accessToken)
 
         if let user = response.user {
+            // Sauvegarder le profil avec l'email pour la persistance
+            UserStorage.saveProfile(user)
+            print("✅ [AuthService] Google profile saved with email: \(user.email ?? "nil")")
             return user
         }
 
-        return try await UserService.shared.fetchProfile()
+        let profile = try await UserService.shared.fetchProfile()
+        // Sauvegarder le profil récupéré avec l'email
+        UserStorage.saveProfile(profile)
+        return profile
     }
 
     func loginWithApple(identityToken: String,
@@ -81,10 +113,16 @@ final class AuthService {
         TokenStorage.save(token: response.accessToken)
 
         if let user = response.user {
+            // Sauvegarder le profil avec l'email pour la persistance
+            UserStorage.saveProfile(user)
+            print("✅ [AuthService] Apple profile saved with email: \(user.email ?? "nil")")
             return user
         }
 
-        return try await UserService.shared.fetchProfile()
+        let profile = try await UserService.shared.fetchProfile()
+        // Sauvegarder le profil récupéré avec l'email
+        UserStorage.saveProfile(profile)
+        return profile
     }
 
     func register(username: String,
@@ -116,6 +154,8 @@ final class AuthService {
 
     func logout() {
         TokenStorage.delete()
+        UserStorage.clear()
+        PreferenceStorage.clearPreferenceId()
     }
 }
 

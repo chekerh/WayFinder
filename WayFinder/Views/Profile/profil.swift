@@ -6,21 +6,25 @@
 //
 
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct ProfileView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = ProfileViewModel()
+    @AppStorage(UserStorage.profileImageUrlKey) private var cachedProfileImageUrlRaw: String = ""
     @State private var showLogoutConfirmation = false
     @State private var showAuthFlow = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedImageData: Data?
     
     private let actions: [ProfileAction] = [
-        .init(icon: "airplane", titleKey: "profile_bookings", destination: .bookingHistory),
+        .init(icon: "slider.horizontal.3", titleKey: "profile_preferences"),
         .init(icon: "pencil", titleKey: "profile_edit_name", destination: .editName),
         .init(icon: "checklist", titleKey: "profile_list_project"),
         .init(icon: "lock", titleKey: "profile_change_password", destination: .changePassword),
         .init(icon: "envelope", titleKey: "profile_change_email", destination: .changeEmail),
         .init(icon: "gearshape", titleKey: "profile_settings"),
-        .init(icon: "slider.horizontal.3", titleKey: "profile_preferences"),
         .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
     ]
     
@@ -54,7 +58,7 @@ struct ProfileView: View {
                 .padding(.bottom, 32)
             }
         }
-        .safeAreaPadding(.bottom, 80)
+        .safeAreaPadding(.bottom, 64)
         .background(ThemeColors.background(colorScheme).ignoresSafeArea())
         .alert(String(localized: "profile_logout_confirm_title"), isPresented: $showLogoutConfirmation) {
             Button(role: .destructive) {
@@ -73,7 +77,28 @@ struct ProfileView: View {
             WelcomeView()
         }
         .task {
+            // Charger l'image persistée avant de charger le profil
+            ProfileImageService.shared.loadPersistedImage()
             await viewModel.loadProfile()
+            // S'assurer que @AppStorage est synchronisé après le chargement
+            if let imageUrl = viewModel.profileImageUrl {
+                cachedProfileImageUrlRaw = imageUrl
+            }
+        }
+        .onAppear {
+            // Recharger l'image depuis le service centralisé à l'apparition
+            ProfileImageService.shared.loadPersistedImage()
+            if let serviceUrl = ProfileImageService.shared.profileImageUrl, !serviceUrl.contains("pravatar.cc") {
+                cachedProfileImageUrlRaw = serviceUrl
+            } else if let storedUrl = UserStorage.fetchProfileImageUrl(), !storedUrl.contains("pravatar.cc") {
+                cachedProfileImageUrlRaw = storedUrl
+            } else {
+                // Si c'est une image de test, la supprimer
+                cachedProfileImageUrlRaw = ""
+            }
+            if (viewModel.profileImageUrl ?? currentCachedImageUrl) != nil {
+                selectedImageData = nil
+            }
         }
     }
     
@@ -84,7 +109,49 @@ struct ProfileView: View {
                 .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.12), radius: 20, x: 0, y: 10)
             
             VStack(spacing: 16) {
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
                 ZStack(alignment: .bottomTrailing) {
+                        // Image de profil ou placeholder
+                        if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                        } else if let imageUrl = viewModel.profileImageUrl ?? currentCachedImageUrl, let url = buildImageURL(from: imageUrl) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                case .failure, .empty:
+                                    Circle()
+                                        .fill(ThemeColors.surface(colorScheme))
+                                        .overlay(
+                                            Image(systemName: "person.fill")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .foregroundColor(ThemeColors.accent())
+                                                .padding(24)
+                                        )
+                                        .frame(width: 120, height: 120)
+                                @unknown default:
+                                    Circle()
+                                        .fill(ThemeColors.surface(colorScheme))
+                                        .overlay(
+                                            Image(systemName: "person.fill")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .foregroundColor(ThemeColors.accent())
+                                                .padding(24)
+                                        )
+                                        .frame(width: 120, height: 120)
+                                }
+                            }
+                        } else {
                     Circle()
                         .fill(ThemeColors.surface(colorScheme))
                         .overlay(
@@ -95,15 +162,29 @@ struct ProfileView: View {
                                 .padding(24)
                         )
                         .frame(width: 120, height: 120)
+                        }
                     
+                        // Bouton d'édition
                     Circle()
                         .fill(Color(red: 0.98, green: 0.82, blue: 0.18))
                         .frame(width: 36, height: 36)
-                        .overlay(Image(systemName: "pencil")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white))
+                            .overlay(
+                                Group {
+                                    if viewModel.isUploadingImage {
+                                        ProgressView()
+                                            .tint(.white)
+                                            .scaleEffect(0.7)
+                                    } else {
+                                        Image(systemName: "camera.fill")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
+                                }
+                            )
                         .offset(x: 6, y: 6)
+                    }
                 }
+                .disabled(viewModel.isUploadingImage)
                 
                 Text(viewModel.displayName)
                     .font(.system(size: 24, weight: .semibold))
@@ -112,6 +193,59 @@ struct ProfileView: View {
             .padding(.vertical, 32)
         }
         .frame(maxWidth: .infinity)
+        .onChange(of: selectedPhoto) { oldValue, newValue in
+            Task {
+                guard let newValue = newValue else { return }
+                if let data = try? await newValue.loadTransferable(type: Data.self),
+                   let preparedData = prepareImageData(data) {
+                    await MainActor.run {
+                        selectedImageData = preparedData
+                    }
+                    // Upload immédiatement l'image
+                    await viewModel.uploadProfileImage(imageData: preparedData)
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    await MainActor.run {
+                        if (viewModel.profileImageUrl ?? currentCachedImageUrl) != nil {
+                            selectedImageData = nil
+                        }
+                    }
+                }
+            }
+        }
+        .onChange(of: viewModel.profileImageUrl) { oldValue, newValue in
+            // Quand l'URL de l'image change (après upload), réinitialiser selectedImageData
+            if newValue != nil && newValue != oldValue {
+                selectedImageData = nil
+                // Mettre à jour @AppStorage pour synchronisation
+                if let newUrl = newValue {
+                    cachedProfileImageUrlRaw = newUrl
+                    UserDefaults.standard.set(newUrl, forKey: UserStorage.profileImageUrlKey)
+                    UserDefaults.standard.synchronize()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserProfileImageDidUpdate"))) { notification in
+            // Mettre à jour @AppStorage quand l'image change
+            if let newUrl = notification.userInfo?["profileImageUrl"] as? String {
+                cachedProfileImageUrlRaw = newUrl
+            } else if let newUrl = UserStorage.fetchProfileImageUrl() {
+                cachedProfileImageUrlRaw = newUrl
+            }
+        }
+    }
+    
+    private var currentCachedImageUrl: String? {
+        cachedProfileImageUrlRaw.isEmpty ? nil : cachedProfileImageUrlRaw
+    }
+    
+    private func buildImageURL(from urlString: String) -> URL? {
+        // Si l'URL commence par http, utiliser tel quel
+        if urlString.hasPrefix("http://") || urlString.hasPrefix("https://") {
+            return URL(string: urlString)
+        }
+        // Sinon, construire l'URL complète avec le backend
+        let baseURL = "https://wayfinder-api-w92x.onrender.com"
+        return URL(string: "\(baseURL)\(urlString)")
     }
 }
 
@@ -189,8 +323,35 @@ private extension ProfileView {
     
     func performLogout() {
         AuthService.shared.logout()
-        PreferenceStorage.clearPreferenceId()
         showAuthFlow = true
+    }
+    
+    func prepareImageData(_ data: Data) -> Data? {
+        guard let image = UIImage(data: data) else {
+            return data
+        }
+        
+        let maxDimension: CGFloat = 1024
+        let maxBytes = 900_000 // ~0.9 MB pour éviter "message trop long"
+        
+        let largestSide = max(image.size.width, image.size.height)
+        let scale = largestSide > maxDimension ? maxDimension / largestSide : 1
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resizedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        
+        var compression: CGFloat = 0.8
+        var jpegData = resizedImage.jpegData(compressionQuality: compression)
+        
+        while let data = jpegData, data.count > maxBytes, compression > 0.3 {
+            compression -= 0.1
+            jpegData = resizedImage.jpegData(compressionQuality: compression)
+        }
+        
+        return jpegData ?? data
     }
 }
 

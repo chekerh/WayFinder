@@ -28,9 +28,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3E0E8CF82ECE66660009FE05 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E4A22A82ECDB76000A2451A /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E5B404C2EC92F4B002D8476 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3EBDE1A02ECD2F8700484DAC /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3ECAE3D82EBA8FAB00751992 /* WayFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WayFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -38,6 +41,7 @@
 		3ECAE3F42EBA8FAC00751992 /* WayFinderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WayFinderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3F82EBA8FAC00751992 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		3ED28F4C2ECAD9D200C657E7 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3EF733CB2ECF73DC006F6736 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -97,6 +101,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3E0E8CFA2ECE66660009FE05 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E4A22AA2ECDB76000A2451A /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		3E5B404E2EC92F4B002D8476 /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
@@ -108,6 +122,11 @@
 			sourceTree = "<group>";
 		};
 		3E9ADD092EC9DD06003B961F /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3EBDE1A22ECD2F8700484DAC /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
@@ -144,6 +163,11 @@
 			sourceTree = "<group>";
 		};
 		3ED28F4E2ECAD9D200C657E7 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3EF733CD2ECF73DC006F6736 /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
@@ -262,12 +286,12 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 3EC115BC2EC541E1002BFE19 /* Products */;
-					ProjectRef = 3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */;
+					ProductGroup = 3EBDE1A22ECD2F8700484DAC /* Products */;
+					ProjectRef = 3EBDE1A02ECD2F8700484DAC /* WayFinder.xcodeproj */;
 				},
 				{
-					ProductGroup = 3E9ADD092EC9DD06003B961F /* Products */;
-					ProjectRef = 3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */;
+					ProductGroup = 3E0E8CFA2ECE66660009FE05 /* Products */;
+					ProjectRef = 3E0E8CF82ECE66660009FE05 /* WayFinder.xcodeproj */;
 				},
 				{
 					ProductGroup = 3ED28F4E2ECAD9D200C657E7 /* Products */;
@@ -282,8 +306,24 @@
 					ProjectRef = 3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */;
 				},
 				{
+					ProductGroup = 3EC115BC2EC541E1002BFE19 /* Products */;
+					ProjectRef = 3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */;
+				},
+				{
 					ProductGroup = 3EC1157E2EC54074002BFE19 /* Products */;
 					ProjectRef = 3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E4A22AA2ECDB76000A2451A /* Products */;
+					ProjectRef = 3E4A22A82ECDB76000A2451A /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3EF733CD2ECF73DC006F6736 /* Products */;
+					ProjectRef = 3EF733CB2ECF73DC006F6736 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E9ADD092EC9DD06003B961F /* Products */;
+					ProjectRef = 3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -483,6 +523,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F454GL3545;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WayFinder/Info.plist;
@@ -511,6 +552,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F454GL3545;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WayFinder/Info.plist;

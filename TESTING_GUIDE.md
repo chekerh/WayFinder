@@ -6,7 +6,9 @@ Ce guide t'aide à tester si l'intégration backend/frontend fonctionne correcte
 
 ## 📋 Prérequis
 
-1. **Backend NestJS démarré** sur `http://127.0.0.1:3000` (ou l'IP de ton Mac si tu testes sur un device physique)
+1. **Backend NestJS accessible**
+   - Déploiement Render (défaut iOS) : `https://wayfinder-api-w92x.onrender.com/api`
+   - Local : `http://127.0.0.1:3000/api` (ou l'IP de ton Mac si tu testes sur un device physique)
 2. **Endpoints backend fonctionnels** :
    - `GET /api/regions/europe/countries`
    - `GET /api/regions/asia/countries`
@@ -21,9 +23,10 @@ Avant de tester dans l'app, vérifie que ton backend répond bien.
 
 ### Test 1 : Liste des pays d'Europe
 ```bash
-curl -X GET "http://127.0.0.1:3000/api/regions/europe/countries" \
+curl -X GET "https://wayfinder-api-w92x.onrender.com/api/regions/europe/countries" \
   -H "Content-Type: application/json"
 ```
+> Pour un backend local, remplace la base d'URL par `http://127.0.0.1:3000/api`.
 
 **Résultat attendu** : JSON avec un tableau de pays, chaque pays ayant :
 - `id` (ex: "italy-rome")
@@ -35,20 +38,20 @@ curl -X GET "http://127.0.0.1:3000/api/regions/europe/countries" \
 
 ### Test 2 : Liste des pays d'Asie
 ```bash
-curl -X GET "http://127.0.0.1:3000/api/regions/asia/countries" \
+curl -X GET "https://wayfinder-api-w92x.onrender.com/api/regions/asia/countries" \
   -H "Content-Type: application/json"
 ```
 
 ### Test 3 : Liste des pays d'Australie
 ```bash
-curl -X GET "http://127.0.0.1:3000/api/regions/australia/countries" \
+curl -X GET "https://wayfinder-api-w92x.onrender.com/api/regions/australia/countries" \
   -H "Content-Type: application/json"
 ```
 
 ### Test 4 : Détail d'un pays
 Remplace `{countryId}` par un ID réel retourné par les tests précédents (ex: "italy-rome") :
 ```bash
-curl -X GET "http://127.0.0.1:3000/api/countries/italy-rome" \
+curl -X GET "https://wayfinder-api-w92x.onrender.com/api/countries/italy-rome" \
   -H "Content-Type: application/json"
 ```
 
@@ -66,10 +69,11 @@ curl -X GET "http://127.0.0.1:3000/api/countries/italy-rome" \
 1. Ouvre `WayFinder/Networking/APIConfig.swift`
 2. Vérifie que `baseURL` pointe vers ton backend :
    ```swift
-   static let baseURL = URL(string: "http://127.0.0.1:3000/api")!
+   static let baseURL = URL(string: "https://wayfinder-api-w92x.onrender.com/api")!
    ```
-   - **Simulateur** : `127.0.0.1` ou `localhost`
-   - **Device physique** : IP locale de ton Mac (ex: `http://192.168.0.42:3000/api`)
+   - **Déploiement Render** : valeur par défaut ci-dessus.
+   - **Local (simulateur)** : `http://127.0.0.1:3000/api`.
+   - **Local (device)** : IP locale du Mac (ex: `http://192.168.0.42:3000/api`).
 
 ### Étape 2 : Lancer l'app et observer les logs
 
@@ -84,7 +88,7 @@ curl -X GET "http://127.0.0.1:3000/api/countries/italy-rome" \
 2. **Observe la console Xcode** - tu devrais voir :
    ```
    🔄 [CountryList] Loading countries for region: europe
-   🌐 [API] GET http://127.0.0.1:3000/api/regions/europe/countries
+   🌐 [API] GET https://wayfinder-api-w92x.onrender.com/api/regions/europe/countries
    📥 [API] Status: 200
    📥 [API] Response: [{"id":"italy-rome","name":"Rome, Italie",...}]
    ✅ [API] Decode success
@@ -102,7 +106,7 @@ curl -X GET "http://127.0.0.1:3000/api/countries/italy-rome" \
 2. **Observe la console** :
    ```
    🔄 [CountryDetail] Loading detail for country: italy-rome
-   🌐 [API] GET http://127.0.0.1:3000/api/countries/italy-rome
+   🌐 [API] GET https://wayfinder-api-w92x.onrender.com/api/countries/italy-rome
    📥 [API] Status: 200
    📥 [API] Response: {"id":"italy-rome","name":"Rome, Italie",...}
    ✅ [API] Decode success

@@ -12,7 +12,12 @@ import UIKit
 struct HomeScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var catalogViewModel = CatalogViewModel()
+    @StateObject private var favoritesViewModel = FavoriteViewModel()
+    @StateObject private var notificationsViewModel = NotificationViewModel()
     @State private var selectedTab: FloatingTab = .activity
+    @State private var selectedRegion: String? = nil
+    @State private var showNotifications = false
     let initialName: String?
     
     init(initialName: String? = nil) {
@@ -21,49 +26,153 @@ struct HomeScreen: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            ThemeColors.background(colorScheme)
+            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
                 .ignoresSafeArea()
             
             Group {
                 switch selectedTab {
                 case .activity:
-            VStack(spacing: 0) {
-                TopBar(name: initialName ?? viewModel.greetingName)
-                    .padding(.top, 12)
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
-                        regionSection
-                        highlightSection
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
+                    NavigationStack {
+                        VStack(spacing: 0) {
+                        TopBar(
+                            name: initialName ?? viewModel.greetingName,
+                            profileImageUrl: viewModel.profileImageUrl,
+                            unreadCount: notificationsViewModel.unreadCount,
+                            onNotificationsTap: { showNotifications = true },
+                            onProfileTap: { selectedTab = .profile }
+                        )
+                        .background(
+                            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+                        )
+                        
+                        ScrollView(showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                // Section "Personnalisé par Gemini"
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Personnalisé par Gemini")
+                                        .font(.system(size: 34, weight: .bold))
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                    Text("Voyages adaptés à vos préférences")
+                                        .font(.body)
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 8)
+                                    
+                                // Section des régions
+                                RegionSection(
+                                    selectedRegion: $selectedRegion,
+                                    onRegionSelected: { region in
+                                        selectedRegion = selectedRegion == region ? nil : region
+                                        Task {
+                                            await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                        }
+                                    }
+                                )
+                                .padding(.horizontal, 24)
+                                
+                                Spacer()
+                                    .frame(height: 16)
+                                
+                                // Section "Comparateur avec Gemini"
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("Comparateur avec Gemini")
+                                            .font(.system(size: 22, weight: .bold))
+                                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                        Spacer()
+                                        NavigationLink(destination: AllFlightsScreen(selectedRegion: selectedRegion)) {
+                                            Text("Voir tous")
+                                                .font(.body)
+                                                .foregroundStyle(Color(red: 0.098, green: 0.463, blue: 0.824)) // #1976D2
+                                        }
+                                    }
+                                    .padding(.horizontal, 24)
+                                    
+                                    // Destinations carousel
+                                    switch catalogViewModel.uiState {
+                                    case .loading:
+                                        ProgressView()
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 340)
+                                    case .success(let destinations, let fromCache, _, _):
+                                        if fromCache {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "wifi.slash")
+                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0)) // #EF6C00
+                                                Text("Affichage hors ligne (cache)")
+                                                    .font(.caption)
+                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
+                                            }
+                                            .padding(.horizontal, 24)
+                                            .padding(.bottom, 12)
+                                        }
+                                        
+                                        let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
+                                        let displayDestinations = Array(filteredDestinations.prefix(6))
+                                        
+                                        if displayDestinations.isEmpty {
+                                            Text("Aucune destination disponible")
+                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 340)
+                                        } else {
+                                            DestinationsSection(
+                                                destinations: displayDestinations,
+                                                favoritesViewModel: favoritesViewModel
+                                            )
+                                            .padding(.horizontal, 24)
+                                        }
+                                    case .error(let message):
+                                        VStack(spacing: 16) {
+                                            Text(message)
+                                                .foregroundColor(.red)
+                                                .multilineTextAlignment(.center)
+                                                .padding(.horizontal)
+                                            Button("Réessayer") {
+                                                Task {
+                                                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                                }
+                                            }
+                                            .buttonStyle(.borderedProminent)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 340)
+                                    case .idle:
+                                        EmptyView()
+                                    }
+                                }
+                                
+                                Spacer()
+                                    .frame(height: 16)
+                                
+                                // Discussion Card
+                                DiscussionCard()
+                                    .padding(.horizontal, 24)
+                                
+                                Spacer()
+                                    .frame(height: 16)
+                                
+                                // Espace en bas pour le tab bar (comme Android paddingValues.calculateBottomPadding())
+                                Spacer()
+                                    .frame(height: 74) // Hauteur du FloatingTabBar (64) + safe area (10)
+                            }
+                            .scrollContentBackground(.hidden)
                         }
-                        .safeAreaPadding(.top, 8)
+                        .contentMargins(.horizontal, 0, for: .scrollContent)
+                    }
                     }
                 case .favorites:
-                    VStack {
-                        Text("Favoris")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            .padding()
-                        Spacer()
+                    NavigationStack {
+                        FavoritesView()
                     }
                 case .explore:
-                    VStack {
-                        Text("Explorer")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            .padding()
-                        Spacer()
+                    NavigationStack {
+                        DiscussionView()
                     }
                 case .alerts:
-                    VStack {
-                        Text("Notifications")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            .padding()
-                        Spacer()
+                    NavigationStack {
+                        BookingHistoryView()
                     }
                 case .profile:
                     NavigationStack {
@@ -74,481 +183,403 @@ struct HomeScreen: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $selectedTab)
-                .padding(.bottom, 0)
+        }
+        .onAppear {
+            // Recharger l'image à chaque fois que l'écran apparaît
+            viewModel.reloadProfileImage()
+        }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            // Recharger l'image quand on change d'onglet et qu'on revient à activity
+            if newValue == .activity {
+                viewModel.reloadProfileImage()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserProfileImageDidUpdate"))) { _ in
+            // Recharger l'image quand elle change dans le profil
+            viewModel.reloadProfileImage()
         }
         .task {
+            // Charger l'image depuis UserStorage immédiatement au démarrage
+            viewModel.reloadProfileImage()
+            print("🔄 [HomeScreen] Initial profile image: \(viewModel.profileImageUrl ?? "nil")")
             await viewModel.load()
-            // Si les régions sont vides, charger les pays de la première région par défaut (Europe)
+            // Recharger l'image après le chargement du profil
+            viewModel.reloadProfileImage()
+            print("🔄 [HomeScreen] Profile image after load: \(viewModel.profileImageUrl ?? "nil")")
+            // Load flights - CatalogViewModel will use cache if available
+            await catalogViewModel.loadRecommendedFlights(showAll: false)
+            await notificationsViewModel.loadUnreadCount()
+            
             if viewModel.regions.isEmpty {
                 await viewModel.loadCountries(for: "europe")
             }
         }
-    }
-    
-    private var headlineSection: some View {
-        Text("home_headline")
-            .font(.system(size: 30, weight: .bold))
-            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    private var regionSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                ForEach(displayRegions) { region in
-                    NavigationLink(destination: CountryListView(region: region)) {
-                        RegionChip(region: region,
-                                   isSelected: viewModel.selectedRegionId == region.id) {
-                            viewModel.selectRegion(region)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+        .onChange(of: selectedRegion) { _ in
+            // Reload flights when region changes
+            Task {
+                await catalogViewModel.loadRecommendedFlights(showAll: false)
             }
-            .padding(.vertical, 6)
         }
-    }
-    
-    private var highlightSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Comparateur avec Gemini")
-                    .font(.title3.bold())
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                Spacer()
-                NavigationLink(destination: {
-                    if let selectedRegionId = viewModel.selectedRegionId,
-                       let region = viewModel.regions.first(where: { $0.id == selectedRegionId }) ?? displayRegions.first(where: { $0.id == selectedRegionId }) {
-                        CountryListView(region: region)
-                    }
-                }) {
-                    Text("Voir tous")
-                        .font(.subheadline)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                }
-            }
-            
-            if viewModel.isLoadingCountries {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 60)
-            } else if viewModel.countries.isEmpty {
-                // Aucun pays chargé - afficher un message ou les highlights par défaut
-                TabView {
-                    ForEach(displayHighlights) { destination in
-                        DestinationCard(
-                            destination: destination,
-                            localAssetName: resolveLocalAssetName(for: destination)
-                        )
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 16)
-                    }
-                }
-                .frame(height: 300)
-                .tabViewStyle(.page(indexDisplayMode: .never))
-            } else {
-                // Afficher les pays chargés depuis l'API
-                TabView {
-                    ForEach(viewModel.countries) { country in
-                        NavigationLink(destination: CountryDetailView(countryId: country.id)) {
-                            CountryCard(country: country)
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 16)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .frame(height: 300)
-                .tabViewStyle(.page(indexDisplayMode: .never))
+        .sheet(isPresented: $showNotifications) {
+            NavigationStack {
+                NotificationView()
             }
         }
     }
     
-    private func resolveLocalAssetName(for highlight: RecommendationHighlight) -> String? {
-        // Prioritize specific highlight assets first
-        var candidates: [String] = [
-            highlight.id.lowercased(),
-            highlight.title.lowercased()
-        ]
-        if let regionId = highlight.regionId {
-            candidates.append(regionId.lowercased())
+    private func filterDestinations(_ destinations: [FlightDestination], by region: String?) -> [FlightDestination] {
+        guard let region = region, region != "Préférences" else {
+            return destinations
         }
         
-        // Common fallbacks
-        if let regionId = highlight.regionId?.lowercased() {
-            if regionId.contains("europe") { candidates.append("rome") }
-            if regionId.contains("asia") { candidates.append("asia") }
-            if regionId.contains("australia") { candidates.append("australia") }
+        let regionCountries: [String: [String]] = [
+            "Europe": ["France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"],
+            "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel"],
+            "Amerique": ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
+            "Australie": ["Australia", "New Zealand", "Fiji"]
+        ]
+        
+        guard let countries = regionCountries[region] else {
+            return destinations
         }
         
-        for name in candidates {
-            if imageAssetExists(name) { return name }
+        return destinations.filter { destination in
+            countries.contains { country in
+                destination.country.localizedCaseInsensitiveContains(country)
+            }
         }
-        return "rome"
-    }
-    
-    private func imageAssetExists(_ name: String) -> Bool {
-        UIImage(named: name) != nil
-    }
-    
-    private var filteredHighlights: [RecommendationHighlight] {
-        guard let selectedId = viewModel.selectedRegionId else { return viewModel.highlights }
-        let filtered = viewModel.highlights.filter { $0.regionId == selectedId || $0.regionId == nil }
-        return filtered.isEmpty ? viewModel.highlights : filtered
-    }
-    
-    /// Utilisé pour l'affichage : tombe sur des données de démonstration si l'API ne répond pas.
-    private var displayHighlights: [RecommendationHighlight] {
-        // Ne montrer que les 3 cartes souhaitées avec assets locaux
-        return defaultHighlights
-    }
-    
-    /// Utilisé pour l'affichage des régions : remplace par Europe/Asie/Australie si vide.
-    private var displayRegions: [RecommendationRegion] {
-        viewModel.regions.isEmpty ? defaultRegions : viewModel.regions
-    }
-    
-    private var defaultRegions: [RecommendationRegion] {
-        [
-            RecommendationRegion(id: "europe", title: "Europe", imageUrl: nil),
-            RecommendationRegion(id: "asia", title: "Asie", imageUrl: nil),
-            RecommendationRegion(id: "australia", title: "Australie", imageUrl: nil)
-        ]
-    }
-    
-    private var defaultHighlights: [RecommendationHighlight] {
-        [
-            RecommendationHighlight(
-                id: "central-asia",
-                title: "Asie centrale",
-                subtitle: "Parcourez l'Asie centrale époustouflante",
-                rating: 4.9,
-                imageUrl: nil,
-                regionId: "asia"
-            )
-        ]
     }
 }
 
+// MARK: - TopBar
 struct TopBar: View {
     @Environment(\.colorScheme) private var colorScheme
     let name: String
+    let profileImageUrl: String?
+    let unreadCount: Int
+    let onNotificationsTap: () -> Void
+    let onProfileTap: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                // Placeholder gris
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 40)
-                
-                Text("Salut, \(name)")
-                    .font(.headline)
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    .lineLimit(1)
-                
-                Spacer()
-                
-                Button(action: {
-                    // TODO: notifications
-                }) {
+        HStack(spacing: 12) {
+            // Profile image or placeholder - circular
+            Button(action: onProfileTap) {
+                ProfileImageView(imageUrl: profileImageUrl, size: 40)
+            }
+            .buttonStyle(.plain)
+            
+            Text("Salut, \(name)")
+                .font(.headline)
+                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                .lineLimit(1)
+            
+            Spacer()
+            
+            Button(action: onNotificationsTap) {
+                ZStack(alignment: .topTrailing) {
                     Image(systemName: "bell")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                        .padding(12)
-                        .background(
-                            Circle()
-                                .fill(ThemeColors.surface(colorScheme).opacity(0.7))
-                        )
+                        .foregroundStyle(Color(red: 0.098, green: 0.463, blue: 0.824))
+                        .frame(width: 40, height: 40)
+                    
+                    if unreadCount > 0 {
+                        Text("\(unreadCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(4)
+                            .background(
+                                Circle()
+                                    .fill(Color.red)
+                            )
+                            .offset(x: 8, y: -8)
+                    }
                 }
             }
-            
-            // Titre principal
-            Text("home_headline")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+    }
+}
+
+// MARK: - RegionSection
+struct RegionSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Binding var selectedRegion: String?
+    let onRegionSelected: (String) -> Void
+    
+    private let regions: [(name: String, imageName: String?)] = [
+        ("Préférences", nil),
+        ("Europe", "europe"),
+        ("Asie", "asia"),
+        ("Amerique", "australia"), // Using australia as placeholder
+        ("Australie", "australia")
+    ]
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(regions, id: \.name) { region in
+                    RegionChip(
+                        name: region.name,
+                        imageName: region.imageName,
+                        isSelected: selectedRegion == region.name,
+                        onTap: {
+                            onRegionSelected(region.name)
+                        }
+                    )
+                }
+            }
+        }
     }
 }
 
 struct RegionChip: View {
     @Environment(\.colorScheme) private var colorScheme
-    let region: RecommendationRegion
+    let name: String
+    let imageName: String?
     let isSelected: Bool
     let onTap: () -> Void
     
-    private var backgroundStyle: AnyShapeStyle {
-        if isSelected {
-            return AnyShapeStyle(ThemeColors.accentGradient(colorScheme))
-        } else {
-            return AnyShapeStyle(ThemeColors.surface(colorScheme))
-        }
-    }
-    
-    private var regionImage: String? {
-        let title = region.title.lowercased()
-        if title.contains("europe") {
-            return "europe"
-        } else if title.contains("asie") || title.contains("asia") {
-            return "east-asia-context-dot"
-        } else if title.contains("australie") || title.contains("australia") {
-            return "australia"
-        }
-        return nil
-    }
-    
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 10) {
-                if let imageName = regionImage {
+            HStack(spacing: 12) {
+                if name == "Préférences" {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(isSelected ? .white : Color(red: 1.0, green: 0.757, blue: 0.027)) // #FFC107
+                } else if let imageName = imageName {
                     Image(imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 28, height: 28)
+                        .frame(width: 32, height: 32)
                         .clipShape(Circle())
-                } else {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 28, height: 28)
                 }
                 
-                Text(region.title)
-                    .font(.subheadline)
-                    .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? Color.white : ThemeColors.primaryText(colorScheme))
+                Text(name)
+                    .font(.system(size: 16, weight: isSelected ? .bold : .medium))
+                    .foregroundColor(isSelected ? .white : .black)
             }
+            .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .padding(.horizontal, 18)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(ThemeColors.accentGradient(colorScheme))
-                } else {
-                    Capsule()
-                        .fill(Color.clear)
-                }
-            }
-            .overlay(
+            .background(
                 Capsule()
-                    .stroke(isSelected ? Color.clear : ThemeColors.border(colorScheme), lineWidth: 1)
+                    .fill(isSelected ? Color(red: 0.098, green: 0.463, blue: 0.824) : Color.white)
             )
         }
         .buttonStyle(.plain)
     }
 }
 
+// MARK: - DestinationsSection
+struct DestinationsSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let destinations: [FlightDestination]
+    @ObservedObject var favoritesViewModel: FavoriteViewModel
+    
+    @State private var currentIndex: Int = 0
+    
+    var body: some View {
+        TabView(selection: $currentIndex) {
+            ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
+                DestinationCard(destination: destination, favoritesViewModel: favoritesViewModel)
+                    .tag(index)
+                    .padding(.horizontal, 80)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: 340)
+    }
+}
+
 struct DestinationCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    let destination: RecommendationHighlight
-    let localAssetName: String?
+    let destination: FlightDestination
+    @ObservedObject var favoritesViewModel: FavoriteViewModel
+    
+    @State private var isFavorite: Bool = false
     
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            backgroundImage
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            contentOverlay
-        }
-        .frame(width: 280, height: 260)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
-    }
-    
-    private var backgroundImage: some View {
-        Group {
-            if let imageUrl = destination.imageUrl, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 280, height: 260)
-                } placeholder: {
-                    Rectangle()
-                        .fill(ThemeColors.surface(colorScheme))
-                        .frame(width: 280, height: 260)
-                }
-            } else {
-                // Fallback vers un asset local résolu
-                Image(localAssetName ?? "rome")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 280, height: 260)
-            }
-        }
-    }
-    
-    private var contentOverlay: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(destination.title)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                if let rating = destination.rating {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-                        Text(String(format: "%.1f", rating).replacingOccurrences(of: ".", with: ","))
-                            .font(.caption.bold())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.2))
-                    .clipShape(Capsule())
-                }
-            }
-            
-            Spacer()
-            
-            Text(destination.subtitle)
-                .font(.title3.bold())
-                .foregroundColor(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.9)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-// Nouvelle card pour afficher les pays depuis l'API
-struct CountryCard: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let country: Country
-    
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            backgroundImage
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            contentOverlay
-        }
-        .frame(width: 280, height: 260)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
-    }
-    
-    private var backgroundImage: some View {
-        Group {
-            if let imageUrl = country.thumbnailImageUrl, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 280, height: 260)
-                    case .failure(_), .empty:
-                        Rectangle()
-                            .fill(ThemeColors.surface(colorScheme))
-                            .overlay {
-                                Image(systemName: "photo")
-                                    .foregroundColor(ThemeColors.secondaryText(colorScheme))
+        NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
+            ZStack(alignment: .bottomLeading) {
+                // Background Image
+                Group {
+                    if let imageUrl = destination.imageUrl, let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                            case .failure, .empty:
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                            @unknown default:
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
                             }
-                            .frame(width: 280, height: 260)
-                    @unknown default:
+                        }
+                    } else {
                         Rectangle()
-                            .fill(ThemeColors.surface(colorScheme))
-                            .frame(width: 280, height: 260)
+                            .fill(LinearGradient(
+                                colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
                     }
                 }
-            } else {
-                // Fallback vers un asset local
-                Rectangle()
-                    .fill(ThemeColors.surface(colorScheme))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                    }
-                    .frame(width: 280, height: 260)
-            }
-        }
-    }
-    
-    private var contentOverlay: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(country.name)
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                .frame(width: 290, height: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
                 
-                Spacer()
+                // Gradient Overlay
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(0.7)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .frame(width: 290, height: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                
+                // Content
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(destination.name)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text(destination.country)
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
+                    
+                    if let price = destination.price, price > 0 {
+                        Text("\(Int(price)) \(destination.currency)")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.top, 4)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                // Favorite Button (separate from navigation)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            Task {
+                                let newFavoriteState = !isFavorite
+                                if newFavoriteState {
+                                    await favoritesViewModel.addFavorite(
+                                        itemType: .flight,
+                                        itemId: destination.id,
+                                        itemData: [
+                                            "name": destination.name,
+                                            "city": destination.city,
+                                            "country": destination.country,
+                                            "imageUrl": destination.imageUrl ?? "",
+                                            "price": "\(destination.price ?? 0)",
+                                            "currency": destination.currency,
+                                            "airline": destination.airline ?? ""
+                                        ]
+                                    )
+                                } else {
+                                    await favoritesViewModel.removeFavorite(itemType: .flight, itemId: destination.id)
+                                }
+                                isFavorite = newFavoriteState
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white.opacity(0.3))
+                                    .frame(width: 40, height: 40)
+                                
+                                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                    .foregroundColor(isFavorite ? Color(red: 1.0, green: 0.09, blue: 0.267) : .white)
+                                    .font(.system(size: 20))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+                .padding(12)
             }
-            
-            Spacer()
-            
-            Text(country.summary)
-                .font(.title3.bold())
-                .foregroundColor(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.9)
+            .frame(width: 290, height: 340)
+            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 8)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .buttonStyle(.plain)
+        .task {
+            // Check if favorite on load
+            isFavorite = await favoritesViewModel.checkFavorite(itemType: .flight, itemId: destination.id)
+        }
     }
 }
 
-// MARK: - City carousel views
-struct CityItem: Identifiable {
-    let id = UUID().uuidString
-    let title: String
-    let subtitle: String
-    let imageName: String
-    let rating: Double
-}
-
-struct CityCard: View {
+// MARK: - DiscussionCard
+struct DiscussionCard: View {
     @Environment(\.colorScheme) private var colorScheme
-    let city: CityItem
     
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Image(city.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 320, height: 340)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            LinearGradient(colors: [Color.black.opacity(0.0), Color.black.opacity(0.8)],
-                           startPoint: .center, endPoint: .bottom)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(city.title)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Spacer()
-                    HStack(spacing: 6) {
-                        Image(systemName: "star.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-                        Text(String(format: "%.1f", city.rating).replacingOccurrences(of: ".", with: ","))
-                            .font(.caption.bold())
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.white.opacity(0.2))
-                    .clipShape(Capsule())
+        NavigationLink(destination: DiscussionView()) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
                 }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Discussions de la communauté")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    Text("Partagez vos expériences et découvrez les conseils des voyageurs")
+                            .font(.caption)
+                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                }
+                
                 Spacer()
-                Text(city.subtitle)
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-                    .lineLimit(3)
+                
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
             }
             .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+            )
+            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
         }
-        .frame(width: 320, height: 340)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12), radius: 12, x: 0, y: 8)
+        .buttonStyle(.plain)
     }
 }
+
+// Placeholder screens (to be implemented later)
+struct AllFlightsScreen: View {
+    let selectedRegion: String?
+    var body: some View {
+        ZStack {
+            ThemeColors.background(ColorScheme.light)
+                .ignoresSafeArea()
+            VStack {
+                Text("Tous les vols")
+                    .font(.title)
+                if let region = selectedRegion {
+                    Text("Région: \(region)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+// FlightDetailScreen is now defined in FlightDetailScreen.swift
+
+// Note: ProfileView is already defined in Profile/profil.swift
 
 struct HomeScreen_Previews: PreviewProvider {
     static var previews: some View {

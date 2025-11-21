@@ -50,15 +50,28 @@ final class BookingViewModel: ObservableObject {
     }
     
     /// Confirme une réservation
-    func confirmBooking(destination: String, offerId: String?) async throws -> ConfirmBookingResponse {
-        print("🔄 [BookingViewModel] Confirming booking for: \(destination)")
-        let response = try await service.confirmBooking(destination: destination, offerId: offerId)
+    func confirmBooking(offerId: String, paymentDetails: [String: Any], totalPrice: Double?) async throws -> ConfirmBookingResponse {
+        print("🔄 [BookingViewModel] Confirming booking for offer: \(offerId)")
+        let response = try await service.confirmBooking(offerId: offerId, paymentDetails: paymentDetails, totalPrice: totalPrice)
         print("✅ [BookingViewModel] Booking confirmed: \(response.confirmationNumber)")
         
         // Recharger l'historique après confirmation
         await loadHistory()
         
         return response
+    }
+    
+    /// Supprime une réservation
+    func deleteBooking(id: String) async throws {
+        print("🔄 [BookingViewModel] Deleting booking: \(id)")
+        try await service.cancelBooking(id: id)
+        print("✅ [BookingViewModel] Booking deleted successfully")
+        
+        // Retirer la réservation de la liste localement
+        bookings.removeAll { $0.id == id }
+        
+        // Recharger l'historique pour s'assurer de la synchronisation
+        await loadHistory()
     }
 }
 

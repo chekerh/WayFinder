@@ -18,15 +18,14 @@ struct LoginView: View {
     @State private var password = ""
     @State private var isEmailFocused = false
     @State private var isPasswordFocused = false
-    @State private var acceptTerms = true
     @State private var emailError: String?
     @State private var passwordError: String?
-    @State private var showTermsAlert = false
     @State private var loginError: String?
     @State private var isLoggedIn = false // Etat pour déterminer si l'utilisateur est connecté
     @State private var activeLoginFlow: LoginFlow?
     @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var loggedInUserName: String?
+    @State private var showSignUp = false
     
     private let googleLoginEnabled = true
     
@@ -39,6 +38,15 @@ struct LoginView: View {
                 GeometryReader { geometry in
                     ScrollView {
                         VStack(spacing: 0) {
+                            NavigationLink(
+                                destination: SignInView()
+                                    .navigationBarBackButtonHidden(true),
+                                isActive: $showSignUp
+                            ) {
+                                EmptyView()
+                            }
+                            .hidden()
+                            
                             // Titre "Bienvenue sur Wayfindr" - en haut
                             Spacer().frame(height: geometry.safeAreaInsets.top > 0 ? 10 : 20)
                         
@@ -57,11 +65,6 @@ struct LoginView: View {
                             
                             // Card container
                             VStack(spacing: 18) {
-                                Text("login_powered_provider")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.red)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                
                                 VStack(spacing: 15) {
                                     TextField(LocalizedStringKey("login_email_placeholder"), text: $email)
                                         .padding()
@@ -140,20 +143,17 @@ struct LoginView: View {
                                         .frame(maxWidth: .infinity, alignment: .center)
                                 }
                                 
-                                HStack(alignment: .top, spacing: 10) {
+                                HStack {
                                     Button(action: {
-                                        acceptTerms.toggle()
+                                        showSignUp = true
                                     }) {
-                                        Image(systemName: acceptTerms ? "checkmark.square.fill" : "square")
-                                            .foregroundColor(acceptTerms ? ThemeColors.accent() : Color.gray)
-                                            .font(.system(size: 20))
+                                        Text("login_no_account")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(ThemeColors.accent())
                                     }
                                     
-                                    consentText
-                                        .font(.system(size: 13))
-                                }
-                                
-                                HStack {
+                                    Spacer()
+                                    
                                     Button(action: {
                                         // TODO: reset password flow
                                     }) {
@@ -161,8 +161,6 @@ struct LoginView: View {
                                             .font(.system(size: 14))
                                             .foregroundColor(ThemeColors.accent())
                                     }
-                                    
-                                    Spacer()
                                 }
                                 
                                 HStack {
@@ -241,12 +239,6 @@ struct LoginView: View {
                 } // Fin GeometryReader
             } // Fin ZStack
             .navigationBarHidden(true)
-            .alert(Text("alert_terms_title"), isPresented: $showTermsAlert) {
-                Button(role: .cancel) {}
-                    label: { Text("generic_ok") }
-            } message: {
-                Text("alert_terms_message")
-            }
         }
     } // Fin body
 } // Fin struct
@@ -257,23 +249,6 @@ private extension LoginView {
             return Color.red
         }
         return isFocused ? ThemeColors.accent() : ThemeColors.border(colorScheme)
-    }
-    
-    var consentText: Text {
-        let accent = Color(red: 0.99, green: 0.70, blue: 0.19)
-        return Text("login_accept_prefix")
-            .foregroundColor(Color(.label))
-        + Text(" ")
-        + Text("login_privacy")
-            .foregroundColor(accent)
-            .underline()
-        + Text(" ")
-        + Text("login_terms_connector")
-            .foregroundColor(Color(.label))
-        + Text(" ")
-        + Text("login_terms_conditions")
-            .foregroundColor(accent)
-            .underline()
     }
     
     @MainActor
@@ -291,11 +266,6 @@ private extension LoginView {
         }
         
         guard emailError == nil, passwordError == nil else { return }
-        
-        guard acceptTerms else {
-            showTermsAlert = true
-            return
-        }
         
         activeLoginFlow = .password
         defer { activeLoginFlow = nil }

@@ -92,12 +92,12 @@ Veillez à :
 
 1. Cloner le dépôt WayFinder.
 2. Ouvrir `WayFinder.xcodeproj` dans Xcode.
-3. Mettre à jour `APIConfig.baseURL` si nécessaire :
+3. Par défaut, l'app pointe vers le backend Render :
    ```swift
-   static let baseURL = URL(string: "http://127.0.0.1:3000/api")!
+   static let baseURL = URL(string: "https://wayfinder-api-w92x.onrender.com/api")!
    ```
-   - Simulateur : `127.0.0.1`.
-   - Appareil physique : IP locale du Mac (ex. `http://192.168.0.42:3000/api`).
+   - Pour tester en local, remplace l'URL par `http://127.0.0.1:3000/api`.
+   - Sur appareil physique en local, utilise l'IP du Mac (ex. `http://192.168.0.42:3000/api`).
 4. Sélectionner une cible (ex. *iPhone 16 Pro*), lancer `⌘R`.
 
 ---
@@ -111,6 +111,13 @@ Veillez à :
   1. POST `/auth/login` → récupération JWTil ne spkleffacer le cadre blanc sous le lil.
   2. Si le profil n’est pas renvoyé, fallback `UserService.shared.fetchProfile()` (GET `/api/user/profile`).
 - `TokenStorage` : persistance du JWT en Keychain.
+
+#### Upload des images de profil
+- L'app iOS envoie directement les photos de profil au backend via l'endpoint `POST /api/user/profile/upload-image`.
+- Le backend gère l'upload et le stockage des images (via imgbb ou stockage local).
+- Lors d'un upload, l'image est compressée côté client puis envoyée au backend en multipart/form-data.
+- Le backend retourne l'URL de l'image qui est ensuite utilisée pour le profil utilisateur.
+- Toutes les vues lisent l’URL depuis `UserDefaults` (`UserStorage`) afin d’afficher immédiatement la photo (Home, Profil, etc.).
 
 #### Social Login (Google & Apple)
 > ℹ️ Google Sign-In côté iOS est désactivé tant que `/api/auth/google` n’est pas configuré dans le backend Render. Les instructions suivantes restent valables pour activer la fonctionnalité ultérieurement.

@@ -6,8 +6,7 @@ struct BookingOffersView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var selectedOffer: BookingOffer?
-    @State private var showConfirmation = false
-    @State private var confirmationResponse: ConfirmBookingResponse?
+    @State private var showReservationScreen = false
     
     var body: some View {
         ZStack {
@@ -82,23 +81,24 @@ struct BookingOffersView: View {
                             .padding(.horizontal, 20)
                         }
                         
-                        if selectedOffer != nil {
-                            Button(action: {
-                                Task {
-                                    await confirmBooking()
+                        if let selectedOffer = selectedOffer {
+                            NavigationLink(destination: createReservationScreen(for: selectedOffer), isActive: $showReservationScreen) {
+                                Button(action: {
+                                    showReservationScreen = true
+                                }) {
+                                    HStack {
+                                        Image(systemName: "checkmark.circle.fill")
+                                        Text("Confirmer la réservation")
+                                            .font(.headline)
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(ThemeColors.accent())
+                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
-                            }) {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("Confirmer la réservation")
-                                        .font(.headline)
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(ThemeColors.accent())
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             }
+                            .buttonStyle(.plain)
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                             .padding(.bottom, 20)
@@ -112,32 +112,29 @@ struct BookingOffersView: View {
         .task {
             await viewModel.searchOffers(destination: destination)
         }
-        .sheet(isPresented: $showConfirmation) {
-            if let confirmation = confirmationResponse {
-                BookingConfirmationView(
-                    confirmation: confirmation,
-                    destination: destination,
-                    onDismiss: {
-                        dismiss()
-                    }
-                )
-            }
-        }
     }
     
-    private func confirmBooking() async {
-        guard let offer = selectedOffer else { return }
+    @ViewBuilder
+    private func createReservationScreen(for offer: BookingOffer) -> some View {
+        // Create a FlightDestination from BookingOffer for ReservationScreen
+        let flightDestination = FlightDestination(
+            id: offer.id,
+            name: offer.destination,
+            city: offer.destination,
+            country: offer.destination,
+            imageUrl: nil,
+            price: offer.price,
+            currency: offer.currency ?? "EUR",
+            description: offer.description,
+            departureDate: offer.departureDate,
+            arrivalDate: offer.returnDate,
+            airline: offer.airline
+        )
         
-        do {
-            let response = try await viewModel.confirmBooking(
-                destination: destination,
-                offerId: offer.id
-            )
-            confirmationResponse = response
-            showConfirmation = true
-        } catch {
-            print("❌ [BookingOffersView] Error confirming booking: \(error.localizedDescription)")
-        }
+        ReservationScreen(
+            destinationId: offer.id,
+            destination: flightDestination
+        )
     }
 }
 

@@ -1,25 +1,52 @@
 import Foundation
 
+@MainActor
 final class RecommendationService {
     static let shared = RecommendationService()
     private init() {}
     
-    func fetchRecommendations(preferenceId: String?) async throws -> RecommendationResponse {
-        var queryItems: [URLQueryItem]? = nil
-        if let preferenceId, !preferenceId.isEmpty {
-            queryItems = [URLQueryItem(name: "preferenceId", value: preferenceId)]
-        }
-        
-        var requestQueryItems = queryItems ?? []
-        requestQueryItems.append(URLQueryItem(name: "type", value: "home"))
-        requestQueryItems.append(URLQueryItem(name: "limit", value: "6"))
+    /// Récupère les recommandations personnalisées
+    func getPersonalizedRecommendations(
+        type: String = "all",
+        limit: Int = 10
+    ) async throws -> RecommendationResponse {
+        let queryItems = [
+            URLQueryItem(name: "type", value: type),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
         
         let builder = DefaultRequest(
             method: "GET",
             path: "recommendations/personalized",
-            queryItems: requestQueryItems
+            queryItems: queryItems
         )
         
-        return try await APIService.shared.request(builder, decodeTo: RecommendationResponse.self)
+        let payload = try await APIService.shared.request(builder, decodeTo: PersonalizedRecommendationsPayload.self)
+        return makeResponse(from: payload)
+    }
+    
+    /// Régénère les recommandations personnalisées
+    func regenerateRecommendations() async throws -> RecommendationResponse {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "recommendations/regenerate"
+        )
+        
+        let payload = try await APIService.shared.request(builder, decodeTo: PersonalizedRecommendationsPayload.self)
+        return makeResponse(from: payload)
+    }
+    
+    /// Méthode de compatibilité avec l'ancien code
+    func fetchRecommendations(preferenceId: String?) async throws -> RecommendationResponse {
+        return try await getPersonalizedRecommendations(type: "home", limit: 6)
+    }
+}
+
+private extension RecommendationService {
+    func makeResponse(from payload: PersonalizedRecommendationsPayload) -> RecommendationResponse {
+        let highlights = payload.destinations?.map { RecommendationHighlight(destination: $0) } ?? []
+        let storedName = UserStorage.fetchDisplayName() ?? "Wayfinder"
+        let user = RecommendationUser(firstName: storedName)
+        return RecommendationResponse(user: user, regions: [], highlights: highlights)
     }
 }

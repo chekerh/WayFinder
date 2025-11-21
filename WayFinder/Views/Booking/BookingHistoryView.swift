@@ -3,10 +3,11 @@ import SwiftUI
 struct BookingHistoryView: View {
     @StateObject private var viewModel = BookingViewModel()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ZStack {
-            ThemeColors.background(colorScheme)
+            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
                 .ignoresSafeArea()
             
             if viewModel.isLoading {
@@ -56,35 +57,53 @@ struct BookingHistoryView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
-                    // Header avec titre et sous-titre
-                    VStack(alignment: .leading, spacing: 8) {
+                    // Header avec bouton retour et titre
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        }
+                        .buttonStyle(.plain)
+                        
                         Text("Historique des réservations")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
-                        Text("Toutes vos réservations (\(viewModel.bookings.count))")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 8)
+                    
+                    // Sous-titre
+                    HStack {
+                        Text("Voici vos dernières réservations")
                             .font(.subheadline)
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
                     
                     // Liste des réservations
-                    ScrollView {
-                        VStack(spacing: 16) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 12) {
                             ForEach(viewModel.bookings) { booking in
-                                BookingCard(booking: booking)
+                                NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
+                                    BookingCard(booking: booking)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 74)
                     }
                 }
             }
         }
         .navigationBarHidden(true)
+        .safeAreaPadding(.horizontal)
         .task {
             await viewModel.loadHistory()
         }
@@ -101,40 +120,54 @@ private struct BookingCard: View {
     private var statusColor: Color {
         switch booking.status {
         case .confirmed:
-            return ThemeColors.accent() // Bleu pour confirmé
+            return Color(red: 0.133, green: 0.694, blue: 0.298) // Vert pour confirmé
         case .pending:
-            return Color.gray // Gris pour en attente
+            return Color.orange // Orange pour en attente
         case .cancelled:
-            return Color.gray // Gris pour annulé
+            return Color.red // Rouge pour annulé
         }
     }
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 6) {
-                // Destination en bleu et gras
-                Text(booking.destination)
-                    .font(.headline.bold())
-                    .foregroundColor(ThemeColors.accent())
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Numéro de confirmation en gras
+                Text(booking.confirmationNumber)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
                 
-                // Date en gris
+                // Date et heure
                 Text(formatDate(booking.createdAt))
-                    .font(.subheadline)
+                    .font(.system(size: 13))
                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                
+                // Montant avec devise
+                if let price = booking.price {
+                    Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                        .padding(.top, 4)
+                }
             }
             
             Spacer()
             
-            // Statut aligné à droite
+            // Badge de statut
             Text(booking.status.displayName)
-                .font(.subheadline)
-                .foregroundColor(statusColor)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(statusColor)
+                )
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(ThemeColors.surface(colorScheme))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 8, x: 0, y: 4)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         )
     }
     
@@ -144,9 +177,8 @@ private struct BookingCard: View {
         
         if let date = formatter.date(from: dateString) {
             let displayFormatter = DateFormatter()
-            displayFormatter.dateStyle = .long
-            displayFormatter.timeStyle = .none
-            displayFormatter.locale = Locale(identifier: "fr_FR")
+            displayFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+            displayFormatter.timeZone = TimeZone(secondsFromGMT: 0)
             return displayFormatter.string(from: date)
         }
         
