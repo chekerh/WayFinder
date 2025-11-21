@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -43,36 +44,52 @@ fun FavoritesScreen(navController: NavController) {
     val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by favoritesViewModel.uiState.collectAsState()
 
+    // Load favorites when screen is first displayed
     LaunchedEffect(Unit) {
-        favoritesViewModel.loadFavorites()
+        if (uiState is FavoritesUiState.Idle) {
+            favoritesViewModel.loadFavorites()
+        }
     }
 
     Scaffold(
-        containerColor = Color(0xFFF0F8FF),
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        "Mes favoris",
+                        "Favoris",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        fontSize = 32.sp,
+                        color = Color.Black
                     ) 
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Retour"
+                            contentDescription = "Retour",
+                            tint = Color.Black
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = Color.White
                 )
             )
         }
     ) { paddingValues ->
         when (val state = uiState) {
+            is FavoritesUiState.Idle -> {
+                // Show loading while initializing
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
             is FavoritesUiState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -119,8 +136,9 @@ fun FavoritesScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
             ) {
                 items(state.destinations, key = { it.id }) { destination ->
                     FavoriteCard(
@@ -140,20 +158,39 @@ fun FavoritesScreen(navController: NavController) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
+                        .padding(paddingValues)
+                        .padding(horizontal = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Text(
-                            state.message,
-                            color = Color.Red,
-                            style = MaterialTheme.typography.bodyMedium
+                        Icon(
+                            imageVector = Icons.Default.FavoriteBorder,
+                            contentDescription = "Erreur",
+                            modifier = Modifier.size(64.dp),
+                            tint = Color(0xFFFF5252)
                         )
-                        Button(onClick = { favoritesViewModel.loadFavorites() }) {
-                            Text("Réessayer")
+                        Text(
+                            text = "Erreur",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF5252)
+                        )
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(
+                            onClick = { favoritesViewModel.loadFavorites() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1976D2)
+                            )
+                        ) {
+                            Text("Réessayer", modifier = Modifier.padding(horizontal = 8.dp))
                         }
                     }
                 }
@@ -172,61 +209,108 @@ fun FavoriteCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(220.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp,
+            pressedElevation = 12.dp
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Image
+            // Background Image
             AsyncImage(
                 model = destination.imageUrl ?: "",
                 contentDescription = destination.name,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(id = R.drawable.travel_image),
                 error = painterResource(id = R.drawable.travel_image)
             )
             
-            // Content
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = destination.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = destination.country,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-                if (destination.price != null && destination.price > 0) {
-                    Text(
-                        text = "${destination.price.toInt()} ${destination.currency}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1976D2)
+            // Gradient overlay for better text readability (more subtle)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.5f)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
                     )
-                }
-            }
+            )
             
-            // Remove button
-            IconButton(onClick = onRemove) {
+            // Heart icon in top right (smaller, more subtle)
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .size(40.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Retirer des favoris",
-                    tint = Color(0xFFFF1744)
+                    tint = Color(0xFFFF1744),
+                    modifier = Modifier.size(24.dp)
                 )
+            }
+            
+            // Text content at bottom left (like in the image)
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Destination name (large, bold)
+                Text(
+                    text = destination.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    letterSpacing = 0.5.sp
+                )
+                
+                // City and country (smaller, lighter)
+                val locationText = when {
+                    destination.city.isNotEmpty() && destination.country.isNotEmpty() -> 
+                        "${destination.city}, ${destination.country}"
+                    destination.country.isNotEmpty() -> 
+                        destination.country
+                    destination.city.isNotEmpty() -> 
+                        destination.city
+                    else -> ""
+                }
+                
+                if (locationText.isNotEmpty()) {
+                    Text(
+                        text = locationText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 15.sp,
+                        letterSpacing = 0.2.sp
+                    )
+                }
+                
+                // Price (large, bold)
+                if (destination.price != null && destination.price > 0) {
+                    Text(
+                        text = "${destination.price.toInt()} ${destination.currency}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        letterSpacing = 0.3.sp
+                    )
+                }
             }
         }
     }

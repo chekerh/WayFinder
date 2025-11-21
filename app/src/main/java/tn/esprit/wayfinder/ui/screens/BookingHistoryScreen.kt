@@ -178,20 +178,36 @@ fun BookingHistoryCard(booking: Booking, onClick: () -> Unit) {
             Column(
                 modifier = Modifier.weight(1f)
             ) {
+                // Display destination name if available, otherwise use confirmation number
+                val destinationDisplay = booking.tripDetails?.destination?.takeIf { it.isNotBlank() }
+                    ?: booking.confirmationNumber
+                
                 Text(
-                    text = booking.confirmationNumber,
+                    text = destinationDisplay,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1976D2)
                 )
+                
+                // Show confirmation number below destination if destination is available
+                if (booking.tripDetails?.destination?.isNotBlank() == true) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = booking.confirmationNumber,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+                
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = booking.bookingDate,
+                    text = booking.bookingDate.split("T")[0], // Show only date part
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${booking.totalPrice} EUR",
+                    text = "${booking.totalPrice.toInt()} EUR",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF1976D2),
                     fontWeight = FontWeight.Medium

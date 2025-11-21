@@ -31,6 +31,13 @@ sealed class SignUpResult {
     data class Error(val message: String) : SignUpResult()
 }
 
+sealed class GoogleSignInResult {
+    object Idle : GoogleSignInResult()
+    object Loading : GoogleSignInResult()
+    data class Success(val navigateTo: String, val emailVerified: Boolean) : GoogleSignInResult()
+    data class Error(val message: String) : GoogleSignInResult()
+}
+
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _loginResult = MutableStateFlow<LoginResult>(LoginResult.Idle)
@@ -39,9 +46,13 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _signUpResult = MutableStateFlow<SignUpResult>(SignUpResult.Idle)
     val signUpResult: StateFlow<SignUpResult> = _signUpResult
 
+    private val _googleSignInResult = MutableStateFlow<GoogleSignInResult>(GoogleSignInResult.Idle)
+    val googleSignInResult: StateFlow<GoogleSignInResult> = _googleSignInResult
+
     fun clearMessages() {
         _loginResult.value = LoginResult.Idle
         _signUpResult.value = SignUpResult.Idle
+        _googleSignInResult.value = GoogleSignInResult.Idle
     }
 
     fun login(context: Context, request: LoginRequest) {
@@ -79,6 +90,46 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     fun logout(context: Context) {
         val tokenManager = TokenManager(context)
         tokenManager.deleteToken()
+    }
+
+    fun googleSignIn(context: Context, idToken: String) {
+        viewModelScope.launch {
+            _googleSignInResult.value = GoogleSignInResult.Loading
+            try {
+                val response = authRepository.googleSignIn(idToken)
+                val tokenManager = TokenManager(context)
+                tokenManager.saveToken(response.accessToken)
+                tokenManager.saveUser(response.user)
+
+                // Navigate based on onboarding and email verification status
+                val navigateTo = when {
+                    !response.emailVerified -> "email_verification"
+                    response.onboardingCompleted -> "home"
+                    else -> "onboarding"
+                }
+                _googleSignInResult.value = GoogleSignInResult.Success(navigateTo, response.emailVerified)
+            } catch (e: Exception) {
+                _googleSignInResult.value = GoogleSignInResult.Error(parseError(e))
+            }
+        }
+    }
+
+    suspend fun verifyEmail(token: String): Boolean {
+        return try {
+            authRepository.verifyEmail(token)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun resendVerificationEmail(email: String): Boolean {
+        return try {
+            authRepository.resendVerificationEmail(email)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun parseError(throwable: Throwable): String {

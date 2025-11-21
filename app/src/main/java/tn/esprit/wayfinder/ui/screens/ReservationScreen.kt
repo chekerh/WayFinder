@@ -78,11 +78,13 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
 
     val currency = selectedDestination?.currency ?: "EUR"
     val comparison = (comparisonState as? OfferComparisonUiState.Success)?.comparison
-    val basePrice = comparison?.basePrice ?: selectedDestination?.price ?: 0.0
+    val destinationPrice = selectedDestination?.price ?: 0.0
+    val basePrice = if (destinationPrice > 0) destinationPrice else comparison?.basePrice ?: 0.0
     val taxes = comparison?.taxes ?: (basePrice * 0.15)
     val baggage = comparison?.baggage ?: 0.0
     val serviceFees = comparison?.serviceFees ?: 10.0
-    val total = comparison?.total ?: (basePrice + taxes + baggage + serviceFees)
+    val total = basePrice + taxes + baggage + serviceFees
+    val displayPrice = basePrice
 
     Scaffold(
         topBar = {
@@ -146,9 +148,9 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                 color = Color.Gray
                             )
                         }
-                        if (destination.price != null && destination.price > 0) {
+                        if (displayPrice > 0) {
                             Text(
-                                text = String.format(Locale.getDefault(), "%.2f %s", destination.price, destination.currency),
+                                text = String.format(Locale.getDefault(), "%.2f %s", displayPrice, currency),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -375,7 +377,10 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                 bookingViewModel.confirmBooking(
                                     offerId = destinationId,
                                     cardNumber = cardNumber.replace(" ", ""),
-                                    cardHolderName = cardHolderName
+                                    cardHolderName = cardHolderName,
+                                    totalPrice = total,
+                                    destination = selectedDestination?.name,
+                                    destinationCountry = selectedDestination?.country
                                 )
                             },
                             modifier = Modifier
@@ -402,7 +407,10 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                 bookingViewModel.confirmBooking(
                                     offerId = destinationId,
                                     cardNumber = cardNumber.replace(" ", ""),
-                                    cardHolderName = cardHolderName
+                                cardHolderName = cardHolderName,
+                                    totalPrice = total,
+                                    destination = selectedDestination?.name,
+                                    destinationCountry = selectedDestination?.country
                                 )
                             }
                         },

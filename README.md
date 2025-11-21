@@ -25,7 +25,7 @@ A modern Android travel planning application built with Jetpack Compose, featuri
 - **Onboarding**: AI-driven dynamic questionnaire for personalized preferences
 - **Home Screen**: Personalized flight recommendations, region-based filtering
 - **Profile Management**: Edit profile, upload profile image, view booking history
-- **Flight Search & Booking**: Browse flights, view details, book flights, payment integration (Flouci)
+- **Flight Search & Booking**: Browse flights, view details, book flights, payment integration (PayPal)
 
 ### Advanced Features
 - **Favorites**: Save and manage favorite flights
@@ -141,7 +141,7 @@ private const val BASE_URL = "https://wayfinder-api-w92x.onrender.com/api/"
 - **BookingHistoryScreen**: View all bookings
 - **BookingDetailScreen**: Booking details
 - **BookingConfirmationScreen**: Booking confirmation
-- **FlouciPaymentScreen**: Payment processing
+- **PaypalPaymentScreen**: Payment processing
 
 ### Features
 - **FavoritesScreen**: Manage favorite flights

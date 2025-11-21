@@ -9,7 +9,7 @@ import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.OnboardingRepository
 import tn.esprit.wayfinder.presentation.booking.BookingRepository
 import tn.esprit.wayfinder.presentation.catalog.CatalogRepository
-import tn.esprit.wayfinder.presentation.payment.FlouciRepository
+import tn.esprit.wayfinder.presentation.payment.PaypalRepository
 import tn.esprit.wayfinder.presentation.user.UserRepository
 import tn.esprit.wayfinder.presentation.discussion.DiscussionRepository
 import tn.esprit.wayfinder.presentation.favorites.FavoritesRepository
@@ -20,6 +20,7 @@ import tn.esprit.wayfinder.presentation.social.SocialRepository
 import tn.esprit.wayfinder.presentation.searchhistory.SearchHistoryRepository
 import tn.esprit.wayfinder.presentation.pricealerts.PriceAlertsRepository
 import tn.esprit.wayfinder.presentation.traveltips.TravelTipsRepository
+import tn.esprit.wayfinder.presentation.journey.JourneyRepository
 import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
@@ -36,6 +37,7 @@ import tn.esprit.wayfinder.viewmodels.SocialViewModel
 import tn.esprit.wayfinder.viewmodels.SearchHistoryViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
+import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -70,7 +72,7 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 BookingViewModel(repository) as T
             }
             modelClass.isAssignableFrom(PaymentViewModel::class.java) -> {
-                val repository = FlouciRepository(apiService)
+                val repository = PaypalRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 PaymentViewModel(repository) as T
             }
@@ -123,6 +125,11 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = TravelTipsRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 TravelTipsViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(JourneyViewModel::class.java) -> {
+                val repository = JourneyRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                JourneyViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

@@ -26,17 +26,35 @@ class UserViewModel(
     private val _uiState = MutableStateFlow<UserUiState>(UserUiState.Idle)
     val uiState: StateFlow<UserUiState> = _uiState.asStateFlow()
     
+    init {
+        // Try to load cached user first to show immediately
+        val cachedUser = tokenManager.getUser()
+        if (cachedUser != null) {
+            _uiState.value = UserUiState.Success(cachedUser)
+        }
+    }
+    
     fun loadProfile() {
         viewModelScope.launch {
             try {
-                _uiState.value = UserUiState.Loading
+                // Only show loading if we don't have cached data
+                val currentState = _uiState.value
+                if (currentState !is UserUiState.Success) {
+                    _uiState.value = UserUiState.Loading
+                }
                 val user = userRepository.getProfile()
                 cacheUser(user)
                 _uiState.value = UserUiState.Success(user)
             } catch (e: Exception) {
-                _uiState.value = UserUiState.Error(
-                    e.message ?: "Failed to load profile"
-                )
+                // If we have cached data, keep showing it even if API call fails
+                val cachedUser = tokenManager.getUser()
+                if (cachedUser != null) {
+                    _uiState.value = UserUiState.Success(cachedUser)
+                } else {
+                    _uiState.value = UserUiState.Error(
+                        e.message ?: "Failed to load profile"
+                    )
+                }
             }
         }
     }

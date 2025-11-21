@@ -31,7 +31,18 @@ fun AppNavigation() {
         composable("after_splash_screen") { AfterSplashScreen(navController = navController) }
         composable("login") { LoginScreen(navController = navController) }
         composable("signup_screen") { SignUpScreen(navController = navController) }
-        composable("otp_screen") { VerificationScreenOTP(navController = navController) } 
+        composable("otp_screen") { VerificationScreenOTP(navController = navController) }
+        composable(
+            "email_verification",
+            arguments = listOf(
+                navArgument("token") { type = NavType.StringType; nullable = true },
+                navArgument("email") { type = NavType.StringType; nullable = true }
+            )
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token")
+            val email = backStackEntry.arguments?.getString("email")
+            EmailVerificationScreen(navController = navController, email = email, token = token)
+        } 
         composable("home") { HomeScreen(navController = navController) }
         composable("profile") { ProfileScreen(navController = navController) }
         composable("edit_profile") { EditProfileScreen(navController = navController) }
@@ -165,6 +176,19 @@ fun AppNavigation() {
         }
         composable("offline_destinations") {
             OfflineDestinationsScreen(navController = navController)
+        }
+        composable("share_journey") {
+            ShareJourneyScreen(navController = navController)
+        }
+        composable("journey_feed") {
+            JourneyFeedScreen(navController = navController)
+        }
+        composable(
+            "journey_detail/{journeyId}",
+            arguments = listOf(navArgument("journeyId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val journeyId = backStackEntry.arguments?.getString("journeyId") ?: ""
+            JourneyDetailScreen(navController = navController, journeyId = journeyId)
         }
     }
 }

@@ -18,6 +18,9 @@ object RetrofitInstance {
 
     private val json = Json {
         ignoreUnknownKeys = true
+        encodeDefaults = false  // Don't encode default values (null, empty, etc.)
+        coerceInputValues = true  // Coerce null/unknown values to defaults
+        isLenient = true  // Allow lenient parsing
     }
 
     fun create(context: Context): ApiService {
@@ -29,9 +32,9 @@ object RetrofitInstance {
         // This prevents issues where the request method is inadvertently changed from POST to GET.
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .callTimeout(90, TimeUnit.SECONDS)
+            .readTimeout(180, TimeUnit.SECONDS) // Increased for image uploads
+            .writeTimeout(180, TimeUnit.SECONDS) // Increased for image uploads
+            .callTimeout(240, TimeUnit.SECONDS) // 4 minutes total timeout for large uploads
             .addInterceptor(AuthInterceptor(context))
             .addInterceptor(loggingInterceptor)
             .build()

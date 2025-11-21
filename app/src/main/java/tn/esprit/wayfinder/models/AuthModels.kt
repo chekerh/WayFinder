@@ -68,3 +68,38 @@ data class SignUpResponse(
     val message: String,
     val user: User
 )
+
+@Serializable
+data class GoogleSignInRequest(
+    @SerialName("id_token") val idToken: String,
+    @SerialName("client_type") val clientType: String = "android"
+)
+
+@Serializable
+data class GoogleSignInResponse(
+    @SerialName("access_token") val accessToken: String,
+    val user: User,
+    @SerialName("onboarding_completed") val onboardingCompleted: Boolean,
+    @SerialName("email_verified") val emailVerified: Boolean
+)
+
+@Serializable
+data class VerifyEmailRequest(
+    val token: String
+)
+
+@Serializable
+data class VerifyEmailResponse(
+    val message: String,
+    val user: User
+)
+
+@Serializable
+data class ResendVerificationRequest(
+    val email: String
+)
+
+@Serializable
+data class ResendVerificationResponse(
+    val message: String
+)

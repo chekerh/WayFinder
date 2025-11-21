@@ -21,8 +21,10 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +45,8 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
+import tn.esprit.wayfinder.viewmodels.JourneyViewModel
+import tn.esprit.wayfinder.models.CanShareJourneyResponse
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,15 +54,29 @@ import tn.esprit.wayfinder.viewmodels.UserUiState
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
     val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val journeyViewModel: JourneyViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by userViewModel.uiState.collectAsState()
+    val canShareState by journeyViewModel.canShareState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val currentUser = remember { tokenManager.getUser() }
     val startDestination = remember { navController.graph.startDestinationRoute ?: "home" }
     var isMenuExpanded by remember { mutableStateOf(false) }
 
-    // Load profile on first composition
+    // Load profile and check if user can share journey
     LaunchedEffect(Unit) {
         userViewModel.loadProfile()
+        // Wait a bit before checking to ensure user is authenticated
+        kotlinx.coroutines.delay(500)
+        journeyViewModel.checkCanShareJourney()
+    }
+    
+    // Re-check if user can share journey after profile is loaded (in case bookings changed)
+    LaunchedEffect(uiState) {
+        if (uiState is UserUiState.Success) {
+            // Wait a bit to ensure profile is fully loaded
+            kotlinx.coroutines.delay(300)
+            journeyViewModel.checkCanShareJourney()
+        }
     }
 
     Scaffold(
@@ -140,6 +158,13 @@ fun ProfileScreen(navController: NavController) {
                     onBookingHistoryClick = {
                         navController.navigate("booking_history")
                     },
+                    onShareJourneyClick = {
+                        if (canShareState?.canShare == true) {
+                            navController.navigate("share_journey")
+                        }
+                    },
+                    canShareJourney = canShareState?.canShare ?: false,
+                    canShareState = canShareState,
                     navController = navController,
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -175,6 +200,9 @@ fun ProfileContent(
     user: tn.esprit.wayfinder.models.User,
     currentUser: tn.esprit.wayfinder.models.User?,
     onBookingHistoryClick: () -> Unit,
+    onShareJourneyClick: () -> Unit,
+    canShareJourney: Boolean,
+    canShareState: CanShareJourneyResponse?,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -338,6 +366,82 @@ fun ProfileContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Share My Journey Card
+        // Always show the button, but disable it if user doesn't have confirmed bookings
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled = canShareJourney,
+                    onClick = {
+                        if (canShareJourney) {
+                            onShareJourneyClick()
+                        }
+                    }
+                ),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (canShareJourney) Color(0xFF4A90E2) else Color(0xFF9E9E9E)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share Journey",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Partager mon voyage",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = when {
+                                canShareJourney -> "Partagez vos photos et créez une vidéo"
+                                canShareState == null -> "Vérification en cours..."
+                                else -> canShareState?.message ?: "Vous devez avoir une réservation confirmée"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+                if (canShareJourney) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "View",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer {
+                                rotationZ = 180f
+                            }
+                    )
+                } else if (canShareState == null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         // Booking History Card
         Card(
             modifier = Modifier
@@ -360,6 +464,53 @@ fun ProfileContent(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "View",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            rotationZ = 180f
+                        }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // View Shared Journeys Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    navController.navigate("journey_feed")
+                },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Journeys",
+                        tint = Color(0xFF4A90E2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Voir les voyages partagés",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "View",

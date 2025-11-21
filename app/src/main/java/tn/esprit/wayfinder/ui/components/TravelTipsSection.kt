@@ -34,7 +34,10 @@ fun TravelTipsSection(
     val uiState by travelTipsViewModel.uiState.collectAsState()
 
     LaunchedEffect(destinationId) {
-        travelTipsViewModel.loadTravelTips(destinationId, limit = 3)
+        // Only load travel tips if destinationId is valid
+        if (destinationId.isNotBlank()) {
+            travelTipsViewModel.loadTravelTips(destinationId, limit = 3)
+        }
     }
 
     Card(
@@ -149,9 +152,15 @@ fun TravelTipsSection(
                             fontSize = 14.sp
                         )
                         TextButton(onClick = {
-                            travelTipsViewModel.loadTravelTips(destinationId, limit = 3)
+                            // Try to generate tips if loading fails
+                            travelTipsViewModel.generateTravelTips(
+                                destinationId,
+                                destinationName,
+                                city,
+                                country
+                            )
                         }) {
-                            Text("Réessayer", fontSize = 12.sp)
+                            Text("Générer les conseils", fontSize = 12.sp)
                         }
                     }
                 }

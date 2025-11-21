@@ -1,24 +1,30 @@
 package tn.esprit.wayfinder.presentation.booking
 
 import tn.esprit.wayfinder.models.Booking
+import tn.esprit.wayfinder.models.ConfirmBookingRequest
 import tn.esprit.wayfinder.models.CreateBookingRequest
 import tn.esprit.wayfinder.models.OfferComparison
+import tn.esprit.wayfinder.models.TripDetails
 import tn.esprit.wayfinder.models.UpdateBookingRequest
 import tn.esprit.wayfinder.network.ApiService
 
 class BookingRepository(private val apiService: ApiService) {
     
     suspend fun getBookingHistory(): List<Booking> {
-        return apiService.getBookings()
+        return apiService.getBookingHistory()
     }
     
     suspend fun confirmBooking(
         offerId: String,
-        paymentDetails: Map<String, Any>
+        paymentDetails: Map<String, String>,
+        totalPrice: Double? = null,
+        tripDetails: TripDetails? = null
     ): Booking {
-        val request = mapOf(
-            "offer_id" to offerId,
-            "payment_details" to paymentDetails
+        val request = ConfirmBookingRequest(
+            offerId = offerId,
+            paymentDetails = paymentDetails,
+            totalPrice = totalPrice,
+            tripDetails = tripDetails
         )
         return apiService.confirmBooking(request)
     }

@@ -85,6 +85,12 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+    
+    // ExifInterface for image orientation handling
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 
     // Other dependencies
     implementation(libs.androidx.activity)

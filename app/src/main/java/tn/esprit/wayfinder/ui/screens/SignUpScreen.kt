@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -23,11 +24,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
+import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.SignUpRequest
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.utils.GoogleSignInHelper
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.SignUpResult
+import tn.esprit.wayfinder.viewmodels.GoogleSignInResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +57,64 @@ fun SignUpScreen(navController: NavController) {
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
 
     val signUpResult by authViewModel.signUpResult.collectAsState()
+    val googleSignInResult by authViewModel.googleSignInResult.collectAsState()
+
+    // Google Client ID from strings.xml
+    val googleClientId = context.getString(R.string.google_client_id_android)
+
+    // Google Sign-In launcher - Simplified like iOS implementation
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        android.util.Log.d("SignUpScreen", "Google Sign-In result received. Result code: ${result.resultCode}")
+        
+        if (result.data == null) {
+            android.util.Log.e("SignUpScreen", "Result data is null")
+            Toast.makeText(context, "Erreur: Aucune donnée reçue de Google Sign-In", Toast.LENGTH_LONG).show()
+            return@rememberLauncherForActivityResult
+        }
+        
+        try {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account?.idToken
+            
+            if (idToken != null) {
+                android.util.Log.d("SignUpScreen", "ID Token obtained, length: ${idToken.length}")
+                authViewModel.googleSignIn(context, idToken)
+            } else {
+                android.util.Log.e("SignUpScreen", "ID Token is null")
+                Toast.makeText(context, "Échec: Token Google non disponible", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: ApiException) {
+            android.util.Log.e("SignUpScreen", "Google Sign-In ApiException: ${e.statusCode} - ${e.message}", e)
+            val errorMsg = when (e.statusCode) {
+                10 -> {
+                    android.util.Log.e("SignUpScreen", "DEVELOPER_ERROR: Vérifiez API Google Sign-In activée et OAuth Consent Screen configuré")
+                    """
+                        Erreur DEVELOPER_ERROR (10)
+                        
+                        Vérifiez dans Google Cloud Console:
+                        • API Google Sign-In activée?
+                        • OAuth Consent Screen configuré?
+                        • Package: tn.esprit.WayFinder
+                        • SHA-1: 9A:4B:00:51:E4:0B:AB:8B:D9:DB:53:42:DD:15:A6:84:48:F7:3D:94
+                        
+                        Attendez 10-15 min après modification.
+                    """.trimIndent()
+                }
+                12501 -> "Connexion annulée par l'utilisateur"
+                7 -> "Erreur réseau. Vérifiez votre connexion Internet."
+                8 -> "Erreur interne Google. Réessayez plus tard."
+                16 -> "Un autre appel est en cours. Réessayez."
+                else -> "Erreur Google Sign-In (${e.statusCode}): ${e.message ?: "Erreur inconnue"}"
+            }
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            android.util.Log.e("SignUpScreen", "Unexpected error during Google Sign-In", e)
+            Toast.makeText(context, "Erreur inattendue: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     LaunchedEffect(signUpResult) {
         when (val result = signUpResult) {
@@ -56,6 +126,23 @@ fun SignUpScreen(navController: NavController) {
                 }
             }
             is SignUpResult.Error -> {
+                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                authViewModel.clearMessages()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(googleSignInResult) {
+        when (val result = googleSignInResult) {
+            is GoogleSignInResult.Success -> {
+                Toast.makeText(context, "Connexion Google réussie!", Toast.LENGTH_SHORT).show()
+                navController.navigate(result.navigateTo) {
+                    popUpTo("signup_screen") { inclusive = true }
+                }
+                authViewModel.clearMessages()
+            }
+            is GoogleSignInResult.Error -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                 authViewModel.clearMessages()
             }
@@ -187,6 +274,73 @@ fun SignUpScreen(navController: NavController) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
                 Text("Register", fontSize = 16.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Divider
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f))
+            Text(
+                "OU",
+                modifier = Modifier.padding(horizontal = 16.dp),
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Google Sign-In button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
+                    .clickable {
+                        // Simplified like iOS - just check if Client ID is valid
+                        if (googleClientId.isBlank() || !googleClientId.contains(".apps.googleusercontent.com")) {
+                            Toast.makeText(context, "Google Client ID non configuré", Toast.LENGTH_LONG).show()
+                            return@clickable
+                        }
+                        
+                        try {
+                            val signInIntent = GoogleSignInHelper.getSignInIntent(context, googleClientId)
+                            googleSignInLauncher.launch(signInIntent)
+                        } catch (e: Exception) {
+                            android.util.Log.e("SignUpScreen", "Error launching Google Sign-In", e)
+                            Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (googleSignInResult is GoogleSignInResult.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = Color(0xFF1976D2),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_google),
+                            contentDescription = "Google",
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
 

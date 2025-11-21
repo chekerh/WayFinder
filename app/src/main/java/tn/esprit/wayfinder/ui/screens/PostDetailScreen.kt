@@ -2,7 +2,6 @@ package tn.esprit.wayfinder.ui.screens
 
 import android.app.Application
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -48,6 +48,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
     val currentUser = remember { tokenManager.getUser() }
     
     var commentText by remember { mutableStateOf("") }
+    var showEmojiPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(postId) {
         discussionViewModel.loadPostDetail(postId)
@@ -129,37 +130,103 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                         }
                     }
                     
-                    // Comment Input
-                    Row(
+                    // Comment Input (like in the image)
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        OutlinedTextField(
-                            value = commentText,
-                            onValueChange = { commentText = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("Ajouter un commentaire...") },
-                            singleLine = false,
-                            maxLines = 3
-                        )
-                        IconButton(
-                            onClick = {
-                                if (commentText.isNotBlank()) {
-                                    discussionViewModel.createComment(state.post.id, commentText)
-                                    commentText = ""
-                                }
-                            },
-                            enabled = commentText.isNotBlank()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Envoyer",
-                                tint = if (commentText.isNotBlank()) Color(0xFF1976D2) else Color.Gray
+                            // Current User Profile Picture
+                            val currentUserImageUrl = currentUser?.profileImageUrl?.let { url ->
+                                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                            }
+                            if (currentUserImageUrl != null) {
+                                AsyncImage(
+                                    model = currentUserImageUrl,
+                                    contentDescription = "Your Avatar",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(id = R.drawable.europe),
+                                    error = painterResource(id = R.drawable.europe)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.europe),
+                                    contentDescription = "Your Avatar",
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            
+                            // Text Input
+                            OutlinedTextField(
+                                value = commentText,
+                                onValueChange = { newText: String -> commentText = newText },
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("Ajoutez un commentaire...") },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent
+                                )
                             )
+                            
+                            // Emoji/Send Button
+                            if (commentText.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        discussionViewModel.createComment(state.post.id, commentText)
+                                        commentText = ""
+                                        showEmojiPicker = false
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Envoyer",
+                                        tint = Color(0xFF1976D2),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = { showEmojiPicker = !showEmojiPicker },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text(
+                                        text = "😊",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                            }
                         }
+                    }
+                    
+                    // Emoji Picker
+                    if (showEmojiPicker) {
+                        EmojiPicker(
+                            onEmojiSelected = { emoji ->
+                                commentText += emoji
+                                showEmojiPicker = false
+                            },
+                            onDismiss = { showEmojiPicker = false }
+                        )
                     }
                 }
             }
@@ -339,9 +406,10 @@ fun CommentCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
+            // Profile Picture
             val userImageUrl = comment.userId.profileImageUrl?.let { url ->
                 if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
             }
@@ -350,7 +418,7 @@ fun CommentCard(
                     model = userImageUrl,
                     contentDescription = "User Avatar",
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(id = R.drawable.europe),
@@ -361,48 +429,185 @@ fun CommentCard(
                     painter = painterResource(id = R.drawable.europe),
                     contentDescription = "User Avatar",
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
+            
+            // Comment Content
             Column(modifier = Modifier.weight(1f)) {
+                // User Name (bold)
                 Text(
                     text = "${comment.userId.firstName} ${comment.userId.lastName}",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Comment Text
                 Text(
                     text = comment.content,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    color = Color.Black
                 )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Date (first line)
+                Text(
+                    text = formatDate(comment.createdAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Reply button with likes count (second line)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = formatDate(comment.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                    IconButton(
-                        onClick = onLikeClick,
-                        modifier = Modifier.size(32.dp)
+                    TextButton(
+                        onClick = { /* TODO: Handle reply */ },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+                        modifier = Modifier.height(24.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "Like",
-                            tint = if (isLiked) Color(0xFFFF1744) else Color.Gray,
-                            modifier = Modifier.size(16.dp)
+                        Text(
+                            text = "Répondre",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
                         )
                     }
+                    // Heart icon with count (red, inline with "Répondre")
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Likes",
+                        tint = Color(0xFFFF1744),
+                        modifier = Modifier.size(14.dp)
+                    )
                     Text(
                         text = "${comment.likesCount}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
+                }
+            }
+            
+            // Like Button (on the right)
+            IconButton(
+                onClick = onLikeClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = if (isLiked) Color(0xFFFF1744) else Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EmojiPicker(
+    onEmojiSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Liste d'emojis populaires
+    val emojiCategories = mapOf(
+        "Visages" to listOf("😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠"),
+        "Geste" to listOf("👍", "👎", "👊", "✊", "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤌", "🤏", "👈", "👉", "👆", "🖕", "👇", "☝️", "👋", "🤚", "🖐", "✋", "🖖", "👏", "🙌", "🤲", "🤝", "🙏", "✍️", "💪", "🦾", "🦿", "🦵", "🦶", "👂", "🦻", "👃", "🧠", "🫀", "🫁", "🦷", "🦴", "👀", "👁", "👅", "👄"),
+        "Cœur" to listOf("💋", "💘", "💝", "💖", "💗", "💓", "💞", "💕", "💟", "❣️", "💔", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💯", "💢", "💥", "💫", "💦", "💨", "🕳️", "💣", "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤"),
+        "Objets" to listOf("👓", "🕶️", "🥽", "🥼", "🦺", "👔", "👕", "👖", "🧣", "🧤", "🧥", "🧦", "👗", "👘", "🥻", "🩱", "🩲", "🩳", "👙", "👚", "👛", "👜", "👝", "🛍️", "🎒", "👞", "👟", "🥾", "🥿", "👠", "👡", "🩰", "👢", "🪖", "⛑️", "🧢", "👒", "🎩", "🎓", "🧢", "👑", "💍", "👑", "💎", "🔇", "🔈", "🔉", "🔊", "📢", "📣", "📯", "🔔", "🔕", "🎼", "🎵", "🎶", "🎙️", "🎚️", "🎛️", "🎤", "🎧", "📻", "🎷", "🪗", "🎸", "🎹", "🎺", "🎻", "🪕", "🥁", "🪘", "📱", "📲", "☎️", "📞", "📟", "📠", "🔋", "🔌", "💻", "🖥️", "🖨️", "⌨️", "🖱️", "🖲️", "🕹️", "🗜️", "💾", "💿", "📀", "📼", "📷", "📸", "📹", "🎥", "📽️", "🎞️", "📞", "☎️", "📺", "📻", "🎙️", "🎚️", "🎛️", "⏱️", "⏲️", "⏰", "🕰️", "⌛", "⏳", "📡", "🔋", "🔌", "💡", "🔦", "🕯️", "🧯", "🛢️", "💸", "💵", "💴", "💶", "💷", "🪙", "💰", "💳", "💎", "⚖️", "🪜", "🧰", "🪛", "🔧", "🔨", "⚒️", "🛠️", "⛏️", "🪚", "🔩", "⚙️", "🪤", "🧱", "⛓️", "🧲", "🔫", "💣", "🧨", "🪓", "🔪", "🗡️", "⚔️", "🛡️", "🚬", "⚰️", "🪦", "⚱️", "🏺", "🔮", "📿", "🧿", "💈", "⚗️", "🔭", "🔬", "🕳️", "🩹", "🩺", "💊", "💉", "🩸", "🧬", "🦠", "🧫", "🧪", "🌡️", "🧹", "🪠", "🧺", "🧻", "🚽", "🚿", "🛁", "🛀", "🧼", "🪥", "🪒", "🧽", "🪣", "🧴", "🛎️", "🔑", "🗝️", "🚪", "🪑", "🛋️", "🛏️", "🛌", "🧸", "🪆", "🖼️", "🪞", "🪟", "🛍️", "🛒", "🎁", "🎈", "🎏", "🎀", "🪄", "🪅", "🎊", "🎉", "🎎", "🏮", "🎐", "🧧", "✉️", "📩", "📨", "📧", "💌", "📥", "📤", "📦", "🏷️", "🪧", "📪", "📫", "📬", "📭", "📮", "📯", "📜", "📃", "📄", "📑", "🧾", "📊", "📈", "📉", "🗒️", "🗓️", "📆", "📅", "🪙", "📇", "🗃️", "🗳️", "🗄️", "📋", "📁", "📂", "🗂️", "🗞️", "📰", "📓", "📔", "📒", "📕", "📗", "📘", "📙", "📚", "📖", "🔖", "🧷", "🔗", "📎", "🖇️", "📐", "📏", "🧮", "📌", "📍", "✂️", "🖊️", "🖋️", "✒️", "🖌️", "🖍️", "📝", "✏️", "🔍", "🔎", "🔏", "🔐", "🔒", "🔓")
+    )
+    
+    // Affichage du sélecteur d'emojis
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // En-tête avec bouton de fermeture
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Emojis",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text(
+                        text = "✕",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            // Catégories d'emojis avec LazyColumn pour meilleures performances
+            LazyColumn(
+                modifier = Modifier.height(300.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                emojiCategories.forEach { (category, emojis) ->
+                    item {
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 8.dp, start = 4.dp)
+                        )
+                    }
+                    
+                    // Grille d'emojis - 8 emojis par ligne
+                    val rows = emojis.chunked(8)
+                    rows.forEach { rowEmojis ->
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                rowEmojis.forEach { emoji ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clickable { onEmojiSelected(emoji) }
+                                            .padding(8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = emoji,
+                                            fontSize = 28.sp
+                                        )
+                                    }
+                                }
+                                // Remplir les espaces vides si moins de 8 emojis
+                                repeat(8 - rowEmojis.size) {
+                                    Spacer(modifier = Modifier.size(44.dp))
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -411,10 +616,28 @@ fun CommentCard(
 
 private fun formatDate(dateString: String): String {
     return try {
-        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-        val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-        formatter.format(parser.parse(dateString) ?: Date())
-    } catch (e: Exception) {
+        // Try different date formats
+        val formats = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss"
+        )
+        var parsedDate: Date? = null
+        for (format in formats) {
+            try {
+                val parser = SimpleDateFormat(format, Locale.getDefault())
+                parsedDate = parser.parse(dateString)
+                if (parsedDate != null) break
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        parsedDate?.let {
+            val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+            formatter.format(it)
+        } ?: dateString
+    } catch (_: Exception) {
         dateString
     }
 }

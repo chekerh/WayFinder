@@ -45,7 +45,7 @@ data class Booking(
     @SerialName("user_id") val userId: String,
     @SerialName("offer_id") val offerId: String,
     val status: BookingStatus,
-    @SerialName("payment_details") val paymentDetails: Map<String, @Contextual Any>,
+    @SerialName("payment_details") val paymentDetails: Map<String, String>,
     @SerialName("booking_date") val bookingDate: String,
     @SerialName("confirmation_number") val confirmationNumber: String,
     @SerialName("total_price") val totalPrice: Double,
@@ -59,7 +59,7 @@ data class Booking(
 @Serializable
 data class CreateBookingRequest(
     @SerialName("offer_id") val offerId: String,
-    @SerialName("payment_details") val paymentDetails: Map<String, @Contextual Any>,
+    @SerialName("payment_details") val paymentDetails: Map<String, String>,
     @SerialName("trip_details") val tripDetails: TripDetails? = null,
     val passengers: List<BookingPassenger>? = null,
     val notes: String? = null,
@@ -67,8 +67,16 @@ data class CreateBookingRequest(
 )
 
 @Serializable
+data class ConfirmBookingRequest(
+    @SerialName("offer_id") val offerId: String,
+    @SerialName("payment_details") val paymentDetails: Map<String, String>,
+    @SerialName("total_price") val totalPrice: Double? = null,
+    @SerialName("trip_details") val tripDetails: TripDetails? = null
+)
+
+@Serializable
 data class UpdateBookingRequest(
-    @SerialName("payment_details") val paymentDetails: Map<String, @Contextual Any>? = null,
+    @SerialName("payment_details") val paymentDetails: Map<String, String>? = null,
     @SerialName("trip_details") val tripDetails: TripDetails? = null,
     val passengers: List<BookingPassenger>? = null,
     val notes: String? = null,
@@ -76,8 +84,14 @@ data class UpdateBookingRequest(
     @SerialName("total_price") val totalPrice: Double? = null
 )
 
+@Serializable
 enum class BookingStatus {
+    @SerialName("pending")
     PENDING,
+
+    @SerialName("confirmed")
     CONFIRMED,
+
+    @SerialName("cancelled")
     CANCELLED
 }

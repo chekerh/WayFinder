@@ -10,7 +10,7 @@ data class PersonalizedRecommendations(
     val offers: List<Offer>? = null,
     val activities: List<Activity>? = null,
     @SerialName("generated_at") val generatedAt: String,
-    @SerialName("preferences_used") val preferencesUsed: Map<String, @Contextual Any>
+    @SerialName("preferences_used") val preferencesUsed: Map<String, String>
 )
 
 @Serializable

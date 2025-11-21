@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">WayFinder</string>
+    <!-- Google OAuth Client ID for Android -->
+    <!-- Replace with your actual Google OAuth Client ID from Google Cloud Console -->
+    <!-- Format: xxxxxx-xxxxx.apps.googleusercontent.com -->
+    <string name="google_client_id_android">825004975196-gr4rffsv0akatmmn9qonoqsq5aa4q5e6.apps.googleusercontent.com</string>
 </resources>

@@ -6,8 +6,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import retrofit2.HttpException
 import tn.esprit.wayfinder.models.Booking
 import tn.esprit.wayfinder.models.OfferComparison
+import tn.esprit.wayfinder.models.TripDetails
 import tn.esprit.wayfinder.presentation.booking.BookingRepository
 
 sealed class BookingUiState {
@@ -46,12 +51,17 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         viewModelScope.launch {
             try {
                 _bookingHistoryState.value = BookingUiState.Loading
+                android.util.Log.d("BookingViewModel", "Loading booking history...")
                 val bookings = bookingRepository.getBookingHistory()
+                android.util.Log.d("BookingViewModel", "Loaded ${bookings.size} bookings")
+                bookings.forEachIndexed { index, booking ->
+                    android.util.Log.d("BookingViewModel", "Booking $index: id=${booking.id}, status=${booking.status}, destination=${booking.tripDetails?.destination ?: "null"}")
+                }
                 _bookingHistoryState.value = BookingUiState.Success(bookings)
             } catch (e: Exception) {
-                _bookingHistoryState.value = BookingUiState.Error(
-                    e.message ?: "Failed to load booking history"
-                )
+                val errorMessage = parseError(e)
+                android.util.Log.e("BookingViewModel", "Error loading booking history: $errorMessage", e)
+                _bookingHistoryState.value = BookingUiState.Error(errorMessage)
             }
         }
     }
@@ -60,22 +70,64 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         offerId: String,
         paymentMethod: String = "credit_card",
         cardNumber: String? = null,
-        cardHolderName: String? = null
+        cardHolderName: String? = null,
+        totalPrice: Double,
+        destination: String? = null, // Destination name (e.g., "Paris, France")
+        destinationCountry: String? = null // Destination country (e.g., "France")
     ) {
         viewModelScope.launch {
             try {
                 _reservationState.value = ReservationUiState.Loading
-                val paymentDetails = mapOf(
-                    "method" to paymentMethod,
-                    "card_number" to (cardNumber ?: ""),
-                    "card_holder" to (cardHolderName ?: "")
-                )
-                val booking = bookingRepository.confirmBooking(offerId, paymentDetails)
+                
+                // Validate offerId before making API call
+                if (offerId.isBlank()) {
+                    _reservationState.value = ReservationUiState.Error("Offer ID is required")
+                    return@launch
+                }
+                
+                // Ensure payment_details is never empty and contains at least one non-empty value
+                // Backend requires @IsNotEmpty() and @IsObject() on payment_details
+                val paymentDetails = mutableMapOf<String, String>()
+                val cleanCardNumber = cardNumber?.replace(" ", "")?.trim() ?: ""
+                val cleanCardHolder = cardHolderName?.trim() ?: ""
+                
+                // Always include method (required by backend validation)
+                paymentDetails["method"] = paymentMethod.ifEmpty { "credit_card" }
+                
+                // Only add card_number and card_holder if they have values
+                if (cleanCardNumber.isNotEmpty()) {
+                    paymentDetails["card_number"] = cleanCardNumber
+                }
+                if (cleanCardHolder.isNotEmpty()) {
+                    paymentDetails["card_holder"] = cleanCardHolder
+                }
+                
+                // Ensure payment_details is not empty (backend @IsNotEmpty() validation)
+                if (paymentDetails.isEmpty()) {
+                    _reservationState.value = ReservationUiState.Error("Payment details are required")
+                    return@launch
+                }
+                
+                // Create trip_details if destination is provided
+                val tripDetails = if (destination != null && destination.isNotBlank()) {
+                    val destinationName = if (destinationCountry != null && destinationCountry.isNotBlank()) {
+                        "$destination, $destinationCountry"
+                    } else {
+                        destination
+                    }
+                    TripDetails(destination = destinationName)
+                } else {
+                    null
+                }
+                
+                android.util.Log.d("BookingViewModel", "Confirming booking: offerId=$offerId, totalPrice=$totalPrice, destination=$destination, tripDetails=$tripDetails")
+                
+                val booking = bookingRepository.confirmBooking(offerId, paymentDetails, totalPrice, tripDetails)
                 _reservationState.value = ReservationUiState.Success(booking)
             } catch (e: Exception) {
-                _reservationState.value = ReservationUiState.Error(
-                    e.message ?: "Failed to confirm booking"
-                )
+                val errorMessage = parseError(e)
+                android.util.Log.e("BookingViewModel", "Error confirming booking: $errorMessage", e)
+                _reservationState.value = ReservationUiState.Error(errorMessage)
             }
         }
     }
@@ -122,7 +174,7 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         passengers: List<tn.esprit.wayfinder.models.BookingPassenger>? = null,
         notes: String? = null,
         totalPrice: Double? = null,
-        paymentDetails: Map<String, Any> = emptyMap()
+        paymentDetails: Map<String, String> = emptyMap()
     ) {
         viewModelScope.launch {
             try {
@@ -150,7 +202,7 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         tripDetails: tn.esprit.wayfinder.models.TripDetails? = null,
         passengers: List<tn.esprit.wayfinder.models.BookingPassenger>? = null,
         notes: String? = null,
-        paymentDetails: Map<String, Any>? = null,
+        paymentDetails: Map<String, String>? = null,
         totalPrice: Double? = null
     ) {
         viewModelScope.launch {
@@ -185,9 +237,34 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
                 loadBookingHistory()
             } catch (e: Exception) {
                 _singleBookingState.value = ReservationUiState.Error(
-                    e.message ?: "Failed to cancel booking"
+                    parseError(e)
                 )
             }
+        }
+    }
+
+    private fun parseError(throwable: Throwable): String {
+        return when (throwable) {
+            is HttpException -> {
+                val errorBody = throwable.response()?.errorBody()?.string()
+                if (!errorBody.isNullOrBlank()) {
+                    val parsedMessage = try {
+                        val element = Json.parseToJsonElement(errorBody)
+                        // Try to get message from error response
+                        element.jsonObject["message"]?.jsonPrimitive?.content
+                            ?: element.jsonObject["error"]?.jsonPrimitive?.content
+                            ?: element.jsonObject.toString()
+                    } catch (_: Exception) {
+                        errorBody
+                    }
+                    parsedMessage ?: throwable.message()
+                } else {
+                    "HTTP ${throwable.code()}: ${throwable.message()}"
+                }
+            }
+            is java.net.UnknownHostException -> "Impossible de se connecter au serveur. Vérifiez votre connexion Internet."
+            is java.net.SocketTimeoutException -> "Le serveur met trop de temps à répondre. Réessayez dans un instant."
+            else -> throwable.message ?: "Une erreur inattendue est survenue"
         }
     }
 }

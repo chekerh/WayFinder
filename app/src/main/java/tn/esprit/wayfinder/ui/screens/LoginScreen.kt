@@ -48,7 +48,12 @@ import tn.esprit.wayfinder.viewmodels.LoginResult
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import tn.esprit.wayfinder.utils.GoogleSignInHelper
+import tn.esprit.wayfinder.viewmodels.GoogleSignInResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +66,33 @@ fun LoginScreen(navController: NavController) {
     var passwordVisible by remember { mutableStateOf(false) }
 
     val loginResult by authViewModel.loginResult.collectAsState()
+    val googleSignInResult by authViewModel.googleSignInResult.collectAsState()
+
+    // Google Client ID from strings.xml
+    val googleClientId = context.getString(R.string.google_client_id_android)
+    
+
+    // Google Sign-In launcher - Simplified like iOS implementation
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        android.util.Log.d("LoginScreen", "Google Sign-In result received. Result code: ${result.resultCode}")
+        android.util.Log.d("LoginScreen", "Result data: ${result.data != null}")
+        android.util.Log.d("LoginScreen", "Client ID used: ${googleClientId.take(50)}...")
+        
+        val idToken = GoogleSignInHelper.handleSignInIntent(result.data)
+        
+        if (idToken != null) {
+            authViewModel.googleSignIn(context, idToken)
+        } else {
+            android.util.Log.e("LoginScreen", "Google Sign-In failed: No ID token received")
+            Toast.makeText(
+                context,
+                "Échec de la connexion Google. Veuillez réessayer.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     LaunchedEffect(loginResult) {
         when (val result = loginResult) {
@@ -72,6 +104,23 @@ fun LoginScreen(navController: NavController) {
                 authViewModel.clearMessages()
             }
             is LoginResult.Error -> {
+                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                authViewModel.clearMessages()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(googleSignInResult) {
+        when (val result = googleSignInResult) {
+            is GoogleSignInResult.Success -> {
+                Toast.makeText(context, "Connexion Google réussie!", Toast.LENGTH_SHORT).show()
+                navController.navigate(result.navigateTo) {
+                    popUpTo("login") { inclusive = true }
+                }
+                authViewModel.clearMessages()
+            }
+            is GoogleSignInResult.Error -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                 authViewModel.clearMessages()
             }
@@ -194,6 +243,21 @@ fun LoginScreen(navController: NavController) {
                         }
                     }
 
+                    // Divider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                        Text(
+                            "OU",
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f))
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -202,15 +266,40 @@ fun LoginScreen(navController: NavController) {
                         Box(
                             modifier = Modifier
                                 .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
-                                .clickable { /* TODO */ }
+                                .clickable {
+                                    // Simplified like iOS - just check if Client ID is valid
+                                    if (googleClientId.isBlank() || !googleClientId.contains(".apps.googleusercontent.com")) {
+                                        Toast.makeText(context, "Google Client ID non configuré", Toast.LENGTH_LONG).show()
+                                        return@clickable
+                                    }
+                                    
+                                    try {
+                                        val signInIntent = GoogleSignInHelper.getSignInIntent(context, googleClientId)
+                                        googleSignInLauncher.launch(signInIntent)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("LoginScreen", "Error launching Google Sign-In", e)
+                                        Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                                 .padding(horizontal = 18.dp, vertical = 10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_google),
-                                    contentDescription = "Google",
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (googleSignInResult is GoogleSignInResult.Loading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = Color(0xFF1976D2),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_google),
+                                        contentDescription = "Google",
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
                                 Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
                         }
@@ -218,10 +307,13 @@ fun LoginScreen(navController: NavController) {
                         Box(
                             modifier = Modifier
                                 .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
-                                .clickable { /* TODO */ }
+                                .clickable { /* TODO: Apple Sign-In */ }
                                 .padding(horizontal = 18.dp, vertical = 10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.ic_apple),
                                     contentDescription = "Apple",

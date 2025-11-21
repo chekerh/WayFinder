@@ -23,11 +23,19 @@ class TravelTipsViewModel(private val travelTipsRepository: TravelTipsRepository
 
     fun loadTravelTips(destinationId: String, category: String? = null, limit: Int = 10) {
         viewModelScope.launch {
+            // Validate destinationId before making API call
+            if (destinationId.isBlank()) {
+                _uiState.value = TravelTipsUiState.Error("Destination ID is required")
+                return@launch
+            }
+            
             _uiState.value = TravelTipsUiState.Loading
             try {
                 val tips = travelTipsRepository.getTravelTips(destinationId, category, limit)
                 _uiState.value = TravelTipsUiState.Success(tips)
             } catch (e: Exception) {
+                // Log the error for debugging
+                android.util.Log.e("TravelTipsViewModel", "Error loading travel tips", e)
                 _uiState.value = TravelTipsUiState.Error(e.message ?: "Failed to load travel tips")
             }
         }

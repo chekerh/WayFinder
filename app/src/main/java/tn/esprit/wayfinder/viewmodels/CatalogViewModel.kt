@@ -235,6 +235,10 @@ class CatalogViewModel(
             "IST" -> "Istanbul"
             "CAI" -> "Cairo"
             "TUN" -> "Tunis"
+            "NRT", "HND" -> "Tokyo"
+            "BKK" -> "Bangkok"
+            "SIN" -> "Singapore"
+            "ICN" -> "Seoul"
             else -> airportCode
         }
     }
@@ -252,6 +256,10 @@ class CatalogViewModel(
             "IST" -> "Turkey"
             "CAI" -> "Egypt"
             "TUN" -> "Tunisia"
+            "NRT", "HND" -> "Japan"
+            "BKK" -> "Thailand"
+            "SIN" -> "Singapore"
+            "ICN" -> "South Korea"
             else -> "Unknown"
         }
     }
@@ -273,6 +281,10 @@ class CatalogViewModel(
             "cairo" -> "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
             "tunis" -> "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
             "los angeles" -> "https://images.unsplash.com/photo-1515895306158-439192690299?w=800&h=600&fit=crop&q=80"
+            "tokyo" -> "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop&q=80"
+            "bangkok" -> "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=600&fit=crop&q=80"
+            "singapore" -> "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&h=600&fit=crop&q=80"
+            "seoul" -> "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=600&fit=crop&q=80"
             else -> "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80" // Generic travel image
         }
     }

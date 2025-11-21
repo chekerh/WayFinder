@@ -14,6 +14,18 @@ interface ApiService {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
+    @POST("auth/google")
+    suspend fun googleSignIn(@Body request: GoogleSignInRequest): GoogleSignInResponse
+
+    @POST("auth/verify-email")
+    suspend fun verifyEmail(@Body request: VerifyEmailRequest): VerifyEmailResponse
+
+    @GET("auth/verify-email")
+    suspend fun verifyEmailGet(@Query("token") token: String): VerifyEmailResponse
+
+    @POST("auth/resend-verification")
+    suspend fun resendVerificationEmail(@Body request: ResendVerificationRequest): ResendVerificationResponse
+
     // --- USER --- //
     @GET("user/profile")
     suspend fun getProfile(): User
@@ -37,7 +49,7 @@ interface ApiService {
     suspend fun getOfferComparison(@Query("offer_id") offerId: String): OfferComparison
 
     @POST("booking/confirm")
-    suspend fun confirmBooking(@Body request: Map<String, Any>): Booking
+    suspend fun confirmBooking(@Body request: ConfirmBookingRequest): Booking
 
     @GET("booking/history")
     suspend fun getBookingHistory(): List<Booking>
@@ -64,12 +76,15 @@ interface ApiService {
     @POST("payment/record")
     suspend fun recordPayment(@Body request: Map<String, Any>): Payment
 
-    // --- FLOUCI PAYMENT --- //
-    @POST("payment/flouci/create")
-    suspend fun createFlouciPayment(@Body request: FlouciPaymentRequest): FlouciPaymentResponse
+    // --- PAYPAL PAYMENT --- //
+    @POST("payment/paypal/create")
+    suspend fun createPaypalOrder(@Body request: PaypalOrderRequest): PaypalOrderResponse
 
-    @GET("payment/flouci/status/{paymentId}")
-    suspend fun getFlouciPaymentStatus(@retrofit2.http.Path("paymentId") paymentId: String): FlouciPaymentStatusResponse
+    @POST("payment/paypal/capture/{orderId}")
+    suspend fun capturePaypalOrder(@Path("orderId") orderId: String): PaypalCaptureResponse
+
+    @GET("payment/paypal/status/{orderId}")
+    suspend fun getPaypalOrder(@Path("orderId") orderId: String): PaypalOrderStatusResponse
 
     // --- ONBOARDING --- //
     @POST("onboarding/start")
@@ -363,4 +378,75 @@ interface ApiService {
 
     @GET("travel-tips/{tipId}")
     suspend fun getTravelTipById(@Path("tipId") tipId: String): TravelTip
+
+    // --- JOURNEY --- //
+    @Multipart
+    @POST("journey")
+    suspend fun createJourney(
+        @Part images: List<MultipartBody.Part>,
+        @Part("booking_id") bookingId: okhttp3.RequestBody? = null,
+        @Part("destination") destination: okhttp3.RequestBody? = null,
+        @Part("description") description: okhttp3.RequestBody? = null,
+        @Part("tags") tags: okhttp3.RequestBody? = null,
+        @Part("is_public") isPublic: okhttp3.RequestBody? = null
+    ): Journey
+
+    @GET("journey")
+    suspend fun getJourneys(
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
+    ): List<Journey>
+
+    @GET("journey/my-journeys")
+    suspend fun getMyJourneys(
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
+    ): List<Journey>
+
+    @GET("journey/can-share")
+    suspend fun canShareJourney(): CanShareJourneyResponse
+
+    @GET("journey/{id}")
+    suspend fun getJourneyById(@Path("id") id: String): Journey
+
+    @PUT("journey/{id}")
+    suspend fun updateJourney(@Path("id") id: String, @Body request: UpdateJourneyRequest): Journey
+
+    @DELETE("journey/{id}")
+    suspend fun deleteJourney(@Path("id") id: String): Map<String, String>
+
+    @POST("journey/{id}/like")
+    suspend fun likeJourney(@Path("id") id: String): JourneyLikeResponse
+
+    @POST("journey/{id}/comments")
+    suspend fun addJourneyComment(@Path("id") id: String, @Body request: CreateJourneyCommentRequest): JourneyComment
+
+    @GET("journey/{id}/comments")
+    suspend fun getJourneyComments(
+        @Path("id") id: String,
+        @Query("limit") limit: Int? = null,
+        @Query("skip") skip: Int? = null
+    ): List<JourneyComment>
+
+    @DELETE("journey/comments/{commentId}")
+    suspend fun deleteJourneyComment(@Path("commentId") commentId: String): Map<String, String>
+
+    @POST("journey/{id}/regenerate-video")
+    suspend fun regenerateJourneyVideo(@Path("id") id: String): Map<String, String>
+
+    // --- DESTINATION VIDEO --- //
+    @POST("users/{userId}/destinations/{destination}/generate-video")
+    suspend fun generateDestinationVideo(
+        @Path("userId") userId: String,
+        @Path("destination") destination: String
+    ): GenerateVideoResponse
+
+    @GET("users/{userId}/destinations/{destination}/video-status")
+    suspend fun getDestinationVideoStatus(
+        @Path("userId") userId: String,
+        @Path("destination") destination: String
+    ): DestinationVideoStatus
+
+    @GET("users/{userId}/destinations")
+    suspend fun getUserDestinations(@Path("userId") userId: String): UserDestinationsResponse
 }
