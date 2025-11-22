@@ -58,34 +58,20 @@ struct NotificationView: View {
                 VStack(spacing: 0) {
                     // Header
                     HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Notifications")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            
-                            if viewModel.unreadCount > 0 {
-                                Text("\(viewModel.unreadCount) non lue\(viewModel.unreadCount > 1 ? "s" : "")")
-                                    .font(.subheadline)
-                                    .foregroundStyle(ThemeColors.accent())
-                            } else {
-                                Text("Toutes lues")
-                                    .font(.subheadline)
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                            }
-                        }
+                        Text("Notifications")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
                         Spacer()
                         
-                        if viewModel.unreadCount > 0 {
-                            Button(action: {
-                                Task {
-                                    await viewModel.markAllAsRead()
-                                }
-                            }) {
-                                Text("Tout marquer comme lu")
-                                    .font(.caption)
-                                    .foregroundColor(ThemeColors.accent())
+                        Button(action: {
+                            Task {
+                                await viewModel.markAllAsRead()
                             }
+                        }) {
+                            Text("Tout marquer comme lu")
+                                .font(.caption)
+                                .foregroundColor(ThemeColors.accent())
                         }
                     }
                     .padding(.horizontal, 20)
@@ -120,11 +106,9 @@ struct NotificationView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadNotifications()
-            await viewModel.loadUnreadCount()
         }
         .refreshable {
             await viewModel.loadNotifications()
-            await viewModel.loadUnreadCount()
         }
     }
 }

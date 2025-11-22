@@ -82,26 +82,29 @@ struct BookingOffersView: View {
                         }
                         
                         if let selectedOffer = selectedOffer {
-                            NavigationLink(destination: createReservationScreen(for: selectedOffer), isActive: $showReservationScreen) {
-                                Button(action: {
-                                    showReservationScreen = true
-                                }) {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                        Text("Confirmer la réservation")
-                                            .font(.headline)
-                                    }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(ThemeColors.accent())
-                                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            Button(action: {
+                                showReservationScreen = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text("Confirmer la réservation")
+                                        .font(.headline)
                                 }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(ThemeColors.accent())
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             }
                             .buttonStyle(.plain)
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                             .padding(.bottom, 20)
+                            .sheet(isPresented: $showReservationScreen) {
+                                NavigationStack {
+                                    createReservationScreen(for: selectedOffer)
+                                }
+                            }
                         }
                     }
                 }

@@ -70,6 +70,12 @@
 "home_view_all" = "Voir tous";
 "home_error_title" = "Recommandations indisponibles";
 "home_retry" = "Réessayer";
+"home_personalized_title" = "Personnalisé par Gemini";
+"home_personalized_subtitle" = "Voyages adaptés à vos préférences";
+"home_no_destinations" = "Aucune destination disponible";
+"home_offline_cache" = "Affichage hors ligne (cache)";
+"home_community_discussions" = "Discussions de la communauté";
+"home_community_subtitle" = "Partagez vos expériences et découvrez les conseils des voyageurs";
 "home_salutation_format" = "Salut, %@";
 "tab_activity" = "Activité";
 "tab_favorites" = "Favoris";
@@ -93,7 +99,9 @@
 "profile_username" = "Gracia Tya";
 "profile_bookings" = "Mes réservations";
 "profile_edit_name" = "Modifier le nom";
+"profile_edit_profile" = "Modifier le profil";
 "profile_list_project" = "Liste des projets";
+"profile_list_reservations" = "Liste des réservations";
 "profile_change_password" = "Changer le mot de passe";
 "profile_change_email" = "Modifier l'adresse e-mail";
 "profile_settings" = "Réglages";

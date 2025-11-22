@@ -37,10 +37,16 @@ struct WelcomeView: View {
                             .padding(.horizontal, 32)
                     }
                     
-                    NavigationLink(destination: LoginView(), isActive: $navigateToLogin) {
+                    NavigationLink(value: "login") {
                         EmptyView()
                     }
                     .hidden()
+                    .navigationDestination(item: Binding(
+                        get: { navigateToLogin ? "login" : nil },
+                        set: { navigateToLogin = $0 != nil }
+                    )) { _ in
+                        LoginView()
+                    }
                     
                     Button {
                         navigateToLogin = true

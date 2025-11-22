@@ -90,10 +90,7 @@ struct BookingHistoryView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 12) {
                             ForEach(viewModel.bookings) { booking in
-                                NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
-                                    BookingCard(booking: booking)
-                                }
-                                .buttonStyle(.plain)
+                                BookingCard(booking: booking, viewModel: viewModel)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -116,6 +113,11 @@ struct BookingHistoryView: View {
 private struct BookingCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let booking: Booking
+    @ObservedObject var viewModel: BookingViewModel
+    
+    @State private var isReactivating = false
+    @State private var showReactivateError = false
+    @State private var reactivateErrorMessage: String?
     
     private var statusColor: Color {
         switch booking.status {
@@ -129,46 +131,104 @@ private struct BookingCard: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                // Numéro de confirmation en gras
-                Text(booking.confirmationNumber)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                
-                // Date et heure
-                Text(formatDate(booking.createdAt))
-                    .font(.system(size: 13))
-                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                
-                // Montant avec devise
-                if let price = booking.price {
-                    Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                        .padding(.top, 4)
+        VStack(spacing: 0) {
+            NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Numéro de confirmation en gras
+                        Text(booking.confirmationNumber)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        
+                        // Date et heure
+                        Text(formatDate(booking.createdAt))
+                            .font(.system(size: 13))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        
+                        // Montant avec devise
+                        if let price = booking.price {
+                            Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                .padding(.top, 4)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Badge de statut
+                    Text(booking.status.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(statusColor)
+                        )
                 }
+                .padding(16)
             }
+            .buttonStyle(.plain)
             
-            Spacer()
-            
-            // Badge de statut
-            Text(booking.status.displayName)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(statusColor)
-                )
+            // Bouton Réserver à nouveau pour les réservations annulées
+            if booking.status == .cancelled {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                Button(action: {
+                    Task {
+                        await reactivateBooking()
+                    }
+                }) {
+                    HStack {
+                        if isReactivating {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        Text("Réserver à nouveau")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(ThemeColors.accent())
+                }
+                .disabled(isReactivating)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
         }
-        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         )
+        .alert("Erreur", isPresented: $showReactivateError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let errorMessage = reactivateErrorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func reactivateBooking() async {
+        isReactivating = true
+        defer { isReactivating = false }
+        
+        do {
+            try await viewModel.reactivateBooking(booking)
+            print("✅ [BookingCard] Booking reactivated: \(booking.confirmationNumber)")
+        } catch {
+            print("❌ [BookingCard] Error reactivating booking: \(error.localizedDescription)")
+            reactivateErrorMessage = error.localizedDescription
+            showReactivateError = true
+        }
     }
     
     private func formatDate(_ dateString: String) -> String {

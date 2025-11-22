@@ -38,14 +38,17 @@ struct LoginView: View {
                 GeometryReader { geometry in
                     ScrollView {
                         VStack(spacing: 0) {
-                            NavigationLink(
-                                destination: SignInView()
-                                    .navigationBarBackButtonHidden(true),
-                                isActive: $showSignUp
-                            ) {
+                            NavigationLink(value: "signUp") {
                                 EmptyView()
                             }
                             .hidden()
+                            .navigationDestination(item: Binding(
+                                get: { showSignUp ? "signUp" : nil },
+                                set: { showSignUp = $0 != nil }
+                            )) { _ in
+                                SignInView()
+                                    .navigationBarBackButtonHidden(true)
+                            }
                             
                             // Titre "Bienvenue sur Wayfindr" - en haut
                             Spacer().frame(height: geometry.safeAreaInsets.top > 0 ? 10 : 20)
@@ -82,7 +85,7 @@ struct LoginView: View {
                                             isEmailFocused = true
                                             isPasswordFocused = false
                                         }
-                                        .onChange(of: email) { _ in
+                                        .onChange(of: email) { _, _ in
                                             emailError = nil
                                         }
                                     
@@ -105,7 +108,7 @@ struct LoginView: View {
                                             isPasswordFocused = true
                                             isEmailFocused = false
                                         }
-                                        .onChange(of: password) { _ in
+                                        .onChange(of: password) { _, _ in
                                             passwordError = nil
                                         }
                                     
@@ -117,23 +120,24 @@ struct LoginView: View {
                                     }
                                 }
                                 
-                                NavigationLink(
-                                    destination: HomeScreen(initialName: loggedInUserName)
-                                        .navigationBarBackButtonHidden(true),
-                                    isActive: $isLoggedIn
-                                ) {
-                                    Button {
-                                        Task { await validateAndSubmit() }
-                                    } label: {
-                                        Text("login_sign_in_button")
-                                            .font(.system(size: 18, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 14)
-                                            .background(ThemeColors.accent())
-                                            .cornerRadius(14)
-                                    }
-                                    .disabled(activeLoginFlow != nil || !canUseGoogleSignIn())
+                                Button {
+                                    Task { await validateAndSubmit() }
+                                } label: {
+                                    Text("login_sign_in_button")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(ThemeColors.accent())
+                                        .cornerRadius(14)
+                                }
+                                .disabled(activeLoginFlow != nil || !canUseGoogleSignIn())
+                                .navigationDestination(item: Binding(
+                                    get: { isLoggedIn ? "home" : nil },
+                                    set: { isLoggedIn = $0 != nil }
+                                )) { _ in
+                                    HomeScreen(initialName: loggedInUserName)
+                                        .navigationBarBackButtonHidden(true)
                                 }
                                 
                                 if let loginError {
@@ -280,6 +284,9 @@ private extension LoginView {
         }
     }
     
+    /// Gère la connexion avec Google Sign In
+    /// - Note: Utilise GOOGLE_CLIENT_ID depuis Info.plist pour l'authentification côté client.
+    ///   Le token est ensuite envoyé au backend Render qui doit avoir GOOGLE_CLIENT_ID_WEB configuré.
     @MainActor
     func handleGoogleSignIn() async {
 #if canImport(GoogleSignIn)
@@ -300,6 +307,7 @@ private extension LoginView {
         
         do {
             if GIDSignIn.sharedInstance.configuration == nil {
+                // Récupérer GOOGLE_CLIENT_ID depuis Info.plist (configuré pour iOS)
                 guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_CLIENT_ID") as? String else {
                     throw SocialLoginError.missingGoogleClientID
                 }

@@ -6,7 +6,6 @@ import UIKit
 enum AppLanguage: String, CaseIterable, Identifiable {
     case french = "fr"
     case english = "en"
-    case arabic = "ar"
     
     var id: String { rawValue }
     
@@ -14,7 +13,6 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         switch self {
         case .french: return "language_french"
         case .english: return "language_english"
-        case .arabic: return "language_arabic"
         }
     }
     
@@ -23,7 +21,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
     
     var layoutDirection: LayoutDirection {
-        self == .arabic ? .rightToLeft : .leftToRight
+        .leftToRight
     }
 }
 
@@ -51,15 +49,20 @@ final class LanguageManager: ObservableObject {
         if syncDefaults {
             UserDefaults.standard.set(selectedLanguage.rawValue, forKey: storageKey)
         }
-        let semantic: UISemanticContentAttribute = selectedLanguage == .arabic ? .forceRightToLeft : .forceLeftToRight
-        UIView.appearance().semanticContentAttribute = semantic
-        objectWillChange.send()
+        UIView.appearance().semanticContentAttribute = .forceLeftToRight
+        
+        // Notifier toutes les vues du changement de langue
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+            // Envoyer une notification pour forcer le rafraîchissement
+            NotificationCenter.default.post(name: NSNotification.Name("LanguageDidChange"), object: nil)
+        }
     }
 }
 
 private var bundleKey: UInt8 = 0
 
-private class LocalizedBundle: Bundle {
+private class LocalizedBundle: Bundle, @unchecked Sendable {
     override func localizedString(forKey key: String, value: String?, table tableName: String?) -> String {
         if let bundle = objc_getAssociatedObject(self, &bundleKey) as? Bundle {
             return bundle.localizedString(forKey: key, value: value, table: tableName)

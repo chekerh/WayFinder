@@ -18,84 +18,123 @@ final class HomeViewModel: ObservableObject {
     private let recommendationService: RecommendationService
     private let countryService: CountryService
     private let preferenceStorage: PreferenceStorage.Type
-    private let userService: UserService
-    private let profileImageService = ProfileImageService.shared
+    nonisolated(unsafe) private var userService: UserService!
+    private let profileImageService: ProfileImageService
     private var profileImageObserver: NSObjectProtocol?
     private var userDefaultsObserver: NSObjectProtocol?
     
-    init(recommendationService: RecommendationService = .shared,
-         countryService: CountryService = .shared,
+    nonisolated init(recommendationService: RecommendationService? = nil,
+         countryService: CountryService? = nil,
          preferenceStorage: PreferenceStorage.Type = PreferenceStorage.self,
-         userService: UserService = .shared) {
-        self.recommendationService = recommendationService
-        self.countryService = countryService
+         userService: UserService? = nil,
+         profileImageService: ProfileImageService? = nil) {
+        // Assigner recommendationService
+        if let recommendationService = recommendationService {
+            self.recommendationService = recommendationService
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (RecommendationService est Sendable)
+            self.recommendationService = MainActor.assumeIsolated {
+                RecommendationService.shared
+            }
+        }
+        
+        // Assigner countryService
+        if let countryService = countryService {
+            self.countryService = countryService
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (CountryService est Sendable)
+            self.countryService = MainActor.assumeIsolated {
+                CountryService.shared
+            }
+        }
+        
         self.preferenceStorage = preferenceStorage
-        self.userService = userService
         
-        // Observer le service d'image centralisé
-        profileImageUrl = profileImageService.profileImageUrl
+        // Assigner userService (UserService n'est pas @MainActor)
+        // Utiliser nonisolated(unsafe) pour contourner l'isolation MainActor
+        if let userService = userService {
+            nonisolated(unsafe) let captured = userService
+            self.userService = captured
+        } else {
+            nonisolated(unsafe) let captured = UserService.shared
+            self.userService = captured
+        }
         
-        // Observer les changements du service centralisé
-        profileImageObserver = NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("UserProfileImageDidUpdate"),
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor in
-                guard let self else { return }
-                // Mettre à jour depuis le service centralisé
-                let newUrl = ProfileImageService.shared.profileImageUrl ?? notification.userInfo?["profileImageUrl"] as? String
-                if self.profileImageUrl != newUrl {
-                    self.profileImageUrl = newUrl
-                    print("🔄 [HomeViewModel] Profile image updated from service: \(newUrl ?? "nil")")
-                }
+        // Assigner profileImageService (ProfileImageService est @MainActor)
+        let finalProfileImageService: ProfileImageService
+        if let profileImageService = profileImageService {
+            finalProfileImageService = profileImageService
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (ProfileImageService est Sendable)
+            finalProfileImageService = MainActor.assumeIsolated {
+                ProfileImageService.shared
             }
         }
+        self.profileImageService = finalProfileImageService
         
-        userDefaultsObserver = NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                if let storedName = UserStorage.fetchDisplayName() {
-                    self.greetingName = storedName
-                }
-                let newImageUrl = UserStorage.fetchProfileImageUrl()
-                if self.profileImageUrl != newImageUrl {
-                    self.profileImageUrl = newImageUrl
+        // Initialiser les propriétés MainActor dans un Task
+        Task { @MainActor in
+            
+            // Charger le nom depuis UserStorage
+            if let storedName = UserStorage.fetchDisplayName() {
+                self.greetingName = storedName
+            }
+            
+            // Charger l'image depuis le service centralisé
+            finalProfileImageService.loadPersistedImage()
+            self.profileImageUrl = finalProfileImageService.profileImageUrl
+            if let imageUrl = self.profileImageUrl {
+                print("✅ [HomeViewModel] Loaded persisted profile image: \(imageUrl)")
+            }
+            
+            // Observer les changements du service centralisé
+            self.profileImageObserver = NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("UserProfileImageDidUpdate"),
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                Task { @MainActor in
+                    guard let self else { return }
+                    // Mettre à jour depuis le service centralisé
+                    let newUrl = ProfileImageService.shared.profileImageUrl ?? notification.userInfo?["profileImageUrl"] as? String
+                    if self.profileImageUrl != newUrl {
+                        self.profileImageUrl = newUrl
+                        print("🔄 [HomeViewModel] Profile image updated from service: \(newUrl ?? "nil")")
+                    }
                 }
             }
-        }
-        
-        // Observer aussi les changements spécifiques au profil
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("UserProfileDidUpdate"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.profileImageUrl = UserStorage.fetchProfileImageUrl()
-                if let storedName = UserStorage.fetchDisplayName() {
-                    self.greetingName = storedName
+            
+            self.userDefaultsObserver = NotificationCenter.default.addObserver(
+                forName: UserDefaults.didChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let storedName = UserStorage.fetchDisplayName() {
+                        self.greetingName = storedName
+                    }
+                    let newImageUrl = UserStorage.fetchProfileImageUrl()
+                    if self.profileImageUrl != newImageUrl {
+                        self.profileImageUrl = newImageUrl
+                    }
                 }
             }
-        }
-        
-        // Observer les changements d'image de profil spécifiquement (doublon - déjà géré ci-dessus)
-        // Cette observation est déjà faite dans le profileImageObserver ci-dessus
-        
-        if let storedName = UserStorage.fetchDisplayName() {
-            greetingName = storedName
-        }
-        
-        // Charger l'image depuis le service centralisé
-        profileImageService.loadPersistedImage()
-        profileImageUrl = profileImageService.profileImageUrl
-        if let imageUrl = profileImageUrl {
-            print("✅ [HomeViewModel] Loaded persisted profile image: \(imageUrl)")
+            
+            // Observer aussi les changements spécifiques au profil
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("UserProfileDidUpdate"),
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.profileImageUrl = UserStorage.fetchProfileImageUrl()
+                    if let storedName = UserStorage.fetchDisplayName() {
+                        self.greetingName = storedName
+                    }
+                }
+            }
         }
     }
     

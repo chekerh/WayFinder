@@ -37,7 +37,7 @@ struct DiscussionPost: Decodable, Identifiable {
         do {
             // Essayer de décoder comme un objet DiscussionUser (populated)
             user = try container.decode(DiscussionUser.self, forKey: .user)
-        } catch let error as DecodingError {
+        } catch is DecodingError {
             // Si le décodage échoue, essayer de décoder comme un ID simple
             do {
                 let userId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .user)

@@ -10,8 +10,16 @@ final class DiscussionViewModel: ObservableObject {
     
     private let service: DiscussionService
     
-    init(service: DiscussionService = .shared) {
-        self.service = service
+    nonisolated init(service: DiscussionService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (DiscussionService est Sendable)
+            self.service = MainActor.assumeIsolated {
+                DiscussionService.shared
+            }
+        }
     }
     
     func loadPosts(limit: Int = 20, skip: Int = 0, destination: String? = nil) async {

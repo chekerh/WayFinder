@@ -1,8 +1,17 @@
 import SwiftUI
 
 struct FavoritesView: View {
-    @StateObject private var viewModel = FavoriteViewModel()
+    @ObservedObject var viewModel: FavoriteViewModel
     @Environment(\.colorScheme) private var colorScheme
+    
+    init(viewModel: FavoriteViewModel? = nil) {
+        // Si un viewModel est fourni, on l'utilise, sinon on en crée un nouveau
+        if let viewModel = viewModel {
+            self._viewModel = ObservedObject(wrappedValue: viewModel)
+        } else {
+            self._viewModel = ObservedObject(wrappedValue: FavoriteViewModel())
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -112,49 +121,111 @@ struct FavoriteCard: View {
     let onRemove: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Icône selon le type
-            Image(systemName: iconForType(favorite.itemType))
-                .font(.system(size: 24))
-                .foregroundColor(ThemeColors.accent())
-                .frame(width: 50, height: 50)
-                .background(
-                    Circle()
-                        .fill(ThemeColors.accent().opacity(0.1))
-                )
+        ZStack(alignment: .bottomLeading) {
+            // Background Image
+            Group {
+                if let imageUrl = favorite.itemData.imageUrl, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure, .empty:
+                            Rectangle()
+                                .fill(LinearGradient(
+                                    colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                        @unknown default:
+                            Rectangle()
+                                .fill(LinearGradient(
+                                    colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                        }
+                    }
+                } else {
+                    Rectangle()
+                        .fill(LinearGradient(
+                            colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                }
+            }
+            .frame(height: 200)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             
-            VStack(alignment: .leading, spacing: 4) {
+            // Gradient Overlay
+            LinearGradient(
+                colors: [Color.clear, Color.black.opacity(0.7)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .frame(height: 200)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            
+            // Content
+            VStack(alignment: .leading, spacing: 2) {
                 Text(favorite.itemData.name ?? favorite.itemId)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
                 
                 if let city = favorite.itemData.city, let country = favorite.itemData.country {
                     Text("\(city), \(country)")
-                        .font(.caption)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.9))
                 }
                 
                 if let price = favorite.itemData.price, let currency = favorite.itemData.currency {
-                    Text("\(String(format: "%.2f", price)) \(currency)")
-                        .font(.caption)
-                        .foregroundStyle(ThemeColors.accent())
+                    Text(formatPrice(price, currency: currency))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.top, 4)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             
-            Spacer()
-            
-            Button(action: onRemove) {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.red)
-                    .font(.system(size: 20))
+            // Favorite Button (top right)
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: onRemove) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.3))
+                                .frame(width: 40, height: 40)
+                            
+                            Image(systemName: "heart.fill")
+                                .foregroundColor(Color(red: 1.0, green: 0.09, blue: 0.267))
+                                .font(.system(size: 20))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
             }
+            .padding(12)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(ThemeColors.surface(colorScheme))
-        )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 8, x: 0, y: 4)
+        .frame(height: 200)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.12), radius: 12, x: 0, y: 8)
+    }
+    
+    private func formatPrice(_ price: Double?, currency: String?) -> String {
+        guard let price = price, let currency = currency else {
+            return ""
+        }
+        // Si le prix est un entier, on l'affiche sans décimales
+        if price.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(price)) \(currency)"
+        } else {
+            return "\(String(format: "%.2f", price)) \(currency)"
+        }
     }
     
     private func iconForType(_ type: FavoriteItemType) -> String {

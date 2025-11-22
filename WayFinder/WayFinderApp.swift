@@ -19,6 +19,7 @@ struct WayFinderApp: App {
                 .environmentObject(languageManager)
                 .environment(\.locale, languageManager.locale)
                 .environment(\.layoutDirection, languageManager.layoutDirection)
+                .id(languageManager.selectedLanguage.id) // Force la recréation de la vue quand la langue change
         }
     }
 }

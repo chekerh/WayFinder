@@ -201,7 +201,49 @@ final class BookingService {
             headers: ["Content-Type": "application/json"],
             body: body
         )
-        return try await APIService.shared.request(builder, decodeTo: Booking.self)
+        
+        // Use requestRaw to get raw data and manually decode for better error handling
+        let (data, _) = try await APIService.shared.requestRaw(builder)
+        
+        // Log raw JSON for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔍 [BookingService] Raw JSON response for update: \(jsonString.prefix(1000))")
+        }
+        
+        // Si la réponse est vide, considérer que la mise à jour a réussi
+        guard !data.isEmpty else {
+            print("⚠️ [BookingService] Empty response from server, considering update successful")
+            // Recharger la réservation depuis le serveur pour obtenir la version mise à jour
+            return try await getBooking(id: id)
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        do {
+            let result = try decoder.decode(Booking.self, from: data)
+            print("✅ [BookingService] Successfully decoded updated booking")
+            return result
+        } catch {
+            print("❌ [BookingService] Decoding error for updated booking: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("❌ [BookingService] Missing key: \(key.stringValue) at path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("❌ [BookingService] Type mismatch for type \(type) at path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("❌ [BookingService] Value not found for type \(type) at path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("❌ [BookingService] Data corrupted at path: \(context.codingPath), \(context.debugDescription)")
+                @unknown default:
+                    print("❌ [BookingService] Unknown decoding error: \(decodingError)")
+                }
+            }
+            // Si erreur de décodage, essayer de recharger la réservation depuis le serveur
+            print("⚠️ [BookingService] Trying to reload booking from server")
+            return try await getBooking(id: id)
+        }
     }
     
     /// Annule une réservation

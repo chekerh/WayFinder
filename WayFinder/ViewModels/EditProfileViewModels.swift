@@ -15,7 +15,11 @@ final class EditNameViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var success: Bool = false
     
-    private let userService = UserService.shared
+    private let userService: UserService
+    
+    init(userService: UserService = UserService.shared) {
+        self.userService = userService
+    }
     
     func loadProfile() async {
         isLoading = true
@@ -58,7 +62,11 @@ final class ChangePasswordViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var success: Bool = false
     
-    private let userService = UserService.shared
+    private let userService: UserService
+    
+    init(userService: UserService = UserService.shared) {
+        self.userService = userService
+    }
     
     var isValid: Bool {
         !currentPassword.isEmpty &&
@@ -100,7 +108,11 @@ final class ChangeEmailViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var success: Bool = false
     
-    private let userService = UserService.shared
+    private let userService: UserService
+    
+    init(userService: UserService = UserService.shared) {
+        self.userService = userService
+    }
     
     var isValidEmail: Bool {
         let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"

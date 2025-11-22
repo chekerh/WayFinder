@@ -1,5 +1,13 @@
 import Foundation
 
+// Helper function pour accéder à ReviewService.shared depuis un contexte non isolé
+nonisolated private func getReviewServiceShared() -> ReviewService {
+    // MainActor.assumeIsolated permet d'accéder à .shared depuis un contexte non isolé
+    return MainActor.assumeIsolated {
+        ReviewService.shared
+    }
+}
+
 @MainActor
 final class ReviewViewModel: ObservableObject {
     @Published var reviews: [Review] = []
@@ -9,8 +17,14 @@ final class ReviewViewModel: ObservableObject {
     
     private let service: ReviewService
     
-    init(service: ReviewService = .shared) {
-        self.service = service
+    nonisolated init(service: ReviewService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser une fonction helper nonisolated pour accéder à .shared
+            self.service = getReviewServiceShared()
+        }
     }
     
     func loadReviews(itemType: ReviewItemType, itemId: String) async {

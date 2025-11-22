@@ -93,7 +93,9 @@
 "profile_username" = "غراسيا تيا";
 "profile_bookings" = "حجوزاتي";
 "profile_edit_name" = "تعديل اسم الملف الشخصي";
+"profile_edit_profile" = "تعديل الملف الشخصي";
 "profile_list_project" = "قائمة المشاريع";
+"profile_list_reservations" = "قائمة الحجوزات";
 "profile_change_password" = "تغيير كلمة المرور";
 "profile_change_email" = "تغيير البريد الإلكتروني";
 "profile_settings" = "الإعدادات";

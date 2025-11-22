@@ -3,14 +3,21 @@ import Foundation
 @MainActor
 final class NotificationViewModel: ObservableObject {
     @Published var notifications: [Notification] = []
-    @Published var unreadCount: Int = 0
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     private let service: NotificationService
     
-    init(service: NotificationService = .shared) {
-        self.service = service
+    nonisolated init(service: NotificationService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (NotificationService est Sendable)
+            self.service = MainActor.assumeIsolated {
+                NotificationService.shared
+            }
+        }
     }
     
     func loadNotifications() async {
@@ -29,16 +36,6 @@ final class NotificationViewModel: ObservableObject {
         }
     }
     
-    func loadUnreadCount() async {
-        print("🔄 [NotificationViewModel] Loading unread count")
-        do {
-            unreadCount = try await service.getUnreadCount()
-            print("✅ [NotificationViewModel] Unread count: \(unreadCount)")
-        } catch {
-            print("❌ [NotificationViewModel] Error loading unread count: \(error.localizedDescription)")
-        }
-    }
-    
     func markAsRead(notificationId: String) async {
         print("🔄 [NotificationViewModel] Marking notification as read: \(notificationId)")
         do {
@@ -46,7 +43,6 @@ final class NotificationViewModel: ObservableObject {
             if let index = notifications.firstIndex(where: { $0.id == notificationId }) {
                 notifications[index] = updated
             }
-            await loadUnreadCount()
             print("✅ [NotificationViewModel] Notification marked as read")
         } catch {
             print("❌ [NotificationViewModel] Error marking as read: \(error.localizedDescription)")
@@ -58,7 +54,6 @@ final class NotificationViewModel: ObservableObject {
         do {
             try await service.markAllAsRead()
             await loadNotifications()
-            await loadUnreadCount()
             print("✅ [NotificationViewModel] All notifications marked as read")
         } catch {
             print("❌ [NotificationViewModel] Error marking all as read: \(error.localizedDescription)")
@@ -70,7 +65,6 @@ final class NotificationViewModel: ObservableObject {
         do {
             try await service.deleteNotification(notificationId: notificationId)
             notifications.removeAll { $0.id == notificationId }
-            await loadUnreadCount()
             print("✅ [NotificationViewModel] Notification deleted")
         } catch {
             print("❌ [NotificationViewModel] Error deleting notification: \(error.localizedDescription)")

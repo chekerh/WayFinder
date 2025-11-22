@@ -159,7 +159,7 @@ final class LoopingPlayerView: UIView {
         isUserInteractionEnabled = false
         
         if let url = Bundle.main.url(forResource: resourceName, withExtension: fileExtension) {
-            let asset = AVAsset(url: url)
+            let asset = AVURLAsset(url: url)
             let item = AVPlayerItem(asset: asset)
             playerLooper = AVPlayerLooper(player: queuePlayer, templateItem: item)
             queuePlayer.play()

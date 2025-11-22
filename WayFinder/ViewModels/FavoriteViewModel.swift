@@ -1,5 +1,13 @@
 import Foundation
 
+// Helper function pour accéder à FavoriteService.shared depuis un contexte non isolé
+nonisolated private func getFavoriteServiceShared() -> FavoriteService {
+    // MainActor.assumeIsolated permet d'accéder à .shared depuis un contexte non isolé
+    return MainActor.assumeIsolated {
+        FavoriteService.shared
+    }
+}
+
 @MainActor
 final class FavoriteViewModel: ObservableObject {
     @Published var favorites: [Favorite] = []
@@ -9,8 +17,14 @@ final class FavoriteViewModel: ObservableObject {
     
     private let service: FavoriteService
     
-    init(service: FavoriteService = .shared) {
-        self.service = service
+    nonisolated init(service: FavoriteService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser une fonction helper nonisolated pour accéder à .shared
+            self.service = getFavoriteServiceShared()
+        }
     }
     
     func loadFavorites(itemType: FavoriteItemType? = nil) async {

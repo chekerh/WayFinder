@@ -8,6 +8,9 @@ struct BookingDetailScreen: View {
     
     @State private var showDeleteAlert = false
     @State private var isDeleting = false
+    @State private var isReBooking = false
+    @State private var showReBookingError = false
+    @State private var reBookingErrorMessage: String?
     
     private var statusColor: Color {
         switch booking.status {
@@ -87,6 +90,46 @@ struct BookingDetailScreen: View {
                             value: formatDate(booking.createdAt),
                             statusColor: nil
                         )
+                        
+                        // Dates de voyage si disponibles
+                        if let departureDate = booking.departureDate {
+                            InfoCard(
+                                label: "Date de départ",
+                                value: formatDate(departureDate),
+                                statusColor: nil
+                            )
+                        }
+                        
+                        if let returnDate = booking.returnDate {
+                            InfoCard(
+                                label: "Date de retour",
+                                value: formatDate(returnDate),
+                                statusColor: nil
+                            )
+                        }
+                        
+                        // Bouton Réserver à nouveau si applicable
+                        if viewModel.canReBook(booking) {
+                            Button(action: {
+                                Task {
+                                    await reBook()
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Réserver à nouveau")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(ThemeColors.accent())
+                                .clipShape(Capsule())
+                            }
+                            .disabled(isDeleting)
+                            .padding(.top, 8)
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
@@ -106,10 +149,17 @@ struct BookingDetailScreen: View {
             Text("Êtes-vous sûr de vouloir supprimer cette réservation ?")
         }
         .overlay {
-            if isDeleting {
+            if isDeleting || isReBooking {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.opacity(0.3))
+            }
+        }
+        .alert("Erreur lors de la réservation", isPresented: $showReBookingError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let errorMessage = reBookingErrorMessage {
+                Text(errorMessage)
             }
         }
     }
@@ -128,14 +178,31 @@ struct BookingDetailScreen: View {
         }
     }
     
+    private func reBook() async {
+        isReBooking = true
+        defer { isReBooking = false }
+        
+        do {
+            let response = try await viewModel.reBook(booking)
+            print("✅ [BookingDetailScreen] Re-booking successful: \(response.confirmationNumber)")
+            // Naviguer vers l'historique après réactivation réussie
+            dismiss()
+        } catch {
+            print("❌ [BookingDetailScreen] Error re-booking: \(error.localizedDescription)")
+            reBookingErrorMessage = error.localizedDescription
+            showReBookingError = true
+        }
+    }
+    
     private func formatDate(_ dateString: String) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
         if let date = formatter.date(from: dateString) {
-            let displayFormatter = ISO8601DateFormatter()
-            displayFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            displayFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .medium
+            displayFormatter.timeStyle = .short
+            displayFormatter.locale = Locale(identifier: "fr_FR")
             return displayFormatter.string(from: date)
         }
         

@@ -36,7 +36,9 @@ final class ProfileImageService: ObservableObject {
         // Supprimer l'image de test si elle existe avant de charger
         clearTestImageIfExists()
         // Charger l'image persistée au démarrage
-        loadPersistedImage()
+        Task { @MainActor in
+            self.loadPersistedImage()
+        }
         
         // Observer les changements dans UserDefaults
         let observer = NotificationCenter.default.addObserver(
@@ -44,7 +46,9 @@ final class ProfileImageService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.loadPersistedImage()
+            Task { @MainActor [weak self] in
+                self?.loadPersistedImage()
+            }
         }
         observers.append(observer)
         
@@ -54,9 +58,11 @@ final class ProfileImageService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            if let newUrl = notification.userInfo?["profileImageUrl"] as? String {
-                if self?.profileImageUrl != newUrl {
-                    self?.profileImageUrl = newUrl
+            Task { @MainActor [weak self] in
+                if let newUrl = notification.userInfo?["profileImageUrl"] as? String {
+                    if self?.profileImageUrl != newUrl {
+                        self?.profileImageUrl = newUrl
+                    }
                 }
             }
         }

@@ -15,13 +15,35 @@ final class ProfileViewModel: ObservableObject {
     @Published var isUploadingImage = false
     @Published var errorMessage: String?
     
-    private let userService: UserService
-    private let profileImageService = ProfileImageService.shared
+    nonisolated(unsafe) private var userService: UserService!
+    private let profileImageService: ProfileImageService
     
-    init(userService: UserService = .shared) {
-        self.userService = userService
+    nonisolated init(userService: UserService? = nil,
+                     profileImageService: ProfileImageService? = nil) {
+        // Assigner userService (UserService n'est pas @MainActor)
+        // Utiliser nonisolated(unsafe) pour contourner l'isolation MainActor
+        if let userService = userService {
+            nonisolated(unsafe) let captured = userService
+            self.userService = captured
+        } else {
+            nonisolated(unsafe) let captured = UserService.shared
+            self.userService = captured
+        }
+        
+        // Assigner profileImageService (ProfileImageService est @MainActor)
+        if let profileImageService = profileImageService {
+            self.profileImageService = profileImageService
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (ProfileImageService est Sendable)
+            self.profileImageService = MainActor.assumeIsolated {
+                ProfileImageService.shared
+            }
+        }
+        
         // Charger l'image persistée au démarrage
-        profileImageService.loadPersistedImage()
+        Task { @MainActor in
+            self.profileImageService.loadPersistedImage()
+        }
     }
     
     func loadProfile() async {

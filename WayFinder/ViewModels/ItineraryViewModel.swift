@@ -9,8 +9,16 @@ final class ItineraryViewModel: ObservableObject {
     
     private let service: ItineraryService
     
-    init(service: ItineraryService = .shared) {
-        self.service = service
+    nonisolated init(service: ItineraryService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (ItineraryService est Sendable)
+            self.service = MainActor.assumeIsolated {
+                ItineraryService.shared
+            }
+        }
     }
     
     func loadItineraries(includePublic: Bool = false) async {

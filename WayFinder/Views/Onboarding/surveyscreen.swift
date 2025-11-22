@@ -78,11 +78,14 @@ struct SurveyScreen: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                NavigationLink(destination: HomeScreen()
-                    .navigationBarBackButtonHidden(true), isActive: $navigateToHome) {
-                        EmptyView()
-                    }
-                    .hidden()
+                NavigationLink(value: "home") {
+                    EmptyView()
+                }
+                .hidden()
+                .navigationDestination(isPresented: $navigateToHome) {
+                    HomeScreen()
+                        .navigationBarBackButtonHidden(true)
+                }
                 
                 surveyContent
             }

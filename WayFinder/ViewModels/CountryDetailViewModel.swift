@@ -9,9 +9,17 @@ final class CountryDetailViewModel: ObservableObject {
     private let service: CountryService
     private let countryId: String
     
-    init(countryId: String, service: CountryService = .shared) {
+    nonisolated init(countryId: String, service: CountryService? = nil) {
         self.countryId = countryId
-        self.service = service
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (CountryService est Sendable)
+            self.service = MainActor.assumeIsolated {
+                CountryService.shared
+            }
+        }
     }
     
     func load() async {

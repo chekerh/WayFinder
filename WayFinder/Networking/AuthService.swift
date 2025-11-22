@@ -34,9 +34,9 @@ final class AuthService {
             
             // Restaurer l'image après reconnexion via ProfileImageService
             if let email = user.email {
-                await ProfileImageService.shared.restoreAfterLogin(email: email)
+                ProfileImageService.shared.restoreAfterLogin(email: email)
                 if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
-                    await ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                    ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
                 }
                 print("✅ [AuthService] Profile saved and image restored for email: \(email)")
             } else {
@@ -52,15 +52,19 @@ final class AuthService {
         
         // Restaurer l'image après reconnexion via ProfileImageService
         if let email = profile.email {
-            await ProfileImageService.shared.restoreAfterLogin(email: email)
+            ProfileImageService.shared.restoreAfterLogin(email: email)
             if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
-                await ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
             }
         }
         
         return profile
     }
 
+    /// Connexion avec Google Sign In
+    /// - Parameter idToken: Token d'identification Google obtenu via GoogleSignIn SDK
+    /// - Note: Le backend Render doit avoir la variable d'environnement GOOGLE_CLIENT_ID_WEB configurée
+    ///   pour valider le token Google. Le GOOGLE_CLIENT_ID dans Info.plist est utilisé côté iOS.
     func loginWithGoogle(idToken: String) async throws -> UserProfile {
         let encoder = JSONEncoder()
         let data = try encoder.encode(GoogleLoginRequest(idToken: idToken))

@@ -8,8 +8,16 @@ final class PaymentViewModel: ObservableObject {
     
     private let service: PaymentService
     
-    init(service: PaymentService = .shared) {
-        self.service = service
+    nonisolated init(service: PaymentService? = nil) {
+        // Accéder à .shared depuis un contexte non isolé
+        if let service = service {
+            self.service = service
+        } else {
+            // Utiliser MainActor.assumeIsolated pour accéder à .shared (PaymentService est Sendable)
+            self.service = MainActor.assumeIsolated {
+                PaymentService.shared
+            }
+        }
     }
     
     func loadPaymentHistory() async {

@@ -102,8 +102,11 @@ struct DiscussionView: View {
                     .padding(.trailing, 20)
                     .padding(.bottom, 20)
                 }
-                .sheet(isPresented: $showCreatePost) {
-                    CreatePostView(viewModel: viewModel, isPresented: $showCreatePost)
+                .overlay {
+                    if showCreatePost {
+                        CreatePostView(viewModel: viewModel, isPresented: $showCreatePost)
+                            .zIndex(1000)
+                    }
                 }
                 .sheet(item: Binding(
                     get: { selectedPostId.map { PostCommentItem(id: $0) } },
@@ -319,6 +322,7 @@ struct PostCommentsView: View {
     @State private var commentText: String = ""
     @State private var isPostingComment = false
     @State private var currentPost: DiscussionPost?
+    @State private var currentUserId: String?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -360,6 +364,7 @@ struct PostCommentsView: View {
                         ForEach(commentsViewModel.comments) { comment in
                             SwipeableCommentRow(
                                 comment: comment,
+                                currentUserId: currentUserId,
                                 onDelete: {
                                     Task {
                                         await commentsViewModel.deleteComment(id: comment.id)
@@ -441,6 +446,15 @@ struct PostCommentsView: View {
         await commentsViewModel.loadPost(id: postId)
         await commentsViewModel.loadComments(postId: postId)
         currentPost = commentsViewModel.currentPost
+        
+        // Récupérer l'ID de l'utilisateur connecté
+        do {
+            let profile = try await UserService.shared.fetchProfile()
+            currentUserId = profile.id
+        } catch {
+            print("⚠️ [PostCommentsView] Erreur lors de la récupération du profil utilisateur: \(error.localizedDescription)")
+            currentUserId = nil
+        }
     }
     
     private func postComment() async {
@@ -462,6 +476,7 @@ struct PostCommentsView: View {
 // MARK: - SwipeableCommentRow (avec swipe pour supprimer)
 struct SwipeableCommentRow: View {
     let comment: DiscussionComment
+    let currentUserId: String?
     let onDelete: () -> Void
     let onLike: () -> Void
     
@@ -469,8 +484,18 @@ struct SwipeableCommentRow: View {
     @State private var isLiked: Bool = false
     @State private var likesCount: Int
     
-    init(comment: DiscussionComment, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
+    // Vérifier si l'utilisateur connecté est le propriétaire du commentaire
+    private var canDelete: Bool {
+        guard let currentUserId = currentUserId,
+              let commentUserId = comment.user?.id else {
+            return false
+        }
+        return currentUserId == commentUserId
+    }
+    
+    init(comment: DiscussionComment, currentUserId: String?, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
         self.comment = comment
+        self.currentUserId = currentUserId
         self.onDelete = onDelete
         self.onLike = onLike
         _likesCount = State(initialValue: comment.likesCount)
@@ -493,32 +518,34 @@ struct SwipeableCommentRow: View {
     
     var body: some View {
         ZStack(alignment: .trailing) {
-            // Bouton de suppression (visible uniquement quand on swipe)
-            HStack {
-                Spacer()
-                Button(action: {
-                    withAnimation(.spring()) {
-                        offset = 0
+            // Bouton de suppression (visible uniquement quand on swipe ET si l'utilisateur peut supprimer)
+            if canDelete {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            offset = 0
+                        }
+                        // Attendre un peu avant de supprimer pour voir l'animation
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onDelete()
+                        }
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                            .frame(width: 60)
+                            .frame(maxHeight: .infinity)
+                            .background(
+                                Color.red
+                                    .clipShape(Rectangle())
+                            )
                     }
-                    // Attendre un peu avant de supprimer pour voir l'animation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        onDelete()
-                    }
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.white)
-                        .font(.system(size: 16, weight: .medium))
-                        .frame(width: 60)
-                        .frame(maxHeight: .infinity)
-                        .background(
-                            Color.red
-                                .clipShape(Rectangle())
-                        )
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .opacity(offset < -10 ? 1 : 0) // Visible seulement quand on swipe
+                .allowsHitTesting(offset < -10) // Désactiver les interactions quand invisible
             }
-            .opacity(offset < -10 ? 1 : 0) // Visible seulement quand on swipe
-            .allowsHitTesting(offset < -10) // Désactiver les interactions quand invisible
             
             // Contenu du commentaire
             HStack(alignment: .top, spacing: 12) {
@@ -618,7 +645,8 @@ struct SwipeableCommentRow: View {
             .contentShape(Rectangle())
             .offset(x: offset)
             .gesture(
-                DragGesture()
+                // Permettre le swipe seulement si l'utilisateur peut supprimer
+                canDelete ? DragGesture()
                     .onChanged { value in
                         if value.translation.width < 0 {
                             // Swipe vers la gauche
@@ -640,7 +668,7 @@ struct SwipeableCommentRow: View {
                                 offset = 0
                             }
                         }
-                    }
+                    } : nil
             )
         }
         .clipped() // Empêcher le bouton de dépasser les bords
@@ -877,7 +905,7 @@ struct CommentCard: View {
     }
 }
 
-// MARK: - CreatePostView
+// MARK: - CreatePostView (Popup Style)
 struct CreatePostView: View {
     @ObservedObject var viewModel: DiscussionViewModel
     @Binding var isPresented: Bool
@@ -888,42 +916,107 @@ struct CreatePostView: View {
     @State private var destination: String = ""
     @State private var isCreating = false
     @State private var errorMessage: String?
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case title, content, destination
+    }
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                ThemeColors.background(colorScheme)
-                    .ignoresSafeArea()
+        ZStack {
+            // Overlay semi-transparent
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    if !isCreating {
+                        isPresented = false
+                    }
+                }
+            
+            // Popup content
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: {
+                        if !isCreating {
+                            isPresented = false
+                        }
+                    }) {
+                        Text("Annuler")
+                            .font(.system(size: 17))
+                            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    }
+                    .disabled(isCreating)
+                    
+                    Spacer()
+                    
+                    Text("Nouveau post")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        Task {
+                            await createPost()
+                        }
+                    }) {
+                        if isCreating {
+                            ProgressView()
+                                .tint(Color(red: 0.098, green: 0.463, blue: 0.824))
+                        } else {
+                            Text("Publier")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(title.isEmpty || content.isEmpty ? .gray : Color(red: 0.098, green: 0.463, blue: 0.824))
+                        }
+                    }
+                    .disabled(isCreating || title.isEmpty || content.isEmpty)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(
+                    Rectangle()
+                        .fill(Color(.systemBackground))
+                )
                 
+                Divider()
+                
+                // Content
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 16) {
                         // Titre
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Titre")
-                                .font(.headline)
+                                .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             TextField("Entrez le titre de votre post", text: $title)
-                                .textFieldStyle(.roundedBorder)
-                                .padding(.horizontal, 4)
+                                .focused($focusedField, equals: .title)
+                                .textFieldStyle(.plain)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(.systemGray6))
+                                )
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                        .padding(.top, 16)
                         
                         // Contenu
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Contenu")
-                                .font(.headline)
+                                .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             TextEditor(text: $content)
-                                .frame(minHeight: 150)
+                                .focused($focusedField, equals: .content)
+                                .frame(minHeight: 120)
                                 .padding(8)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(ThemeColors.surface(colorScheme))
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(.systemGray6))
                                 )
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
                         }
                         .padding(.horizontal, 20)
@@ -931,11 +1024,16 @@ struct CreatePostView: View {
                         // Destination (optionnel)
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Destination (optionnel)")
-                                .font(.headline)
+                                .font(.system(size: 15, weight: .medium))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             TextField("Ex: Paris, Tokyo...", text: $destination)
-                                .textFieldStyle(.roundedBorder)
-                                .padding(.horizontal, 4)
+                                .focused($focusedField, equals: .destination)
+                                .textFieldStyle(.plain)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(.systemGray6))
+                                )
                         }
                         .padding(.horizontal, 20)
                         
@@ -946,46 +1044,23 @@ struct CreatePostView: View {
                                 .foregroundColor(.red)
                                 .padding(.horizontal, 20)
                         }
-                        
-                        // Bouton de création
-                        Button(action: {
-                            Task {
-                                await createPost()
-                            }
-                        }) {
-                            HStack {
-                                if isCreating {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Text("Publier")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(isCreating ? Color.gray : Color(red: 0.098, green: 0.463, blue: 0.824))
-                            )
-                        }
-                        .disabled(isCreating || title.isEmpty || content.isEmpty)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
                     }
+                    .padding(.bottom, 20)
                 }
+                .background(Color(.systemBackground))
             }
-            .navigationTitle("Nouveau post")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
-                        isPresented = false
-                    }
-                }
-            }
+            .frame(maxWidth: 500)
+            .frame(height: min(600, UIScreen.main.bounds.height * 0.75))
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.systemBackground))
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPresented)
     }
     
     private func createPost() async {
