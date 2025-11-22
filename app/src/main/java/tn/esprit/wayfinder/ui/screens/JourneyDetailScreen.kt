@@ -335,35 +335,22 @@ fun JourneyDetailCard(
                 )
             }
             
-            if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty()) {
-                Text(
-                    text = "Vidéo AI générée",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                JourneyVideoPlayer(videoUrl = journey.videoUrl)
-            } else if (journey.videoStatus == "processing") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFFFA726).copy(alpha = 0.1f))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Only show video when it's fully ready (completed status AND valid URL)
+            // Hide completely during processing to avoid black screens or loading indicators
+            if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty() && journey.videoUrl.isNotBlank()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = Color(0xFFFFA726),
-                        strokeWidth = 2.dp
-                    )
                     Text(
-                        text = "Génération de la vidéo en cours...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFFA726)
+                        text = StringTranslator.translate(context, "Vidéo AI générée"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    JourneyVideoPlayer(videoUrl = journey.videoUrl)
                 }
             }
+            // Do not show anything for processing, pending, or failed states
+            // The video will appear automatically when ready
             
             // Tags
             if (journey.tags.isNotEmpty()) {

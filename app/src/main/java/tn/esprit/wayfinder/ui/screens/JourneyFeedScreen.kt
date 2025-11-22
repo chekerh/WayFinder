@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,12 +44,18 @@ import tn.esprit.wayfinder.presentation.destinationvideo.DestinationVideoReposit
 import tn.esprit.wayfinder.network.RetrofitInstance
 import tn.esprit.wayfinder.utils.StringTranslator
 import android.widget.Toast
+import android.widget.VideoView
+import android.widget.MediaController
+import android.net.Uri
+import android.content.Intent
+import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JourneyFeedScreen(navController: NavController) {
     val context = LocalContext.current
+    var showVideoDialog by remember { mutableStateOf<String?>(null) }
     val journeyViewModel: JourneyViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by journeyViewModel.uiState.collectAsState()
     
@@ -200,9 +207,7 @@ fun JourneyFeedScreen(navController: NavController) {
                                         },
                                         onVideoClick = {
                                             destination.videoUrl?.let { url ->
-                                                // Navigate to video player or open video
-                                                // For now, just show a toast
-                                                Toast.makeText(context, "Lecture de la vidéo: $url", Toast.LENGTH_SHORT).show()
+                                                showVideoDialog = url
                                             }
                                         }
                                     )
@@ -267,6 +272,179 @@ fun JourneyFeedScreen(navController: NavController) {
                 }
             }
             else -> {}
+        }
+        
+        // Video dialog
+        showVideoDialog?.let { videoUrl ->
+            var isLoading by remember { mutableStateOf(true) }
+            var hasError by remember { mutableStateOf(false) }
+            var errorMessage by remember { mutableStateOf<String?>(null) }
+            
+            AlertDialog(
+                onDismissRequest = { showVideoDialog = null },
+                title = {
+                    Text(
+                        text = StringTranslator.translate(context, "Vidéo AI générée"),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.Black),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (hasError) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Error,
+                                        contentDescription = "Error",
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Text(
+                                        text = errorMessage ?: StringTranslator.translate(context, "Erreur de chargement"),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = videoUrl,
+                                        color = Color.Gray,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(
+                                        onClick = {
+                                            // Open video in external browser/player
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
+                                                intent.setDataAndType(Uri.parse(videoUrl), "video/*")
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Impossible d'ouvrir la vidéo", Toast.LENGTH_SHORT).show()
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF4A90E2)
+                                        )
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.OpenInBrowser,
+                                            contentDescription = "Open in browser",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(StringTranslator.translate(context, "Ouvrir dans le navigateur"))
+                                    }
+                                }
+                            } else {
+                                AndroidView(
+                                    modifier = Modifier.fillMaxSize(),
+                                    factory = { ctx ->
+                                        VideoView(ctx).apply {
+                                            val controller = MediaController(ctx)
+                                            controller.setAnchorView(this)
+                                            setMediaController(controller)
+                                            
+                                            // Add error listener
+                                            setOnErrorListener { _, what, extra ->
+                                                android.util.Log.e("VideoPlayer", "Video error: what=$what, extra=$extra, url=$videoUrl")
+                                                hasError = true
+                                                errorMessage = when (what) {
+                                                    android.media.MediaPlayer.MEDIA_ERROR_UNKNOWN -> "Erreur inconnue"
+                                                    android.media.MediaPlayer.MEDIA_ERROR_SERVER_DIED -> "Serveur vidéo indisponible"
+                                                    else -> "Erreur de lecture (code: $what)"
+                                                }
+                                                true
+                                            }
+                                            
+                                            // Add info listener for debugging
+                                            setOnInfoListener { _, what, extra ->
+                                                android.util.Log.d("VideoPlayer", "Video info: what=$what, extra=$extra")
+                                                when (what) {
+                                                    android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
+                                                        isLoading = true
+                                                    }
+                                                    android.media.MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
+                                                        isLoading = false
+                                                    }
+                                                    android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
+                                                        isLoading = false
+                                                    }
+                                                }
+                                                false
+                                            }
+                                            
+                                            // Parse and set video URI
+                                            try {
+                                                val uri = Uri.parse(videoUrl)
+                                                android.util.Log.d("VideoPlayer", "Loading video from: $videoUrl")
+                                                setVideoURI(uri)
+                                                
+                                                setOnPreparedListener { player ->
+                                                    android.util.Log.d("VideoPlayer", "Video prepared, starting playback")
+                                                    isLoading = false
+                                                    player.isLooping = false
+                                                    start()
+                                                }
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("VideoPlayer", "Error parsing video URL: ${e.message}", e)
+                                                hasError = true
+                                                errorMessage = "URL vidéo invalide"
+                                            }
+                                            
+                                            tag = videoUrl
+                                        }
+                                    },
+                                    update = { videoView ->
+                                        if (videoView.tag != videoUrl) {
+                                            android.util.Log.d("VideoPlayer", "Updating video URL: $videoUrl")
+                                            isLoading = true
+                                            hasError = false
+                                            videoView.tag = videoUrl
+                                            try {
+                                                val uri = Uri.parse(videoUrl)
+                                                videoView.setVideoURI(uri)
+                                                videoView.start()
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("VideoPlayer", "Error updating video: ${e.message}", e)
+                                                hasError = true
+                                                errorMessage = "Erreur de chargement"
+                                            }
+                                        }
+                                    }
+                                )
+                                
+                                if (isLoading && !hasError) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.align(Alignment.Center),
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVideoDialog = null }) {
+                        Text(StringTranslator.translate(context, "Fermer"))
+                    }
+                }
+            )
         }
     }
 }
@@ -427,7 +605,9 @@ fun JourneyCard(
             
             // Video Status / Generate Video Button (only for own journeys)
             if (isOwnJourney) {
-                if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty()) {
+                // Only show video when it's fully ready (completed status AND valid URL)
+                // Hide completely during processing to avoid black screens
+                if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty() && journey.videoUrl.isNotBlank()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -449,28 +629,9 @@ fun JourneyCard(
                             color = Color(0xFF4A90E2)
                         )
                     }
-                } else if (journey.videoStatus == "processing") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFFFA726).copy(alpha = 0.1f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color(0xFFFFA726),
-                            strokeWidth = 2.dp
-                        )
-                        Text(
-                            text = StringTranslator.translate(context, "Génération de la vidéo en cours..."),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFFFA726)
-                        )
-                    }
-                } else if (journey.videoStatus == "pending" || journey.videoStatus == "failed") {
+                }
+                // Do not show processing indicator - video will appear automatically when ready
+                else if (journey.videoStatus == "pending" || journey.videoStatus == "failed") {
                     // Show "Generate Video" button for own journeys when video is not yet generated or failed
                     Button(
                         onClick = onGenerateVideoClick,
@@ -492,8 +653,8 @@ fun JourneyCard(
                         )
                     }
                 }
-            } else if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty()) {
-                // Show video status for other users' journeys
+            } else if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty() && journey.videoUrl.isNotBlank()) {
+                // Show video status for other users' journeys - only when video is fully ready
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -510,33 +671,14 @@ fun JourneyCard(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Vidéo AI générée",
+                        text = StringTranslator.translate(context, "Vidéo AI générée"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF4A90E2)
                     )
                 }
-            } else if (journey.videoStatus == "processing") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFFFA726).copy(alpha = 0.1f))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = Color(0xFFFFA726),
-                        strokeWidth = 2.dp
-                    )
-                    Text(
-                        text = "Génération de la vidéo en cours...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFFFA726)
-                    )
-                }
             }
+            // Do not show anything for processing, pending, or failed states
+            // The video will appear automatically when ready
             
             // Tags
             if (journey.tags.isNotEmpty()) {
