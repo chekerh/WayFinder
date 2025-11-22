@@ -17,5 +17,6 @@ local.properties
 # Firebase service account keys (contain secrets)
 app/wayfinder-*.json
 **/wayfinder-*.json
-app/wayfinder-*.json
-*.json
+
+# Firebase google-services.json (contains API keys)
+app/google-services.json
