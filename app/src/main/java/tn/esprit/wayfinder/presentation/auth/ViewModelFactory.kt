@@ -21,6 +21,7 @@ import tn.esprit.wayfinder.presentation.searchhistory.SearchHistoryRepository
 import tn.esprit.wayfinder.presentation.pricealerts.PriceAlertsRepository
 import tn.esprit.wayfinder.presentation.traveltips.TravelTipsRepository
 import tn.esprit.wayfinder.presentation.journey.JourneyRepository
+import tn.esprit.wayfinder.presentation.chat.ChatRepository
 import tn.esprit.wayfinder.viewmodels.ActivitiesViewModel
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
@@ -38,6 +39,7 @@ import tn.esprit.wayfinder.viewmodels.SearchHistoryViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 import tn.esprit.wayfinder.viewmodels.JourneyViewModel
+import tn.esprit.wayfinder.viewmodels.ChatViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -130,6 +132,11 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = JourneyRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 JourneyViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(ChatViewModel::class.java) -> {
+                val repository = ChatRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                ChatViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

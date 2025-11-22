@@ -449,4 +449,20 @@ interface ApiService {
 
     @GET("users/{userId}/destinations")
     suspend fun getUserDestinations(@Path("userId") userId: String): UserDestinationsResponse
+
+    // --- CHAT --- //
+    @POST("chat/message")
+    suspend fun sendChatMessage(@Body request: ChatMessageRequest): ChatMessageResponse
+
+    @POST("chat/switch-model")
+    suspend fun switchChatModel(@Body request: SwitchModelRequest): SwitchModelResponse
+
+    @GET("chat/history")
+    suspend fun getChatHistory(@Query("limit") limit: Int = 50): List<ChatHistoryItem>
+
+    @DELETE("chat/history")
+    suspend fun clearChatHistory(): ClearHistoryResponse
+
+    @GET("chat/models")
+    suspend fun getAvailableModels(): AvailableModelsResponse
 }
