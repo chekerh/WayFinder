@@ -103,3 +103,13 @@ data class ResendVerificationRequest(
 data class ResendVerificationResponse(
     val message: String
 )
+
+@Serializable
+data class FcmTokenRequest(
+    val token: String
+)
+
+@Serializable
+data class FcmTokenResponse(
+    val message: String
+)

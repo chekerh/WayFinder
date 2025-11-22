@@ -1,9 +1,14 @@
 package tn.esprit.wayfinder
 
+import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -11,13 +16,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import tn.esprit.wayfinder.manager.LanguageManager
 import tn.esprit.wayfinder.manager.ThemeManager
 import tn.esprit.wayfinder.navigation.AppNavigation
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.LocaleHelper
+import tn.esprit.wayfinder.utils.NotificationHelper
 
 class MainActivity : ComponentActivity() {
+    
+    // Request notification permission for Android 13+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        android.util.Log.d("MainActivity", "Notification permission granted: $isGranted")
+    }
     
     override fun attachBaseContext(newBase: Context?) {
         if (newBase != null) {
@@ -31,6 +45,29 @@ class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Create notification channel on app start
+        NotificationHelper.createNotificationChannel(this)
+        
+        // Request notification permission for Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    android.util.Log.d("MainActivity", "Notification permission already granted")
+                }
+                else -> {
+                    android.util.Log.d("MainActivity", "Requesting notification permission")
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+        
+        // Handle notification click
+        handleNotificationIntent(intent)
+        
         setContent {
             val context = LocalContext.current
             val themeManager = remember { ThemeManager(context) }
@@ -49,5 +86,24 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    private fun handleNotificationIntent(intent: Intent?) {
+        intent?.let {
+            val notificationId = it.getStringExtra("notification_id")
+            val actionUrl = it.getStringExtra("action_url")
+            
+            // You can handle navigation based on actionUrl here
+            // For example, navigate to a specific screen based on the notification type
+            if (actionUrl != null) {
+                // Navigation logic will be handled by AppNavigation based on deep link
+            }
+        }
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
     }
 }

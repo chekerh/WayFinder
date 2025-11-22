@@ -37,6 +37,9 @@ interface ApiService {
     @POST("user/profile/upload-image")
     suspend fun uploadProfileImage(@Part image: MultipartBody.Part): UploadProfileImageResponse
 
+    @POST("user/fcm-token")
+    suspend fun registerFcmToken(@Body request: FcmTokenRequest): FcmTokenResponse
+
     // --- BOOKING --- //
     @GET("booking/offers")
     suspend fun getOffers(

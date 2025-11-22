@@ -106,7 +106,7 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
             modelClass.isAssignableFrom(NotificationsViewModel::class.java) -> {
                 val repository = NotificationsRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
-                NotificationsViewModel(repository) as T
+                NotificationsViewModel(repository, application.applicationContext) as T
             }
             modelClass.isAssignableFrom(SocialViewModel::class.java) -> {
                 val repository = SocialRepository(apiService)

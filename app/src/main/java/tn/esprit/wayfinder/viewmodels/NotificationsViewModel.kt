@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -8,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import tn.esprit.wayfinder.models.Notification
 import tn.esprit.wayfinder.presentation.notifications.NotificationsRepository
+import tn.esprit.wayfinder.utils.NotificationHelper
 
 sealed class NotificationsUiState {
     object Idle : NotificationsUiState()
@@ -19,27 +21,65 @@ sealed class NotificationsUiState {
     data class Error(val message: String) : NotificationsUiState()
 }
 
-class NotificationsViewModel(private val notificationsRepository: NotificationsRepository) : ViewModel() {
+class NotificationsViewModel(
+    private val notificationsRepository: NotificationsRepository,
+    private val context: Context? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Idle)
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
+    
+    private var lastNotificationIds = emptySet<String>()
 
     init {
         // Initialize with empty list and 0 count
         _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+        
+        // Create notification channel when ViewModel is created
+        context?.let { NotificationHelper.createNotificationChannel(it) }
     }
 
-    fun loadNotifications(unreadOnly: Boolean = false) {
+    fun loadNotifications(unreadOnly: Boolean = false, showSystemNotifications: Boolean = true) {
         viewModelScope.launch {
-            _uiState.value = NotificationsUiState.Loading
             try {
                 val notifications = notificationsRepository.getNotifications(unreadOnly)
                 val unreadCount = notificationsRepository.getUnreadCount()
-                _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
+                
+                android.util.Log.d("NotificationsViewModel", "Loaded ${notifications.size} notifications, ${unreadCount} unread")
+                
+                // Show system notifications for new unread notifications
+                if (showSystemNotifications && context != null) {
+                    showNewNotifications(notifications.filter { !it.isRead })
+                }
+                
+                // Only update UI state if it's not already loading (to avoid flickering)
+                if (_uiState.value !is NotificationsUiState.Loading) {
+                    _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
+                } else {
+                    _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
+                }
             } catch (e: Exception) {
+                android.util.Log.e("NotificationsViewModel", "Error loading notifications: ${e.message}", e)
                 _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to load notifications")
             }
         }
+    }
+    
+    private fun showNewNotifications(notifications: List<Notification>) {
+        val currentNotificationIds = notifications.map { it.id }.toSet()
+        val newNotifications = notifications.filter { it.id !in lastNotificationIds }
+        
+        android.util.Log.d("NotificationsViewModel", "Found ${newNotifications.size} new notifications out of ${notifications.size} total")
+        
+        // Show system notifications for new unread notifications
+        context?.let { ctx ->
+            newNotifications.forEach { notification ->
+                android.util.Log.d("NotificationsViewModel", "Showing notification: ${notification.title} - ${notification.message}")
+                NotificationHelper.showNotification(ctx, notification)
+            }
+        }
+        
+        lastNotificationIds = currentNotificationIds
     }
 
     fun markAsRead(id: String, onSuccess: () -> Unit = {}) {

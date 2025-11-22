@@ -1,17 +1,23 @@
 package tn.esprit.wayfinder.navigation
 
+import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import tn.esprit.wayfinder.manager.TokenManager
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.screens.*
+import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 
 @Composable
 fun AppNavigation() {
@@ -24,6 +30,26 @@ fun AppNavigation() {
         savedToken == null -> "splash_screen"
         savedUser?.onboardingCompleted == true -> "home"
         else -> "onboarding"
+    }
+    
+    // Check for new notifications periodically and show popups
+    if (savedToken != null) {
+        val notificationsViewModel: NotificationsViewModel = viewModel(
+            factory = ViewModelFactory(context.applicationContext as Application)
+        )
+        
+        // Check for new notifications periodically when app is open
+        LaunchedEffect(Unit) {
+            // Initial check after 2 seconds
+            delay(2000)
+            notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
+            
+            // Then check every 5 seconds
+            while (true) {
+                delay(5000) // Check every 5 seconds
+                notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
+            }
+        }
     }
 
     NavHost(navController, startDestination = startDestination) {

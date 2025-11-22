@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose.compiler)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21" // Add serialization plugin
+    id("com.google.gms.google-services") // Google Services plugin for Firebase
 }
 
 android {
@@ -10,7 +11,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "tn.esprit.WayFinder"
+        applicationId = "tn.esprit.wayFinder"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -91,6 +92,11 @@ dependencies {
 
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.0.0")
+    
+    // Firebase Cloud Messaging
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Other dependencies
     implementation(libs.androidx.activity)

@@ -35,12 +35,15 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.*
 import tn.esprit.wayfinder.utils.StringTranslator
+import tn.esprit.wayfinder.utils.NotificationHelper
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationScreen(navController: NavController, destinationId: String) {
     val context = LocalContext.current
     val bookingViewModel: BookingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val reservationState by bookingViewModel.reservationState.collectAsState()
     val comparisonState by bookingViewModel.offerComparisonState.collectAsState()
 
@@ -74,6 +77,29 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 BOOKING_CURRENCY_KEY,
                 selectedDestination?.currency ?: "EUR"
             )
+            
+            // Show immediate notification popup
+            android.util.Log.d("ReservationScreen", "Booking confirmed, showing notification")
+            val destinationName = selectedDestination?.name ?: StringTranslator.translate(context, "votre destination")
+            val notificationTitle = StringTranslator.translate(context, "Réservation confirmée")
+            // Build notification message by translating parts separately
+            val reservationFor = StringTranslator.translate(context, "Votre réservation pour")
+            val hasBeenConfirmed = StringTranslator.translate(context, "a été confirmée")
+            val confirmationNumberLabel = StringTranslator.translate(context, "Numéro de confirmation")
+            val notificationMessage = "$reservationFor $destinationName $hasBeenConfirmed. $confirmationNumberLabel: ${booking.confirmationNumber}"
+            android.util.Log.d("ReservationScreen", "Notification title: $notificationTitle, message: $notificationMessage")
+            NotificationHelper.showSimpleNotification(
+                context,
+                notificationTitle,
+                notificationMessage,
+                type = "booking_confirmed"
+            )
+            android.util.Log.d("ReservationScreen", "Notification call completed")
+            
+            // Also check for backend notification after a delay
+            delay(2000) // Wait 2 seconds for backend to process
+            notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
+            
             navController.navigate("booking_confirmation/${booking.confirmationNumber}") {
                 popUpTo("home") { inclusive = false }
             }

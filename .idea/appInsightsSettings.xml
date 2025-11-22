@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="tn.esprit.wayFinder" />
+                  <option name="mobileSdkAppId" value="1:883774648448:android:4c1192962b4f7007863665" />
+                  <option name="projectId" value="wayfinder-453a6" />
+                  <option name="projectNumber" value="883774648448" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
