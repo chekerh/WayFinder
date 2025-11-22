@@ -150,15 +150,15 @@ fun ChatScreen(navController: NavController) {
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Messages list
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp),
                 state = listState
-            ) {
+        ) {
                 if (messages.isEmpty()) {
                     item {
                         WelcomeMessage()
@@ -428,8 +428,8 @@ private fun ModelSelectorDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
-            }
         }
+    }
     )
 }
 
