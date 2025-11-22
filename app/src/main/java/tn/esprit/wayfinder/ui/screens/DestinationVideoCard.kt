@@ -18,7 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import tn.esprit.wayfinder.models.DestinationWithVideoStatus
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @Composable
 fun DestinationVideoCard(
@@ -26,6 +28,7 @@ fun DestinationVideoCard(
     onGenerateClick: () -> Unit,
     onVideoClick: () -> Unit
 ) {
+    val context = LocalContext.current
     var showErrorDialog by remember { mutableStateOf(false) }
     
     Card(
@@ -53,7 +56,7 @@ fun DestinationVideoCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${destination.imageCount} photos",
+                    text = "${destination.imageCount} ${StringTranslator.translate(context, "photos")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -73,7 +76,7 @@ fun DestinationVideoCard(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Vidéo prête",
+                                text = StringTranslator.translate(context, "Vidéo prête"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF4CAF50)
                             )
@@ -90,7 +93,7 @@ fun DestinationVideoCard(
                                 color = Color(0xFFFF9800)
                             )
                             Text(
-                                text = "Génération en cours...",
+                                text = StringTranslator.translate(context, "Génération en cours..."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFFF9800)
                             )
@@ -109,7 +112,7 @@ fun DestinationVideoCard(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "Échec",
+                                    text = StringTranslator.translate(context, "Échec"),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFE91E63)
                                 )
@@ -130,7 +133,7 @@ fun DestinationVideoCard(
                     }
                     else -> {
                         Text(
-                            text = "Vidéo non générée",
+                            text = StringTranslator.translate(context, "Vidéo non générée"),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
@@ -171,7 +174,7 @@ fun DestinationVideoCard(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Générer")
+                        Text(StringTranslator.translate(context, "Générer"))
                     }
                 }
             }
@@ -183,7 +186,7 @@ fun DestinationVideoCard(
                 onDismissRequest = { showErrorDialog = false },
                 title = {
                     Text(
-                        text = "Détails de l'erreur - ${destination.destination}",
+                        text = "${StringTranslator.translate(context, "Détails de l'erreur")} - ${destination.destination}",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -192,7 +195,7 @@ fun DestinationVideoCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "La génération de la vidéo a échoué. Détails de l'erreur :",
+                            text = StringTranslator.translate(context, "La génération de la vidéo a échoué. Détails de l'erreur :"),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -205,7 +208,7 @@ fun DestinationVideoCard(
                 },
                 confirmButton = {
                     TextButton(onClick = { showErrorDialog = false }) {
-                        Text("Fermer")
+                        Text(StringTranslator.translate(context, "Fermer"))
                     }
                 },
                 dismissButton = {
@@ -213,7 +216,7 @@ fun DestinationVideoCard(
                         showErrorDialog = false
                         onGenerateClick()
                     }) {
-                        Text("Réessayer", color = Color(0xFF4A90E2))
+                        Text(StringTranslator.translate(context, "Réessayer"), color = Color(0xFF4A90E2))
                     }
                 }
             )

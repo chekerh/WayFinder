@@ -29,6 +29,7 @@ import tn.esprit.wayfinder.models.SearchHistory
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.SearchHistoryUiState
 import tn.esprit.wayfinder.viewmodels.SearchHistoryViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,7 +54,7 @@ fun SearchHistoryScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        "Historique de recherche",
+                        StringTranslator.translate(context, "Historique de recherche"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -75,7 +76,7 @@ fun SearchHistoryScreen(navController: NavController) {
                         }) {
                             Icon(
                                 imageVector = Icons.Filled.DeleteSweep,
-                                contentDescription = "Effacer tout"
+                                contentDescription = StringTranslator.translate(context, "Effacer tout")
                             )
                         }
                     }
@@ -96,12 +97,12 @@ fun SearchHistoryScreen(navController: NavController) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Récent") }
+                    text = { Text(StringTranslator.translate(context, "Récent")) }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Enregistrés") }
+                    text = { Text(StringTranslator.translate(context, "Enregistrés")) }
                 )
             }
 
@@ -137,12 +138,12 @@ fun SearchHistoryScreen(navController: NavController) {
                                     tint = Color.Gray
                                 )
                                 Text(
-                                    if (selectedTab == 0) "Aucune recherche récente" else "Aucune recherche enregistrée",
+                                    if (selectedTab == 0) StringTranslator.translate(context, "Aucune recherche récente") else StringTranslator.translate(context, "Aucune recherche enregistrée"),
                                     style = MaterialTheme.typography.titleLarge,
                                     color = Color.Gray
                                 )
                                 Text(
-                                    if (selectedTab == 0) "Vos recherches récentes apparaîtront ici" else "Enregistrez des recherches pour y accéder rapidement",
+                                    if (selectedTab == 0) StringTranslator.translate(context, "Vos recherches récentes apparaîtront ici") else StringTranslator.translate(context, "Enregistrez des recherches pour y accéder rapidement"),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray
                                 )

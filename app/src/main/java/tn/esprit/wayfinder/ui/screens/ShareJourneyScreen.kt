@@ -49,6 +49,7 @@ import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.BookingUiState
 import tn.esprit.wayfinder.models.Booking
 import tn.esprit.wayfinder.models.BookingStatus
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,7 +188,7 @@ fun ShareJourneyScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Partager mon voyage") },
+                title = { Text(StringTranslator.translate(context, "Partager mon voyage")) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -218,14 +219,14 @@ fun ShareJourneyScreen(navController: NavController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "💡 Astuce",
+                        text = "💡 ${StringTranslator.translate(context, "Astuce")}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Sélectionnez vos meilleures photos de voyage pour les partager avec la communauté.",
+                        text = StringTranslator.translate(context, "Sélectionnez vos meilleures photos de voyage pour les partager avec la communauté."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f)
                     )
@@ -242,7 +243,7 @@ fun ShareJourneyScreen(navController: NavController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Photos du voyage",
+                        text = StringTranslator.translate(context, "Photos du voyage"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -271,12 +272,12 @@ fun ShareJourneyScreen(navController: NavController) {
                                     tint = Color(0xFF4A90E2)
                                 )
                                 Text(
-                                    text = "Ajouter des photos",
+                                    text = StringTranslator.translate(context, "Ajouter des photos"),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = Color(0xFF4A90E2)
                                 )
                                 Text(
-                                    text = "Jusqu'à 20 photos",
+                                    text = StringTranslator.translate(context, "Jusqu'à 20 photos"),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
@@ -357,7 +358,7 @@ fun ShareJourneyScreen(navController: NavController) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Destination du voyage",
+                        text = StringTranslator.translate(context, "Destination du voyage"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -368,10 +369,10 @@ fun ShareJourneyScreen(navController: NavController) {
                     // Loading state
                     if (currentBookingState is BookingUiState.Loading) {
                         OutlinedTextField(
-                            value = "Chargement des réservations...",
+                            value = StringTranslator.translate(context, "Chargement des réservations..."),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Destination") },
+                            label = { Text(StringTranslator.translate(context, "Destination")) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             enabled = false,
@@ -386,10 +387,10 @@ fun ShareJourneyScreen(navController: NavController) {
                     // Error state
                     else if (currentBookingState is BookingUiState.Error) {
                         OutlinedTextField(
-                            value = "Erreur de chargement",
+                            value = StringTranslator.translate(context, "Erreur de chargement"),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Destination") },
+                            label = { Text(StringTranslator.translate(context, "Destination")) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             enabled = false,
@@ -412,10 +413,10 @@ fun ShareJourneyScreen(navController: NavController) {
                     else if (currentBookingState is BookingUiState.Success) {
                         if (confirmedBookings.isEmpty()) {
                             OutlinedTextField(
-                                value = "Aucune réservation confirmée",
+                                value = StringTranslator.translate(context, "Aucune réservation confirmée"),
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Destination") },
+                                label = { Text(StringTranslator.translate(context, "Destination")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 enabled = false,
@@ -426,17 +427,17 @@ fun ShareJourneyScreen(navController: NavController) {
                                 )
                             )
                             Text(
-                                text = "Vous devez avoir une réservation confirmée pour partager votre voyage.",
+                                text = StringTranslator.translate(context, "Vous devez avoir une réservation confirmée pour partager votre voyage."),
                                 color = Color(0xFFFF9800),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
                         } else if (uniqueDestinations.isEmpty()) {
                             OutlinedTextField(
-                                value = "Aucune destination trouvée dans les réservations",
+                                value = StringTranslator.translate(context, "Aucune destination trouvée dans les réservations"),
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Destination") },
+                                label = { Text(StringTranslator.translate(context, "Destination")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
                                 enabled = false,
@@ -447,7 +448,7 @@ fun ShareJourneyScreen(navController: NavController) {
                                 )
                             )
                             Text(
-                                text = "Vos réservations confirmées n'ont pas de destination spécifiée. Veuillez mettre à jour vos réservations.",
+                                text = StringTranslator.translate(context, "Vos réservations confirmées n'ont pas de destination spécifiée. Veuillez mettre à jour vos réservations."),
                                 color = Color(0xFFFF9800),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 8.dp)
@@ -467,7 +468,7 @@ fun ShareJourneyScreen(navController: NavController) {
                                     value = displayValue,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Sélectionnez votre destination") },
+                                    label = { Text(StringTranslator.translate(context, "Sélectionnez votre destination")) },
                                     trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = destinationDropdownExpanded)
                                     },
@@ -555,7 +556,7 @@ fun ShareJourneyScreen(navController: NavController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Description (optionnel)",
+                        text = StringTranslator.translate(context, "Description (optionnel)"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -564,7 +565,7 @@ fun ShareJourneyScreen(navController: NavController) {
                         value = description,
                         onValueChange = { description = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Décrivez votre voyage...") },
+                        placeholder = { Text(StringTranslator.translate(context, "Décrivez votre voyage...")) },
                         maxLines = 4,
                         shape = RoundedCornerShape(8.dp)
                     )
@@ -581,7 +582,7 @@ fun ShareJourneyScreen(navController: NavController) {
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text(
-                        text = "Tags (optionnel)",
+                        text = StringTranslator.translate(context, "Tags (optionnel)"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -590,7 +591,7 @@ fun ShareJourneyScreen(navController: NavController) {
                         value = tags,
                         onValueChange = { tags = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Ex: plage, montagne, culture (séparés par des virgules)") },
+                        placeholder = { Text(StringTranslator.translate(context, "Ex: plage, montagne, culture (séparés par des virgules)")) },
                         shape = RoundedCornerShape(8.dp)
                     )
                 }
@@ -705,7 +706,7 @@ fun ShareJourneyScreen(navController: NavController) {
                             containerColor = Color(0xFF4A90E2)
                         )
                     ) {
-                        Text("Réessayer", fontWeight = FontWeight.Bold)
+                        Text(StringTranslator.translate(context, "Réessayer"), fontWeight = FontWeight.Bold)
                     }
                 }
                 else -> {
@@ -734,7 +735,7 @@ fun ShareJourneyScreen(navController: NavController) {
                             containerColor = Color(0xFF4A90E2)
                         )
                     ) {
-                        Text("Partager mon voyage", fontWeight = FontWeight.Bold)
+                        Text(StringTranslator.translate(context, "Partager mon voyage"), fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -43,6 +43,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,7 +140,7 @@ fun EditProfileScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Modifier le profil", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Modifier le profil"), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -235,7 +236,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
-                        label = { Text("Prénom") },
+                        label = { Text(StringTranslator.translate(context, "Prénom")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -244,7 +245,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = lastName,
                         onValueChange = { lastName = it },
-                        label = { Text("Nom") },
+                        label = { Text(StringTranslator.translate(context, "Nom")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -253,7 +254,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text(StringTranslator.translate(context, "Email")) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Email
@@ -265,7 +266,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = { Text("Téléphone") },
+                        label = { Text(StringTranslator.translate(context, "Téléphone")) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Phone
@@ -278,7 +279,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = location,
                         onValueChange = { location = it },
-                        label = { Text("Localisation") },
+                        label = { Text(StringTranslator.translate(context, "Localisation")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text("Paris, France") }
@@ -288,7 +289,7 @@ fun EditProfileScreen(navController: NavController) {
                     OutlinedTextField(
                         value = bio,
                         onValueChange = { bio = it },
-                        label = { Text("Bio") },
+                        label = { Text(StringTranslator.translate(context, "Bio")) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp),
@@ -299,12 +300,12 @@ fun EditProfileScreen(navController: NavController) {
                     
                     // Preferences Section
                     Text(
-                        text = "Préférences de voyage",
+                        text = StringTranslator.translate(context, "Préférences de voyage"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Sélectionnez vos intérêts pour des recommandations personnalisées",
+                        text = StringTranslator.translate(context, "Sélectionnez vos intérêts pour des recommandations personnalisées"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
@@ -374,7 +375,7 @@ fun EditProfileScreen(navController: NavController) {
                             )
                         } else {
                             Text(
-                                text = "Enregistrer",
+                                text = StringTranslator.translate(context, "Enregistrer"),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )

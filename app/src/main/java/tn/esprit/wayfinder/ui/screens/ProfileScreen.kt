@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -48,12 +50,16 @@ import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.manager.ThemeManager
+import tn.esprit.wayfinder.manager.LanguageManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
+import android.app.Activity
+import android.content.Intent
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
 import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 import tn.esprit.wayfinder.models.CanShareJourneyResponse
+import tn.esprit.wayfinder.utils.StringTranslator
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +72,7 @@ fun ProfileScreen(navController: NavController) {
     val canShareState by journeyViewModel.canShareState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val themeManager = remember { ThemeManager(context) }
+    val languageManager = remember { LanguageManager(context) }
     val currentUser = remember { tokenManager.getUser() }
     val startDestination = remember { navController.graph.startDestinationRoute ?: "home" }
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -73,6 +80,10 @@ fun ProfileScreen(navController: NavController) {
     // Dark mode state
     var isDarkModeEnabled by remember { mutableStateOf(themeManager.isDarkModeEnabled()) }
     var followSystemTheme by remember { mutableStateOf(themeManager.isFollowingSystem()) }
+    
+    // Language state
+    var selectedLanguage by remember { mutableStateOf(languageManager.getLanguage()) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     // Load profile and check if user can share journey
     LaunchedEffect(Unit) {
@@ -96,7 +107,7 @@ fun ProfileScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        "Profil",
+                        StringTranslator.translate(context, "Profil"),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -110,7 +121,7 @@ fun ProfileScreen(navController: NavController) {
                             onDismissRequest = { isMenuExpanded = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Modifier le profil") },
+                                text = { Text(StringTranslator.translate(context, "Modifier le profil")) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Filled.Edit,
@@ -123,7 +134,7 @@ fun ProfileScreen(navController: NavController) {
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Se déconnecter") },
+                                text = { Text(StringTranslator.translate(context, "Se déconnecter")) },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -193,6 +204,21 @@ fun ProfileScreen(navController: NavController) {
                         // Reload activity to apply theme change
                         (context as? android.app.Activity)?.recreate()
                     },
+                    context = context,
+                    languageManager = languageManager,
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = { language ->
+                        selectedLanguage = language
+                        languageManager.setLanguage(language)
+                        // Restart activity to apply language change
+                        val activity = context as? Activity
+                        activity?.let {
+                            // Use recreate() for a cleaner restart
+                            it.recreate()
+                        }
+                    },
+                    showLanguageDialog = showLanguageDialog,
+                    onShowLanguageDialogChange = { show -> showLanguageDialog = show },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -212,7 +238,7 @@ fun ProfileScreen(navController: NavController) {
                             color = Color.Red
                         )
                         Button(onClick = { userViewModel.loadProfile() }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -236,6 +262,12 @@ fun ProfileContent(
     followSystemTheme: Boolean = true,
     onDarkModeToggle: ((Boolean) -> Unit)? = null,
     onFollowSystemToggle: ((Boolean) -> Unit)? = null,
+    context: android.content.Context,
+    languageManager: LanguageManager,
+    selectedLanguage: String,
+    onLanguageSelected: (String) -> Unit,
+    showLanguageDialog: Boolean,
+    onShowLanguageDialogChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -261,7 +293,7 @@ fun ProfileContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "It's Your Profiles",
+                        text = StringTranslator.translate(context, "It's Your Profiles"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -365,7 +397,7 @@ fun ProfileContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Your Bio auto generated by Gemini",
+                        text = StringTranslator.translate(context, "Your Bio auto generated by Gemini"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -435,16 +467,16 @@ fun ProfileContent(
                     )
                     Column {
                         Text(
-                            text = "Partager mon voyage",
+                            text = StringTranslator.translate(context, "Partager mon voyage"),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Text(
                             text = when {
-                                canShareJourney -> "Partagez vos photos et créez une vidéo"
-                                canShareState == null -> "Vérification en cours..."
-                                else -> canShareState?.message ?: "Vous devez avoir une réservation confirmée"
+                                canShareJourney -> StringTranslator.translate(context, "Partagez vos photos et créez une vidéo")
+                                canShareState == null -> StringTranslator.translate(context, "Vérification en cours...")
+                                else -> canShareState?.message ?: StringTranslator.translate(context, "Vous devez avoir une réservation confirmée")
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.9f)
@@ -492,7 +524,7 @@ fun ProfileContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Historique des réservations",
+                    text = StringTranslator.translate(context, "Historique des réservations"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -538,7 +570,7 @@ fun ProfileContent(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Voir les voyages partagés",
+                        text = StringTranslator.translate(context, "Voir les voyages partagés"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -569,7 +601,7 @@ fun ProfileContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Apparence",
+                        text = StringTranslator.translate(context, "Apparence"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -592,7 +624,7 @@ fun ProfileContent(
                             )
                             Column {
                                 Text(
-                                    text = "Suivre le thème système",
+                                    text = StringTranslator.translate(context, "Suivre le thème système"),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -631,7 +663,7 @@ fun ProfileContent(
                                 )
                                 Column {
                                     Text(
-                                        text = "Mode sombre",
+                                        text = StringTranslator.translate(context, "Mode sombre"),
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -656,6 +688,107 @@ fun ProfileContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
         
+        // Language Selection Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = context.getString(R.string.language),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onShowLanguageDialogChange(true) },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Language",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column {
+                            Text(
+                                text = context.getString(R.string.select_language),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = when (selectedLanguage) {
+                                    LanguageManager.LANGUAGE_FRENCH -> context.getString(R.string.language_french)
+                                    LanguageManager.LANGUAGE_ENGLISH -> context.getString(R.string.language_english)
+                                    else -> context.getString(R.string.language_french)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Select",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer {
+                                rotationZ = 180f
+                            }
+                    )
+                }
+            }
+        }
+        
+        // Language Selection Dialog
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { onShowLanguageDialogChange(false) },
+                title = {
+                    Text(text = context.getString(R.string.select_language))
+                },
+                text = {
+                    Column {
+                        LanguageOption(
+                            label = context.getString(R.string.language_french),
+                            isSelected = selectedLanguage == LanguageManager.LANGUAGE_FRENCH,
+                            onClick = {
+                                onLanguageSelected(LanguageManager.LANGUAGE_FRENCH)
+                                onShowLanguageDialogChange(false)
+                            }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        LanguageOption(
+                            label = context.getString(R.string.language_english),
+                            isSelected = selectedLanguage == LanguageManager.LANGUAGE_ENGLISH,
+                            onClick = {
+                                onLanguageSelected(LanguageManager.LANGUAGE_ENGLISH)
+                                onShowLanguageDialogChange(false)
+                            }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { onShowLanguageDialogChange(false) }) {
+                        Text(context.getString(R.string.cancel))
+                    }
+                }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         // Favorites Card
         Card(
             modifier = Modifier
@@ -674,7 +807,7 @@ fun ProfileContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mes favoris",
+                    text = StringTranslator.translate(context, "Mes favoris"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -710,7 +843,7 @@ fun ProfileContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mes itinéraires",
+                    text = StringTranslator.translate(context, "Mes itinéraires"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -754,7 +887,7 @@ fun ProfileContent(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Notifications",
+                        text = StringTranslator.translate(context, "Notifications"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -799,7 +932,7 @@ fun ProfileContent(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Historique de recherche",
+                        text = StringTranslator.translate(context, "Historique de recherche"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -844,7 +977,7 @@ fun ProfileContent(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Alertes de prix",
+                        text = StringTranslator.translate(context, "Alertes de prix"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -889,7 +1022,7 @@ fun ProfileContent(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Destinations hors ligne",
+                        text = StringTranslator.translate(context, "Destinations hors ligne"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -910,7 +1043,7 @@ fun ProfileContent(
         
         // My Memories Section
         Text(
-            text = "My Memories",
+            text = StringTranslator.translate(context, "My Memories"),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
@@ -1013,6 +1146,37 @@ fun MemoryCard(album: MemoryAlbum) {
                         .padding(4.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun LanguageOption(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        )
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Selected",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

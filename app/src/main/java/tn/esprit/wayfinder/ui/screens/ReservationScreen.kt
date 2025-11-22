@@ -34,6 +34,7 @@ import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.*
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,7 +94,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Réservation", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Réservation"), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -119,7 +120,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
         ) {
             if (selectedDestination == null) {
                 Text(
-                    text = "Impossible de charger les détails du vol sélectionné. Veuillez revenir aux résultats.",
+                    text = StringTranslator.translate(context, "Impossible de charger les détails du vol sélectionné. Veuillez revenir aux résultats."),
                     color = Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -143,12 +144,12 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${destination.country} • ${destination.airline ?: "Compagnie inconnue"}",
+                            text = "${destination.country} • ${destination.airline ?: StringTranslator.translate(context, "Compagnie inconnue")}",
                             color = Color.Gray
                         )
                         if (destination.departureDate != null && destination.arrivalDate != null) {
                             Text(
-                                text = "Départ : ${destination.departureDate.substringBefore("T")} | Retour : ${destination.arrivalDate.substringBefore("T")}",
+                                text = "${StringTranslator.translate(context, "Départ :")} ${destination.departureDate.substringBefore("T")} | ${StringTranslator.translate(context, "Retour :")} ${destination.arrivalDate.substringBefore("T")}",
                                 color = Color.Gray
                             )
                         }
@@ -185,7 +186,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Informations de paiement",
+                            text = StringTranslator.translate(context, "Informations de paiement"),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -200,7 +201,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                 .joinToString(" ")
                             if (formatted.length <= 19) cardNumber = formatted
                         },
-                        label = { Text("Numéro de carte") },
+                        label = { Text(StringTranslator.translate(context, "Numéro de carte")) },
                         placeholder = { Text("1234 5678 9012 3456") },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Number
@@ -214,7 +215,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                     OutlinedTextField(
                         value = cardHolderName,
                         onValueChange = { cardHolderName = it },
-                        label = { Text("Nom sur la carte") },
+                        label = { Text(StringTranslator.translate(context, "Nom sur la carte")) },
                         placeholder = { Text("John Doe") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
@@ -239,7 +240,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                     }
                                 }
                             },
-                            label = { Text("Expiration") },
+                            label = { Text(StringTranslator.translate(context, "Expiration")) },
                             placeholder = { Text("MM/YY") },
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = KeyboardType.Number
@@ -254,7 +255,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                     cvv = it
                                 }
                             },
-                            label = { Text("CVV") },
+                            label = { Text(StringTranslator.translate(context, "CVV")) },
                             placeholder = { Text("123") },
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = KeyboardType.Number
@@ -278,7 +279,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Résumé",
+                        text = StringTranslator.translate(context, "Résumé"),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -298,7 +299,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Prix du vol", color = Color.Gray)
+                        Text(StringTranslator.translate(context, "Prix du vol"), color = Color.Gray)
                         Text(String.format(Locale.getDefault(), "%.2f %s", basePrice, currency), fontWeight = FontWeight.Medium)
                     }
                     
@@ -306,7 +307,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Taxes", color = Color.Gray)
+                        Text(StringTranslator.translate(context, "Taxes"), color = Color.Gray)
                         Text(String.format(Locale.getDefault(), "%.2f %s", taxes, currency), fontWeight = FontWeight.Medium)
                     }
                     
@@ -314,7 +315,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Bagages & services", color = Color.Gray)
+                        Text(StringTranslator.translate(context, "Bagages & services"), color = Color.Gray)
                         Text(String.format(Locale.getDefault(), "%.2f %s", baggage + serviceFees, currency), fontWeight = FontWeight.Medium)
                     }
 
@@ -333,7 +334,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Total",
+                            text = StringTranslator.translate(context, "Total"),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -396,7 +397,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             )
                         ) {
                             Text(
-                                text = "Réessayer",
+                                text = StringTranslator.translate(context, "Réessayer"),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -429,7 +430,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                                   expiryDate.isNotBlank() && cvv.isNotBlank()
                     ) {
                         Text(
-                            text = "Confirmer la réservation",
+                            text = StringTranslator.translate(context, "Confirmer la réservation"),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )

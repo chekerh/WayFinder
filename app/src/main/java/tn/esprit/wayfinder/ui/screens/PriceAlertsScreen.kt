@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,6 +30,7 @@ import tn.esprit.wayfinder.models.PriceAlert
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.PriceAlertsUiState
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,7 +56,7 @@ fun PriceAlertsScreen(navController: NavController) {
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "Ajouter une alerte",
+                    contentDescription = StringTranslator.translate(context, "Ajouter une alerte"),
                     tint = Color.White
                 )
             }
@@ -63,7 +65,7 @@ fun PriceAlertsScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        "Alertes de prix",
+                        StringTranslator.translate(context, "Alertes de prix"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -80,7 +82,7 @@ fun PriceAlertsScreen(navController: NavController) {
                     FilterChip(
                         selected = showActiveOnly,
                         onClick = { showActiveOnly = !showActiveOnly },
-                        label = { Text("Actives uniquement") }
+                        label = { Text(StringTranslator.translate(context, "Actives uniquement")) }
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -119,12 +121,12 @@ fun PriceAlertsScreen(navController: NavController) {
                                 tint = Color.Gray
                             )
                             Text(
-                                "Aucune alerte de prix",
+                                StringTranslator.translate(context, "Aucune alerte de prix"),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.Gray
                             )
                             Text(
-                                "Créez une alerte pour être notifié lorsque le prix change",
+                                StringTranslator.translate(context, "Créez une alerte pour être notifié lorsque le prix change"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -183,7 +185,7 @@ fun PriceAlertsScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Button(onClick = { priceAlertsViewModel.loadPriceAlerts(showActiveOnly) }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -200,6 +202,7 @@ fun PriceAlertCard(
     onDelete: () -> Unit,
     onToggleActive: () -> Unit
 ) {
+    val context = LocalContext.current
     val itemName = alert.itemData["name"]?.toString()?.trim('"') 
         ?: alert.itemData["destination"]?.toString()?.trim('"')
         ?: alert.itemId
@@ -248,7 +251,7 @@ fun PriceAlertCard(
                         containerColor = Color(0xFF4CAF50),
                         contentColor = Color.White
                     ) {
-                        Text("Déclenché", fontSize = 10.sp)
+                        Text(StringTranslator.translate(context, "Déclenché"), fontSize = 10.sp)
                     }
                 }
             }
@@ -261,7 +264,7 @@ fun PriceAlertCard(
             ) {
                 Column {
                     Text(
-                        text = "Prix cible",
+                        text = StringTranslator.translate(context, "Prix cible"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
@@ -274,7 +277,7 @@ fun PriceAlertCard(
                 if (alert.currentPrice != null) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "Prix actuel",
+                            text = StringTranslator.translate(context, "Prix actuel"),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
@@ -292,7 +295,7 @@ fun PriceAlertCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 AssistChip(
                     onClick = { },
-                    label = { Text("Alerte si prix ≤ ${alert.targetPrice} ${alert.currency}") },
+                    label = { Text("${StringTranslator.translate(context, "Alerte si prix ≤")} ${alert.targetPrice} ${alert.currency}") },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = Color(0xFFE3F2FD)
                     )
@@ -328,14 +331,14 @@ fun PriceAlertCard(
                     IconButton(onClick = onToggleActive) {
                         Icon(
                             imageVector = if (alert.isActive) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
-                            contentDescription = if (alert.isActive) "Désactiver" else "Activer",
+                            contentDescription = if (alert.isActive) StringTranslator.translate(context, "Désactiver") else StringTranslator.translate(context, "Activer"),
                             tint = if (alert.isActive) Color(0xFF1976D2) else Color.Gray
                         )
                     }
                     IconButton(onClick = onEdit) {
                         Icon(
                             imageVector = Icons.Filled.Edit,
-                            contentDescription = "Modifier",
+                            contentDescription = StringTranslator.translate(context, "Modifier"),
                             tint = Color(0xFF1976D2)
                         )
                     }
@@ -343,7 +346,7 @@ fun PriceAlertCard(
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Supprimer",
+                        contentDescription = StringTranslator.translate(context, "Supprimer"),
                         tint = Color.Red
                     )
                 }

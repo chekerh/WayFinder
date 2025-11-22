@@ -29,6 +29,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.BookingUiState
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,7 @@ fun BookingHistoryScreen(navController: NavController) {
             TopAppBar(
                 title = { 
                     Text(
-                        "Historique des réservations",
+                        StringTranslator.translate(context, "Historique des réservations"),
                         fontWeight = FontWeight.Bold
                     ) 
                 },
@@ -80,7 +81,7 @@ fun BookingHistoryScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "Voici vos dernières réservations",
+                text = StringTranslator.translate(context, "Voici vos dernières réservations"),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -109,7 +110,7 @@ fun BookingHistoryScreen(navController: NavController) {
                                 color = Color.Red
                             )
                             Button(onClick = { bookingViewModel.loadBookingHistory() }) {
-                                Text("Réessayer")
+                                Text(StringTranslator.translate(context, "Réessayer"))
                             }
                         }
                     }
@@ -121,7 +122,7 @@ fun BookingHistoryScreen(navController: NavController) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Aucune réservation",
+                                text = StringTranslator.translate(context, "Aucune réservation"),
                                 color = Color.Gray
                             )
                         }
@@ -155,7 +156,7 @@ fun BookingHistoryScreen(navController: NavController) {
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Voir plus")
+                Text(StringTranslator.translate(context, "Voir plus"))
             }
             
             Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
@@ -225,10 +226,11 @@ fun BookingHistoryCard(booking: Booking, onClick: () -> Unit) {
 
 @Composable
 fun StatusChip(status: BookingStatus) {
+    val context = LocalContext.current
     val (text, color) = when (status) {
-        BookingStatus.CONFIRMED -> "Confirmed" to Color(0xFF4CAF50)
-        BookingStatus.PENDING -> "Pending" to Color(0xFFFF9800)
-        BookingStatus.CANCELLED -> "Cancelled" to Color(0xFFF44336)
+        BookingStatus.CONFIRMED -> StringTranslator.translate(context, "Confirmed") to Color(0xFF4CAF50)
+        BookingStatus.PENDING -> StringTranslator.translate(context, "Pending") to Color(0xFFFF9800)
+        BookingStatus.CANCELLED -> StringTranslator.translate(context, "Cancelled") to Color(0xFFF44336)
     }
     
     Box(

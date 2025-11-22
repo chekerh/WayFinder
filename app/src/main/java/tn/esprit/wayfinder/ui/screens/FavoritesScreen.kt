@@ -37,6 +37,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.viewmodels.FavoritesUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +59,7 @@ fun FavoritesScreen(navController: NavController) {
             TopAppBar(
                 title = { 
                     Text(
-                        "Favoris",
+                        StringTranslator.translate(context, "Favoris"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 32.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -68,7 +69,7 @@ fun FavoritesScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Retour",
+                            contentDescription = StringTranslator.translate(context, "Retour"),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -116,17 +117,17 @@ fun FavoritesScreen(navController: NavController) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Aucun favori",
+                        contentDescription = StringTranslator.translate(context, "Aucun favori"),
                         modifier = Modifier.size(80.dp),
                         tint = Color.Gray
                     )
                     Text(
-                        "Aucun favori pour le moment",
+                        StringTranslator.translate(context, "Aucun favori pour le moment"),
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.Gray
                     )
                     Text(
-                        "Ajoutez des destinations à vos favoris\npour les retrouver facilement",
+                        StringTranslator.translate(context, "Ajoutez des destinations à vos favoris\npour les retrouver facilement"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -174,7 +175,7 @@ fun FavoritesScreen(navController: NavController) {
                             tint = Color(0xFFFF5252)
                         )
                         Text(
-                            text = "Erreur",
+                            text = StringTranslator.translate(context, "Erreur"),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFF5252)
@@ -191,7 +192,7 @@ fun FavoritesScreen(navController: NavController) {
                                 containerColor = Color(0xFF1976D2)
                             )
                         ) {
-                            Text("Réessayer", modifier = Modifier.padding(horizontal = 8.dp))
+                            Text(StringTranslator.translate(context, "Réessayer"), modifier = Modifier.padding(horizontal = 8.dp))
                         }
                     }
                 }
@@ -207,6 +208,7 @@ fun FavoriteCard(
     onRemove: () -> Unit,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -257,7 +259,7 @@ fun FavoriteCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
-                    contentDescription = "Retirer des favoris",
+                    contentDescription = StringTranslator.translate(context, "Retirer des favoris"),
                     tint = Color(0xFFFF1744),
                     modifier = Modifier.size(24.dp)
                 )

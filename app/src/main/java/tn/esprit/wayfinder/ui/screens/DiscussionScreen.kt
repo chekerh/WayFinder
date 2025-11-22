@@ -39,6 +39,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.DiscussionUiState
 import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -60,7 +61,7 @@ fun DiscussionScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Discussions", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Discussions"), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -100,13 +101,13 @@ fun DiscussionScreen(navController: NavController) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "Aucune discussion pour le moment",
+                                    text = StringTranslator.translate(context, "Aucune discussion pour le moment"),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(onClick = { showCreatePostDialog = true }) {
-                                    Text("Créer la première discussion")
+                                    Text(StringTranslator.translate(context, "Créer la première discussion"))
                                 }
                             }
                         }
@@ -132,7 +133,7 @@ fun DiscussionScreen(navController: NavController) {
                                         onClick = { discussionViewModel.loadPosts() },
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Charger plus")
+                                        Text(StringTranslator.translate(context, "Charger plus"))
                                     }
                                 }
                             }
@@ -145,7 +146,7 @@ fun DiscussionScreen(navController: NavController) {
                             Text(state.message, color = Color.Red)
                             Spacer(modifier = Modifier.height(8.dp))
                             Button(onClick = { discussionViewModel.retry() }) {
-                                Text("Réessayer")
+                                Text(StringTranslator.translate(context, "Réessayer"))
                             }
                         }
                     }
@@ -181,6 +182,7 @@ fun PostCard(
     onLikeClick: () -> Unit,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val isLiked = currentUserId != null && post.likedBy.contains(currentUserId)
     
     Card(
@@ -315,7 +317,7 @@ fun PostCard(
                     )
                 }
                 Text(
-                    text = "${post.commentsCount} commentaires",
+                    text = "${post.commentsCount} ${StringTranslator.translate(context, "commentaires")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -329,26 +331,27 @@ fun CreatePostDialog(
     onDismiss: () -> Unit,
     onCreatePost: (String, String, List<String>?, String?) -> Unit
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var destination by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Créer une discussion", fontWeight = FontWeight.Bold) },
+        title = { Text(StringTranslator.translate(context, "Créer une discussion"), fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Titre") },
+                    label = { Text(StringTranslator.translate(context, "Titre")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("Contenu") },
+                    label = { Text(StringTranslator.translate(context, "Contenu")) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
                     maxLines = 8
@@ -356,7 +359,7 @@ fun CreatePostDialog(
                 OutlinedTextField(
                     value = destination,
                     onValueChange = { destination = it },
-                    label = { Text("Destination (optionnel)") },
+                    label = { Text(StringTranslator.translate(context, "Destination (optionnel)")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -376,12 +379,12 @@ fun CreatePostDialog(
                 },
                 enabled = title.isNotBlank() && content.isNotBlank()
             ) {
-                Text("Publier")
+                Text(StringTranslator.translate(context, "Publier"))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(StringTranslator.translate(context, "Annuler"))
             }
         }
     )

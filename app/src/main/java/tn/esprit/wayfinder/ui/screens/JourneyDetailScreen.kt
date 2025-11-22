@@ -40,6 +40,7 @@ import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 import tn.esprit.wayfinder.viewmodels.JourneyDetailUiState
 import tn.esprit.wayfinder.models.Journey
 import tn.esprit.wayfinder.models.JourneyComment
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,6 +140,7 @@ fun JourneyDetailContent(
     onLikeClick: () -> Unit,
     onCommentSubmit: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val baseUrl = "https://wayfinder-api-w92x.onrender.com"
     
     Column(
@@ -197,7 +199,7 @@ fun JourneyDetailContent(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Commentaires (${comments.size})",
+                    text = "${StringTranslator.translate(context, "Commentaires")} (${comments.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -213,7 +215,7 @@ fun JourneyDetailContent(
                         value = commentText,
                         onValueChange = onCommentTextChange,
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ajouter un commentaire...") },
+                        placeholder = { Text(StringTranslator.translate(context, "Ajouter un commentaire...")) },
                         shape = RoundedCornerShape(24.dp),
                         trailingIcon = {
                             if (commentText.isNotEmpty()) {
@@ -238,7 +240,7 @@ fun JourneyDetailContent(
                 // Comments List
                 if (comments.isEmpty()) {
                     Text(
-                        text = "Aucun commentaire pour le moment",
+                        text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray,
                         modifier = Modifier.padding(vertical = 16.dp)

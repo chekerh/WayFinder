@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import tn.esprit.wayfinder.utils.GoogleSignInHelper
+import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.GoogleSignInResult
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,7 +133,7 @@ fun LoginScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFEFF4FF))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -150,20 +152,20 @@ fun LoginScreen(navController: NavController) {
             )
 
             Text(
-                "Bienvenue sur Wayfindr",
+                StringTranslator.translate(context, "Bienvenue sur Wayfindr"),
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0D47A1)
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
-                "Veuillez vous connecter pour commencer",
+                StringTranslator.translate(context, "Veuillez vous connecter pour commencer"),
                 fontSize = 16.sp,
-                color = Color(0xFF6B7280)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 12.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -175,16 +177,16 @@ fun LoginScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     Text(
-                        "Powered by Gemini",
+                        StringTranslator.translate(context, "Powered by Gemini"),
                         fontSize = 14.sp,
-                        color = Color(0xFFF44336),
+                        color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
                     )
 
                      OutlinedTextField(
                          value = username,
                          onValueChange = { username = it },
-                         label = { Text("Nom d'utilisateur ou email") },
+                         label = { Text(StringTranslator.translate(context, "Nom d'utilisateur ou email")) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true
@@ -193,7 +195,7 @@ fun LoginScreen(navController: NavController) {
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Mot de passe") },
+                        label = { Text(StringTranslator.translate(context, "Mot de passe")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -220,13 +222,16 @@ fun LoginScreen(navController: NavController) {
                             .fillMaxWidth()
                             .height(50.dp),
                         enabled = loginResult !is LoginResult.Loading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         if (loginResult is LoginResult.Loading) {
-                            CircularProgressIndicator(color = Color.Blue, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
                         } else {
-                            Text("Se connecter", fontSize = 16.sp)
+                            Text(StringTranslator.translate(context, "Se connecter"), fontSize = 16.sp, color = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
 
@@ -236,10 +241,10 @@ fun LoginScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(onClick = { navController.navigate("signup_screen") }) {
-                            Text("Pas de compte ?")
+                            Text(StringTranslator.translate(context, "Pas de compte ?"))
                         }
                         TextButton(onClick = { /* TODO */ }) {
-                            Text("Mot de passe oublié ?")
+                            Text(StringTranslator.translate(context, "Mot de passe oublié ?"))
                         }
                     }
 
@@ -250,10 +255,10 @@ fun LoginScreen(navController: NavController) {
                     ) {
                         HorizontalDivider(modifier = Modifier.weight(1f))
                         Text(
-                            "OU",
+                            StringTranslator.translate(context, "OU"),
                             modifier = Modifier.padding(horizontal = 16.dp),
                             fontSize = 14.sp,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         HorizontalDivider(modifier = Modifier.weight(1f))
                     }
@@ -265,7 +270,7 @@ fun LoginScreen(navController: NavController) {
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
                                 .clickable {
                                     // Simplified like iOS - just check if Client ID is valid
                                     if (googleClientId.isBlank() || !googleClientId.contains(".apps.googleusercontent.com")) {
@@ -290,7 +295,7 @@ fun LoginScreen(navController: NavController) {
                                 if (googleSignInResult is GoogleSignInResult.Loading) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(22.dp),
-                                        color = Color(0xFF1976D2),
+                                        color = MaterialTheme.colorScheme.primary,
                                         strokeWidth = 2.dp
                                     )
                                 } else {
@@ -300,26 +305,12 @@ fun LoginScreen(navController: NavController) {
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
-                                Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
-                                .clickable { /* TODO: Apple Sign-In */ }
-                                .padding(horizontal = 18.dp, vertical = 10.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_apple),
-                                    contentDescription = "Apple",
-                                    modifier = Modifier.size(22.dp)
+                                Text(
+                                    StringTranslator.translate(context, "Google"),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text("Apple", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                     }

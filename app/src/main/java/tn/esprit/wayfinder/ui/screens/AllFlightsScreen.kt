@@ -42,6 +42,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +63,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
     var maxDurationHours by remember { mutableStateOf(24f) }
     var travelClass by remember { mutableStateOf<String?>(null) }
 
-    // Region to country mapping (same as HomeScreen)
+    // Region to country mapping (same as HomeScreen) - Keep keys in French for logic
     val regions = listOf(
         "Préférences" to emptyList<String>(),
         "Europe" to listOf("France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"),
@@ -81,10 +82,10 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tous les vols", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Tous les vols"), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = StringTranslator.translate(context, "Retour"))
                     }
                 },
                 actions = {
@@ -92,7 +93,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                     IconButton(onClick = { showFilterMenu = true }) {
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
-                            contentDescription = "Filtrer par région",
+                            contentDescription = StringTranslator.translate(context, "Filtrer par région"),
                             tint = if (currentFilterRegion != null) Color(0xFF1976D2) else Color.Gray
                         )
                     }
@@ -100,7 +101,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                     IconButton(onClick = { showFilterDrawer = true }) {
                         Icon(
                             imageVector = Icons.Filled.Tune,
-                            contentDescription = "Filtres avancés",
+                            contentDescription = StringTranslator.translate(context, "Filtres avancés"),
                             tint = if (hasActiveFilters(minPrice, maxPrice, selectedAirlines, maxDurationHours, travelClass)) Color(0xFF1976D2) else Color.Gray
                         )
                     }
@@ -118,7 +119,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
             onDismissRequest = { showFilterMenu = false }
         ) {
             DropdownMenuItem(
-                text = { Text("Tous") },
+                text = { Text(StringTranslator.translate(context, "Tous")) },
                 onClick = {
                     currentFilterRegion = null
                     showFilterMenu = false
@@ -127,7 +128,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
             regions.forEach { (regionName, _) ->
                 if (regionName != "Préférences") {
                     DropdownMenuItem(
-                        text = { Text(regionName) },
+                        text = { Text(StringTranslator.translate(context, regionName)) },
                         onClick = {
                             currentFilterRegion = regionName
                             showFilterMenu = false
@@ -151,11 +152,11 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                 if (state.fromCache) {
                     AssistChip(
                         onClick = { catalogViewModel.loadRecommendedFlights(showAll = true) },
-                        label = { Text("Résultats hors ligne (cache)") },
+                        label = { Text(StringTranslator.translate(context, "Résultats hors ligne (cache)")) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Filled.CloudOff,
-                                contentDescription = "Mode hors ligne"
+                                contentDescription = StringTranslator.translate(context, "Mode hors ligne")
                             )
                         },
                         colors = AssistChipDefaults.assistChipColors(
@@ -218,13 +219,13 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Aucun vol disponible",
+                                text = StringTranslator.translate(context, "Aucun vol disponible"),
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             if (selectedRegion != null) {
                                 Text(
-                                    text = "pour la région sélectionnée",
+                                    text = StringTranslator.translate(context, "pour la région sélectionnée"),
                                     color = Color.Gray,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
@@ -269,7 +270,7 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Button(onClick = { catalogViewModel.loadRecommendedFlights() }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -337,6 +338,7 @@ fun FilterDrawer(
     availableAirlines: List<String>,
     onReset: () -> Unit
 ) {
+    val context = LocalContext.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface
@@ -364,17 +366,17 @@ fun FilterDrawer(
                         modifier = Modifier.size(28.dp)
                     )
                     Text(
-                        text = "Filtres avancés",
+                        text = StringTranslator.translate(context, "Filtres avancés"),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Row {
                     TextButton(onClick = onReset) {
-                        Text("Réinitialiser", color = Color(0xFF1976D2), fontWeight = FontWeight.Medium)
+                        Text(StringTranslator.translate(context, "Réinitialiser"), color = Color(0xFF1976D2), fontWeight = FontWeight.Medium)
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "Fermer", tint = Color.Gray)
+                        Icon(Icons.Filled.Close, contentDescription = StringTranslator.translate(context, "Fermer"), tint = Color.Gray)
                     }
                 }
             }
@@ -395,7 +397,7 @@ fun FilterDrawer(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Prix",
+                        text = StringTranslator.translate(context, "Prix"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -461,14 +463,14 @@ fun FilterDrawer(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Compagnie aérienne",
+                        text = StringTranslator.translate(context, "Compagnie aérienne"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 if (availableAirlines.isEmpty()) {
                     Text(
-                        text = "Aucune compagnie disponible",
+                        text = StringTranslator.translate(context, "Aucune compagnie disponible"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )
@@ -529,7 +531,7 @@ fun FilterDrawer(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Durée maximale",
+                        text = StringTranslator.translate(context, "Durée maximale"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -540,7 +542,7 @@ fun FilterDrawer(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "${maxDurationHours.toInt()} heures",
+                        text = "${maxDurationHours.toInt()} ${StringTranslator.translate(context, "heures")}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1976D2),
@@ -586,7 +588,7 @@ fun FilterDrawer(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Classe de voyage",
+                        text = StringTranslator.translate(context, "Classe de voyage"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -603,7 +605,7 @@ fun FilterDrawer(
                                 onClick = {
                                     onTravelClassChange(if (travelClass == className) null else className)
                                 },
-                                label = { Text(className) },
+                                label = { Text(StringTranslator.translate(context, className)) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -629,7 +631,7 @@ fun FilterDrawer(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Appliquer les filtres",
+                    text = StringTranslator.translate(context, "Appliquer les filtres"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -742,9 +744,10 @@ fun FlightCard(
                     .align(Alignment.TopEnd)
                     .padding(8.dp)
             ) {
+                val context = LocalContext.current
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                    contentDescription = if (isFavorite) StringTranslator.translate(context, "Remove from favorites") else StringTranslator.translate(context, "Add to favorites"),
                     tint = if (isFavorite) Color(0xFFFF1744) else Color.White,
                     modifier = Modifier
                         .size(24.dp)

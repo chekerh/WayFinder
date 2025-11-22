@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,8 +18,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.platform.LocalContext
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.utils.StringTranslator
 
 // FIX: Re-added UI-specific models as private data classes inside the file.
 private data class ChatMessage(val text: String, val isFromGemini: Boolean, val isQuickReply: Boolean = false)
@@ -27,18 +30,21 @@ private data class Pack(val title: String, val price: String)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(navController: NavController) {
-    val messages = listOf(
-        ChatMessage("Bonjour! J'ai préparé 3 packs pour vous, lequel préférez-vous?", true),
-        ChatMessage("Ou, proposez-moi vos idées!", true, isQuickReply = true),
-        Pack("Pack 1: Madrid -> Berlin - Malaysian Airlines", "120TND"),
-        Pack("Pack 2: Tunis -> Lyon - Tunisian Airlines", "100TND"),
-        Pack("Pack 3: Paris -> Roma -> Hôtel", "150TND")
-    )
+    val context = LocalContext.current
+    val messages = remember(context) {
+        listOf(
+            ChatMessage(StringTranslator.translate(context, "Bonjour! J'ai préparé 3 packs pour vous, lequel préférez-vous?"), true),
+            ChatMessage(StringTranslator.translate(context, "Ou, proposez-moi vos idées!"), true, isQuickReply = true),
+            Pack("Pack 1: Madrid -> Berlin - Malaysian Airlines", "120TND"),
+            Pack("Pack 2: Tunis -> Lyon - Tunisian Airlines", "100TND"),
+            Pack("Pack 3: Paris -> Roma -> Hôtel", "150TND")
+        )
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Chat - Packs", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Chat - Packs"), fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
@@ -54,7 +60,7 @@ fun ChatScreen(navController: NavController) {
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Text("Consulter Gemini")
+                    Text(StringTranslator.translate(context, "Consulter Gemini"))
                 }
                 CustomBottomNavigationBar(navController = navController)
             }

@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ import tn.esprit.wayfinder.models.Notification
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,7 +55,7 @@ fun NotificationsScreen(navController: NavController) {
             TopAppBar(
                 title = { 
                     Text(
-                        "Notifications",
+                        StringTranslator.translate(context, "Notifications"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ) 
@@ -75,7 +77,7 @@ fun NotificationsScreen(navController: NavController) {
                                         notificationsViewModel.markAllAsRead()
                                     }
                                 ) {
-                                    Text("Tout marquer comme lu", fontSize = 12.sp)
+                                    Text(StringTranslator.translate(context, "Tout marquer comme lu"), fontSize = 12.sp)
                                 }
                             }
                         }
@@ -118,12 +120,12 @@ fun NotificationsScreen(navController: NavController) {
                                 tint = Color.Gray
                             )
                             Text(
-                                "Aucune notification",
+                                StringTranslator.translate(context, "Aucune notification"),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.Gray
                             )
                             Text(
-                                "Vous n'avez pas de notifications pour le moment",
+                                StringTranslator.translate(context, "Vous n'avez pas de notifications pour le moment"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -188,7 +190,7 @@ fun NotificationsScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Button(onClick = { notificationsViewModel.loadNotifications() }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -205,6 +207,7 @@ fun NotificationCard(
     onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -278,7 +281,7 @@ fun NotificationCard(
                     color = Color.Gray
                 )
                 Text(
-                    text = formatNotificationTime(notification.createdAt),
+                    text = formatNotificationTime(context, notification.createdAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -291,7 +294,7 @@ fun NotificationCard(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
-                    contentDescription = "Supprimer",
+                    contentDescription = StringTranslator.translate(context, "Supprimer"),
                     tint = Color.Gray,
                     modifier = Modifier.size(20.dp)
                 )
@@ -300,7 +303,7 @@ fun NotificationCard(
     }
 }
 
-private fun formatNotificationTime(timestamp: String): String {
+private fun formatNotificationTime(context: android.content.Context, timestamp: String): String {
     return try {
         val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
         parser.timeZone = TimeZone.getTimeZone("UTC")
@@ -309,10 +312,10 @@ private fun formatNotificationTime(timestamp: String): String {
         val diff = now.time - (date?.time ?: 0)
         
         when {
-            diff < 60000 -> "À l'instant"
-            diff < 3600000 -> "${diff / 60000} min"
-            diff < 86400000 -> "${diff / 3600000} h"
-            diff < 604800000 -> "${diff / 86400000} j"
+            diff < 60000 -> StringTranslator.translate(context, "À l'instant")
+            diff < 3600000 -> "${diff / 60000} ${StringTranslator.translate(context, "min")}"
+            diff < 86400000 -> "${diff / 3600000} ${StringTranslator.translate(context, "h")}"
+            diff < 604800000 -> "${diff / 86400000} ${StringTranslator.translate(context, "j")}"
             else -> {
                 val formatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
                 formatter.format(date ?: Date())

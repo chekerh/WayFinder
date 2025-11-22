@@ -39,6 +39,7 @@ import tn.esprit.wayfinder.models.DiscussionPost
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
 import tn.esprit.wayfinder.viewmodels.PostDetailUiState
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -97,7 +98,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                     
                     // Comments Section
                     Text(
-                        text = "Commentaires (${state.comments.size})",
+                        text = "${StringTranslator.translate(context, "Commentaires")} (${state.comments.size})",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -111,7 +112,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Aucun commentaire pour le moment",
+                                text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -181,7 +182,7 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                                 value = commentText,
                                 onValueChange = { newText: String -> commentText = newText },
                                 modifier = Modifier.weight(1f),
-                                placeholder = { Text("Ajoutez un commentaire...") },
+                                placeholder = { Text(StringTranslator.translate(context, "Ajoutez un commentaire...")) },
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color.Transparent,

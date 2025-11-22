@@ -53,6 +53,7 @@ import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
@@ -87,27 +88,27 @@ fun HomeScreen(navController: NavController) {
     // Regions data with country filters
     val regions = listOf(
         Region(
-            name = "Préférences",
+            name = StringTranslator.translate(context, "Préférences"),
             imageRes = R.drawable.travel_image, // Not used - we use Star icon instead
             filterCountries = emptyList() // No filter - show personalized preferences
         ),
         Region(
-            name = "Europe",
+            name = StringTranslator.translate(context, "Europe"),
             imageRes = R.drawable.europe,
             filterCountries = listOf("France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland")
         ),
         Region(
-            name = "Asie",
+            name = StringTranslator.translate(context, "Asie"),
             imageRes = R.drawable.asia,
             filterCountries = listOf("China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel")
         ),
         Region(
-            name = "Amerique",
-            imageRes = R.drawable.travel_image,
+            name = StringTranslator.translate(context, "Amerique"),
+            imageRes = R.drawable.america,
             filterCountries = listOf("United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru")
         ),
         Region(
-            name = "Australie",
+            name = StringTranslator.translate(context, "Australie"),
             imageRes = R.drawable.australia,
             filterCountries = listOf("Australia", "New Zealand", "Fiji")
         )
@@ -130,13 +131,13 @@ fun HomeScreen(navController: NavController) {
             Column {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     Text(
-                        text = "Personnalisé par Gemini",
+                        text = StringTranslator.translate(context, "Personnalisé par Gemini"),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "Voyages adaptés à vos préférences",
+                        text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -163,12 +164,12 @@ fun HomeScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Comparateur avec Gemini",
+                            text = StringTranslator.translate(context, "Comparateur avec Gemini"),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Voir tous",
+                            text = StringTranslator.translate(context, "Voir tous"),
                             color = Color(0xFF1976D2),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.clickable {
@@ -220,7 +221,7 @@ fun HomeScreen(navController: NavController) {
                             if (state.fromCache) {
                                 AssistChip(
                                     onClick = { catalogViewModel.loadRecommendedFlights(showAll = false) },
-                                    label = { Text("Affichage hors ligne (cache)") },
+                                    label = { Text(StringTranslator.translate(context, "Affichage hors ligne (cache)")) },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.Default.CloudOff,
@@ -255,7 +256,7 @@ fun HomeScreen(navController: NavController) {
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     )
                                     Button(onClick = { catalogViewModel.loadRecommendedFlights() }) {
-                                        Text("Réessayer")
+                                        Text(StringTranslator.translate(context, "Réessayer"))
                                     }
                                 }
                             }
@@ -333,7 +334,7 @@ fun TopBar(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Salut, $userName",
+                text = "${StringTranslator.translate(context, "Salut")}, $userName",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -443,9 +444,10 @@ fun DestinationsSection(
     navController: NavController,
     favoritesViewModel: FavoritesViewModel
 ) {
+    val context = LocalContext.current
     if (destinations.isEmpty()) {
         Text(
-            text = "Aucune destination disponible",
+            text = StringTranslator.translate(context, "Aucune destination disponible"),
             color = Color.Gray,
             modifier = Modifier.padding(16.dp)
         )
@@ -603,6 +605,7 @@ fun DestinationCardContent(
 
 @Composable
 fun DiscussionCard(navController: NavController) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -644,13 +647,13 @@ fun DiscussionCard(navController: NavController) {
                 
                 Column {
                     Text(
-                        text = "Discussions de la communauté",
+                        text = StringTranslator.translate(context, "Discussions de la communauté"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Partagez vos expériences et découvrez les conseils des voyageurs",
+                        text = StringTranslator.translate(context, "Partagez vos expériences et découvrez les conseils des voyageurs"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )

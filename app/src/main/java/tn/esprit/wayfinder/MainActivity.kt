@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,11 +11,24 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import tn.esprit.wayfinder.manager.LanguageManager
 import tn.esprit.wayfinder.manager.ThemeManager
 import tn.esprit.wayfinder.navigation.AppNavigation
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.utils.LocaleHelper
 
 class MainActivity : ComponentActivity() {
+    
+    override fun attachBaseContext(newBase: Context?) {
+        if (newBase != null) {
+            val languageManager = LanguageManager(newBase)
+            val language = languageManager.getLanguage()
+            super.attachBaseContext(LocaleHelper.wrap(newBase, language))
+        } else {
+            super.attachBaseContext(newBase)
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

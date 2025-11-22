@@ -41,6 +41,7 @@ import tn.esprit.wayfinder.models.DestinationWithVideoStatus
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.destinationvideo.DestinationVideoRepository
 import tn.esprit.wayfinder.network.RetrofitInstance
+import tn.esprit.wayfinder.utils.StringTranslator
 import android.widget.Toast
 import kotlinx.coroutines.delay
 
@@ -114,7 +115,7 @@ fun JourneyFeedScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Voyages partagés") },
+                title = { Text(StringTranslator.translate(context, "Voyages partagés")) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -157,12 +158,12 @@ fun JourneyFeedScreen(navController: NavController) {
                                 tint = Color.Gray
                             )
                             Text(
-                                text = "Aucun voyage partagé",
+                                text = StringTranslator.translate(context, "Aucun voyage partagé"),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.Gray
                             )
                             Text(
-                                text = "Soyez le premier à partager votre voyage !",
+                                text = StringTranslator.translate(context, "Soyez le premier à partager votre voyage !"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -183,7 +184,7 @@ fun JourneyFeedScreen(navController: NavController) {
                             if (destinations.isNotEmpty()) {
                                 item {
                                     Text(
-                                        text = "Vidéos par destination",
+                                        text = StringTranslator.translate(context, "Vidéos par destination"),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(vertical = 8.dp)
@@ -211,7 +212,7 @@ fun JourneyFeedScreen(navController: NavController) {
                                     Divider()
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Tous les voyages",
+                                        text = StringTranslator.translate(context, "Tous les voyages"),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(vertical = 8.dp)
@@ -260,7 +261,7 @@ fun JourneyFeedScreen(navController: NavController) {
                             color = Color.Red
                         )
                         Button(onClick = { journeyViewModel.loadJourneys() }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -280,6 +281,7 @@ fun JourneyCard(
     onGenerateVideoClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val isOwnJourney = currentUserId != null && journey.userId == currentUserId
     var showDeleteDialog by remember { mutableStateOf(false) }
     Card(
@@ -334,7 +336,7 @@ fun JourneyCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Supprimer",
+                            contentDescription = StringTranslator.translate(context, "Supprimer"),
                             tint = Color(0xFFE91E63),
                             modifier = Modifier.size(24.dp)
                         )
@@ -347,10 +349,10 @@ fun JourneyCard(
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
                     title = {
-                        Text("Supprimer le voyage")
+                        Text(StringTranslator.translate(context, "Supprimer le voyage"))
                     },
                     text = {
-                        Text("Êtes-vous sûr de vouloir supprimer ce voyage ? Cette action est irréversible.")
+                        Text(StringTranslator.translate(context, "Êtes-vous sûr de vouloir supprimer ce voyage ? Cette action est irréversible."))
                     },
                     confirmButton = {
                         TextButton(
@@ -362,14 +364,14 @@ fun JourneyCard(
                                 contentColor = Color(0xFFE91E63)
                             )
                         ) {
-                            Text("Supprimer")
+                            Text(StringTranslator.translate(context, "Supprimer"))
                         }
                     },
                     dismissButton = {
                         TextButton(
                             onClick = { showDeleteDialog = false }
                         ) {
-                            Text("Annuler")
+                            Text(StringTranslator.translate(context, "Annuler"))
                         }
                     }
                 )
@@ -442,7 +444,7 @@ fun JourneyCard(
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            text = "Vidéo AI générée",
+                            text = StringTranslator.translate(context, "Vidéo AI générée"),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF4A90E2)
                         )
@@ -463,7 +465,7 @@ fun JourneyCard(
                             strokeWidth = 2.dp
                         )
                         Text(
-                            text = "Génération de la vidéo en cours...",
+                            text = StringTranslator.translate(context, "Génération de la vidéo en cours..."),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFFFFA726)
                         )
@@ -485,7 +487,7 @@ fun JourneyCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (journey.videoStatus == "failed") "Régénérer la vidéo" else "Générer ma vidéo",
+                            text = if (journey.videoStatus == "failed") StringTranslator.translate(context, "Régénérer la vidéo") else StringTranslator.translate(context, "Générer ma vidéo"),
                             fontWeight = FontWeight.Bold
                         )
                     }

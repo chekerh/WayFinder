@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WayFinder</string>
+    
+    <!-- Google OAuth -->
+    <string name="google_client_id_android">825004975196-gr4rffsv0akatmmn9qonoqsq5aa4q5e6.apps.googleusercontent.com</string>
+    
+    <!-- Langue -->
+    <string name="language">Langue</string>
+    <string name="language_french">Français</string>
+    <string name="language_english">Anglais</string>
+    <string name="select_language">Sélectionner la langue</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_favorites">Favoris</string>
+    <string name="nav_discussions">Discussions</string>
+    <string name="nav_profile">Profil</string>
+    
+    <!-- Profil -->
+    <string name="profile_title">Profil</string>
+    <string name="edit_profile">Modifier le profil</string>
+    <string name="appearance">Apparence</string>
+    <string name="dark_mode">Mode sombre</string>
+    <string name="follow_system_theme">Suivre le thème système</string>
+    
+    <!-- Accueil -->
+    <string name="welcome">Bienvenue</string>
+    <string name="personalized_by_gemini">Personnalisé par Gemini</string>
+    <string name="recommended_destinations">Destinations recommandées</string>
+    <string name="see_more">Voir plus</string>
+    
+    <!-- Favoris -->
+    <string name="favorites">Favoris</string>
+    <string name="no_favorites">Aucun favori pour le moment</string>
+    
+    <!-- Discussions -->
+    <string name="discussions">Discussions</string>
+    <string name="no_discussions">Aucune discussion pour le moment</string>
+    <string name="create_first_discussion">Créer la première discussion</string>
+    
+    <!-- Connexion -->
+    <string name="login">Se connecter</string>
+    <string name="signup">S\'inscrire</string>
+    <string name="welcome_wayfinder">Bienvenue sur Wayfindr</string>
+    <string name="login_subtitle">Veuillez vous connecter pour commencer</string>
+    <string name="username_or_email">Nom d\'utilisateur ou email</string>
+    <string name="password">Mot de passe</string>
+    <string name="forgot_password">Mot de passe oublié ?</string>
+    <string name="no_account">Pas de compte ?</string>
+    <string name="or">OU</string>
+    <string name="google">Google</string>
+    
+    <!-- Messages généraux -->
+    <string name="loading">Chargement...</string>
+    <string name="error">Erreur</string>
+    <string name="retry">Réessayer</string>
+    <string name="cancel">Annuler</string>
+    <string name="save">Enregistrer</string>
+    <string name="delete">Supprimer</string>
+    <string name="edit">Modifier</string>
+    <string name="back">Retour</string>
+    
+    <!-- Avis -->
+    <string name="reviews">Avis</string>
+    <string name="add_review">Ajouter un avis</string>
+    <string name="no_reviews">Aucun avis pour le moment. Soyez le premier à laisser un avis!</string>
+    
+    <!-- Réservations -->
+    <string name="bookings">Réservations</string>
+    <string name="booking_history">Historique des réservations</string>
+    
+    <!-- Voyages -->
+    <string name="share_journey">Partager mon voyage</string>
+    <string name="shared_journeys">Voyages partagés</string>
+</resources>

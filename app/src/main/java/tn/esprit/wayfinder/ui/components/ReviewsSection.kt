@@ -81,6 +81,7 @@ fun ReviewsSection(
                     }
                 }
                 is ReviewsUiState.Success -> {
+                    // Display stats only if available
                     state.stats?.let { stats ->
                         ReviewStatsDisplay(stats = stats)
                     }
@@ -88,7 +89,7 @@ fun ReviewsSection(
                     if (state.reviews.isEmpty()) {
                         Text(
                             text = "Aucun avis pour le moment. Soyez le premier à laisser un avis!",
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 16.dp)
                         )
                     } else {
@@ -112,7 +113,7 @@ fun ReviewsSection(
                 is ReviewsUiState.Error -> {
                     Text(
                         text = state.message,
-                        color = Color.Red,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(vertical = 16.dp)
                     )
                 }

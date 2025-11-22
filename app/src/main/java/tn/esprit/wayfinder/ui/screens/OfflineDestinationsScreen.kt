@@ -35,6 +35,7 @@ import tn.esprit.wayfinder.data.OfflineDestinationsManager
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,7 +67,7 @@ fun OfflineDestinationsScreen(navController: NavController) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Destinations hors ligne",
+                            StringTranslator.translate(context, "Destinations hors ligne"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
@@ -85,7 +86,7 @@ fun OfflineDestinationsScreen(navController: NavController) {
                         IconButton(onClick = { showClearDialog = true }) {
                             Icon(
                                 imageVector = Icons.Filled.Delete,
-                                contentDescription = "Supprimer tout",
+                                contentDescription = StringTranslator.translate(context, "Supprimer tout"),
                                 tint = Color.Red
                             )
                         }
@@ -126,12 +127,12 @@ fun OfflineDestinationsScreen(navController: NavController) {
                             tint = Color.Gray
                         )
                         Text(
-                            "Aucune destination hors ligne",
+                            StringTranslator.translate(context, "Aucune destination hors ligne"),
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.Gray
                         )
                         Text(
-                            "Téléchargez des destinations depuis leur page de détails pour les consulter hors ligne",
+                            StringTranslator.translate(context, "Téléchargez des destinations depuis leur page de détails pour les consulter hors ligne"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray,
                             modifier = Modifier.padding(horizontal = 32.dp)

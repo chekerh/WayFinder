@@ -41,6 +41,7 @@ import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 import tn.esprit.wayfinder.data.OfflineDestinationsManager
 import tn.esprit.wayfinder.utils.NetworkUtils
+import tn.esprit.wayfinder.utils.StringTranslator
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
@@ -63,15 +64,15 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             ?.savedStateHandle
             ?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
     }
-    val destination = remember(destinationId, savedDestination) {
+    val destination = remember(destinationId, savedDestination, context) {
         savedDestination ?: FlightDestination(
             id = destinationId,
-            name = "Destination surprise",
-            city = "À définir",
+            name = StringTranslator.translate(context, "Destination surprise"),
+            city = StringTranslator.translate(context, "À définir"),
             country = "",
             price = 0.0,
             currency = "EUR",
-            description = "Impossible de charger les détails depuis la sélection précédente.",
+            description = StringTranslator.translate(context, "Impossible de charger les détails depuis la sélection précédente."),
             departureDate = null,
             arrivalDate = null,
             airline = null
@@ -92,7 +93,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Détails du vol") },
+                title = { Text(StringTranslator.translate(context, "Détails du vol")) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -166,7 +167,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Informations du vol",
+                        text = StringTranslator.translate(context, "Informations du vol"),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -178,7 +179,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     ) {
                         Column {
                             Text(
-                                text = "Départ",
+                                text = StringTranslator.translate(context, "Départ"),
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -205,7 +206,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
 
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Arrivée",
+                                text = StringTranslator.translate(context, "Arrivée"),
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -232,7 +233,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     ) {
                         Column {
                             Text(
-                                text = "Compagnie aérienne",
+                                text = StringTranslator.translate(context, "Compagnie aérienne"),
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -244,7 +245,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Durée",
+                                text = StringTranslator.translate(context, "Durée"),
                                 fontSize = 14.sp,
                                 color = Color.Gray
                             )
@@ -281,7 +282,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "À propos",
+                                text = StringTranslator.translate(context, "À propos"),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -336,7 +337,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Téléchargé - Supprimer",
+                        text = StringTranslator.translate(context, "Téléchargé - Supprimer"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -378,7 +379,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isDownloading) "Téléchargement..." else "Télécharger pour hors ligne",
+                        text = if (isDownloading) StringTranslator.translate(context, "Téléchargement...") else StringTranslator.translate(context, "Télécharger pour hors ligne"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -404,7 +405,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Alerte prix",
+                        text = StringTranslator.translate(context, "Alerte prix"),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -426,7 +427,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     )
                 ) {
                     Text(
-                        text = "Réserver",
+                        text = StringTranslator.translate(context, "Réserver"),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )

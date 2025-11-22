@@ -17,10 +17,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import tn.esprit.wayfinder.models.TravelTip
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsUiState
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @Composable
 fun TravelTipsSection(
@@ -32,6 +34,7 @@ fun TravelTipsSection(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by travelTipsViewModel.uiState.collectAsState()
 
     LaunchedEffect(destinationId) {
@@ -67,7 +70,7 @@ fun TravelTipsSection(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Conseils de voyage",
+                        text = StringTranslator.translate(context, "Conseils de voyage"),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -80,7 +83,7 @@ fun TravelTipsSection(
                         navController.navigate("travel_tips/$destinationId")
                     }
                 ) {
-                    Text("Voir tout", fontSize = 14.sp)
+                    Text(StringTranslator.translate(context, "Voir tout →"), fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -119,7 +122,7 @@ fun TravelTipsSection(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Génération des conseils...",
+                                text = StringTranslator.translate(context, "Génération des conseils..."),
                                 color = Color.Gray
                             )
                         }
@@ -148,7 +151,7 @@ fun TravelTipsSection(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Impossible de charger les conseils",
+                            text = StringTranslator.translate(context, "Impossible de charger les conseils"),
                             color = Color.Gray,
                             fontSize = 14.sp
                         )
@@ -161,7 +164,7 @@ fun TravelTipsSection(
                                 country
                             )
                         }) {
-                            Text("Générer les conseils", fontSize = 12.sp)
+                            Text(StringTranslator.translate(context, "Générer les conseils"), fontSize = 12.sp)
                         }
                     }
                 }

@@ -29,6 +29,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.ItineraryUiState
 import tn.esprit.wayfinder.viewmodels.ItineraryViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +50,7 @@ fun ItineraryListScreen(navController: NavController) {
             TopAppBar(
                 title = { 
                     Text(
-                        "Mes itinéraires",
+                        StringTranslator.translate(context, "Mes itinéraires"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ) 
@@ -58,7 +59,7 @@ fun ItineraryListScreen(navController: NavController) {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Retour"
+                            contentDescription = StringTranslator.translate(context, "Retour")
                         )
                     }
                 },
@@ -66,7 +67,7 @@ fun ItineraryListScreen(navController: NavController) {
                     IconButton(onClick = { navController.navigate("create_itinerary") }) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = "Nouvel itinéraire"
+                            contentDescription = StringTranslator.translate(context, "Nouvel itinéraire")
                         )
                     }
                 },
@@ -80,7 +81,7 @@ fun ItineraryListScreen(navController: NavController) {
                 onClick = { navController.navigate("create_itinerary") },
                 containerColor = Color(0xFF1976D2)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Nouvel itinéraire", tint = Color.White)
+                Icon(Icons.Filled.Add, contentDescription = StringTranslator.translate(context, "Nouvel itinéraire"), tint = Color.White)
             }
         }
     ) { paddingValues ->
@@ -114,12 +115,12 @@ fun ItineraryListScreen(navController: NavController) {
                                 tint = Color.Gray
                             )
                             Text(
-                                "Aucun itinéraire",
+                                StringTranslator.translate(context, "Aucun itinéraire"),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.Gray
                             )
                             Text(
-                                "Créez votre premier itinéraire de voyage",
+                                StringTranslator.translate(context, "Créez votre premier itinéraire de voyage"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.Gray
                             )
@@ -127,7 +128,7 @@ fun ItineraryListScreen(navController: NavController) {
                                 onClick = { navController.navigate("create_itinerary") },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                             ) {
-                                Text("Créer un itinéraire")
+                                Text(StringTranslator.translate(context, "Créer un itinéraire"))
                             }
                         }
                     }
@@ -167,7 +168,7 @@ fun ItineraryListScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Button(onClick = { itineraryViewModel.loadItineraries() }) {
-                            Text("Réessayer")
+                            Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
@@ -182,6 +183,7 @@ fun ItineraryCard(
     itinerary: tn.esprit.wayfinder.models.Itinerary,
     onClick: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,7 +212,7 @@ fun ItineraryCard(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Public",
+                            text = StringTranslator.translate(context, "Public"),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFF1976D2)
@@ -263,8 +265,10 @@ fun ItineraryCard(
             }
             
             if (itinerary.days.isNotEmpty()) {
+                val dayWord = if (itinerary.days.size > 1) StringTranslator.translate(context, "jours") else StringTranslator.translate(context, "jour")
+                val plannedWord = if (itinerary.days.size > 1) StringTranslator.translate(context, "planifiés") else StringTranslator.translate(context, "planifié")
                 Text(
-                    text = "${itinerary.days.size} jour${if (itinerary.days.size > 1) "s" else ""} planifié${if (itinerary.days.size > 1) "s" else ""}",
+                    text = "${itinerary.days.size} $dayWord $plannedWord",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF1976D2),
                     fontWeight = FontWeight.Medium

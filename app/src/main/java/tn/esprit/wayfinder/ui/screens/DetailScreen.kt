@@ -28,20 +28,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.platform.LocalContext
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @Composable
 fun DetailScreen(navController: NavController) {
+    val context = LocalContext.current
     val title = "World Trade Center"
     val description =
         "Le Bahrain World Trade Center est un complexe de deux tours jumelles de 240 mètres..."
     val features = listOf(
-        "ensoleillé" to Icons.Outlined.WbSunny,
-        "Resto" to Icons.Outlined.Restaurant,
-        "Wi-Fi gratuit" to Icons.Outlined.Wifi,
-        "Café" to Icons.Outlined.LocalCafe,
-        "Affaires" to Icons.Outlined.Business
+        StringTranslator.translate(context, "ensoleillé") to Icons.Outlined.WbSunny,
+        StringTranslator.translate(context, "Resto") to Icons.Outlined.Restaurant,
+        StringTranslator.translate(context, "Wi-Fi gratuit") to Icons.Outlined.Wifi,
+        StringTranslator.translate(context, "Café") to Icons.Outlined.LocalCafe,
+        StringTranslator.translate(context, "Affaires") to Icons.Outlined.Business
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -81,7 +84,7 @@ fun DetailScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(description, style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Équipements disponibles", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(StringTranslator.translate(context, "Équipements disponibles"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -102,7 +105,7 @@ fun DetailScreen(navController: NavController) {
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                     ) {
-                        Text(text = "Comparer les prix")
+                        Text(text = StringTranslator.translate(context, "Comparer les prix"))
                     }
                     Button(
                         onClick = { 
@@ -113,7 +116,7 @@ fun DetailScreen(navController: NavController) {
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107))
                     ) {
-                        Text(text = "Réserver", color = Color.Black)
+                        Text(text = StringTranslator.translate(context, "Réserver"), color = Color.Black)
                     }
                 }
             }

@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.ItineraryViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,7 +50,7 @@ fun CreateItineraryScreen(navController: NavController) {
             TopAppBar(
                 title = { 
                     Text(
-                        "Nouvel itinéraire",
+                        StringTranslator.translate(context, "Nouvel itinéraire"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ) 
@@ -79,7 +80,7 @@ fun CreateItineraryScreen(navController: NavController) {
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Titre de l'itinéraire *") },
+                label = { Text(StringTranslator.translate(context, "Titre de l'itinéraire *")) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -88,7 +89,7 @@ fun CreateItineraryScreen(navController: NavController) {
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description") },
+                label = { Text(StringTranslator.translate(context, "Description")) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 minLines = 3,
@@ -98,7 +99,7 @@ fun CreateItineraryScreen(navController: NavController) {
             OutlinedTextField(
                 value = destination,
                 onValueChange = { destination = it },
-                label = { Text("Destination *") },
+                label = { Text(StringTranslator.translate(context, "Destination *")) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 leadingIcon = {
@@ -114,7 +115,7 @@ fun CreateItineraryScreen(navController: NavController) {
                 OutlinedTextField(
                     value = startDate,
                     onValueChange = { startDate = it },
-                    label = { Text("Date de début *") },
+                    label = { Text(StringTranslator.translate(context, "Date de début *")) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     leadingIcon = {
@@ -127,7 +128,7 @@ fun CreateItineraryScreen(navController: NavController) {
                 OutlinedTextField(
                     value = endDate,
                     onValueChange = { endDate = it },
-                    label = { Text("Date de fin *") },
+                    label = { Text(StringTranslator.translate(context, "Date de fin *")) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     leadingIcon = {
@@ -141,7 +142,7 @@ fun CreateItineraryScreen(navController: NavController) {
             OutlinedTextField(
                 value = totalBudget,
                 onValueChange = { totalBudget = it },
-                label = { Text("Budget total") },
+                label = { Text(StringTranslator.translate(context, "Budget total")) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 placeholder = { Text("0.0") },
@@ -157,7 +158,7 @@ fun CreateItineraryScreen(navController: NavController) {
                     onCheckedChange = { isPublic = it }
                 )
                 Text(
-                    text = "Rendre cet itinéraire public",
+                    text = StringTranslator.translate(context, "Rendre cet itinéraire public"),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -191,7 +192,7 @@ fun CreateItineraryScreen(navController: NavController) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Créer l'itinéraire", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(StringTranslator.translate(context, "Créer l'itinéraire"), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

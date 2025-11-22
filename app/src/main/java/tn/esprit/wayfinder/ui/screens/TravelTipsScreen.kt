@@ -32,6 +32,7 @@ import tn.esprit.wayfinder.ui.components.getCategoryColor
 import tn.esprit.wayfinder.ui.components.getCategoryIcon
 import tn.esprit.wayfinder.viewmodels.TravelTipsUiState
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
+import tn.esprit.wayfinder.utils.StringTranslator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +66,7 @@ fun TravelTipsScreen(
                 title = {
                     Column {
                         Text(
-                            text = destinationName ?: "Conseils de voyage",
+                            text = destinationName ?: StringTranslator.translate(context, "Conseils de voyage"),
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
@@ -99,15 +100,15 @@ fun TravelTipsScreen(
         ) {
             // Category Filter Chips
             val categories = listOf(
-                "all" to "Tous",
-                "general" to "Général",
-                "transportation" to "Transport",
-                "accommodation" to "Hébergement",
-                "food" to "Nourriture",
-                "culture" to "Culture",
-                "safety" to "Sécurité",
-                "budget" to "Budget",
-                "weather" to "Météo"
+                "all" to StringTranslator.translate(context, "Tous"),
+                "general" to StringTranslator.translate(context, "Général"),
+                "transportation" to StringTranslator.translate(context, "Transport"),
+                "accommodation" to StringTranslator.translate(context, "Hébergement"),
+                "food" to StringTranslator.translate(context, "Nourriture"),
+                "culture" to StringTranslator.translate(context, "Culture"),
+                "safety" to StringTranslator.translate(context, "Sécurité"),
+                "budget" to StringTranslator.translate(context, "Budget"),
+                "weather" to StringTranslator.translate(context, "Météo")
             )
 
             HorizontalDivider()
@@ -174,12 +175,12 @@ fun TravelTipsScreen(
                                     tint = Color.Gray
                                 )
                                 Text(
-                                    "Aucun conseil disponible",
+                                    StringTranslator.translate(context, "Aucun conseil disponible"),
                                     style = MaterialTheme.typography.titleLarge,
                                     color = Color.Gray
                                 )
                                 Text(
-                                    "Les conseils seront générés automatiquement",
+                                    StringTranslator.translate(context, "Les conseils seront générés automatiquement"),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Gray
                                 )
@@ -221,7 +222,7 @@ fun TravelTipsScreen(
                             Button(onClick = {
                                 travelTipsViewModel.loadTravelTips(destinationId)
                             }) {
-                                Text("Réessayer")
+                                Text(StringTranslator.translate(context, "Réessayer"))
                             }
                         }
                     }
