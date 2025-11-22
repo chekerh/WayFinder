@@ -13,10 +13,14 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import tn.esprit.wayfinder.manager.LanguageManager
 import tn.esprit.wayfinder.manager.ThemeManager
 import tn.esprit.wayfinder.navigation.AppNavigation
@@ -25,6 +29,16 @@ import tn.esprit.wayfinder.utils.LocaleHelper
 import tn.esprit.wayfinder.utils.NotificationHelper
 
 class MainActivity : ComponentActivity() {
+    
+    // Shared state for notification navigation
+    companion object {
+        private val _notificationActionUrl = MutableStateFlow<String?>(null)
+        val notificationActionUrl: StateFlow<String?> = _notificationActionUrl.asStateFlow()
+        
+        fun setNotificationActionUrl(url: String?) {
+            _notificationActionUrl.value = url
+        }
+    }
     
     // Request notification permission for Android 13+
     private val requestPermissionLauncher = registerForActivityResult(
@@ -79,6 +93,11 @@ class MainActivity : ComponentActivity() {
                 themeManager.isDarkModeEnabled()
             }
             
+            // Handle notification intent when content is set
+            LaunchedEffect(Unit) {
+                handleNotificationIntent(intent)
+            }
+            
             WayFinderTheme(darkTheme = darkTheme) {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -93,10 +112,14 @@ class MainActivity : ComponentActivity() {
             val notificationId = it.getStringExtra("notification_id")
             val actionUrl = it.getStringExtra("action_url")
             
-            // You can handle navigation based on actionUrl here
-            // For example, navigate to a specific screen based on the notification type
-            if (actionUrl != null) {
-                // Navigation logic will be handled by AppNavigation based on deep link
+            android.util.Log.d("MainActivity", "Handling notification intent: actionUrl=$actionUrl, notificationId=$notificationId")
+            
+            // Set the action URL for AppNavigation to handle
+            if (actionUrl != null && actionUrl.isNotBlank()) {
+                android.util.Log.d("MainActivity", "Setting notification action URL: $actionUrl")
+                setNotificationActionUrl(actionUrl)
+            } else {
+                android.util.Log.w("MainActivity", "No actionUrl found in notification intent")
             }
         }
     }

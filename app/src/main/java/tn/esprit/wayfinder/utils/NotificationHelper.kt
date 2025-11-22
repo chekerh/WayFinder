@@ -52,11 +52,14 @@ object NotificationHelper {
 
         // Create intent to open app when notification is clicked
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             // Add notification data to intent
             putExtra("notification_id", notification.id)
             putExtra("notification_type", notification.type)
-            putExtra("action_url", notification.actionUrl)
+            notification.actionUrl?.let { actionUrl ->
+                putExtra("action_url", actionUrl)
+                android.util.Log.d("NotificationHelper", "Setting action_url in intent: $actionUrl")
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -98,9 +101,12 @@ object NotificationHelper {
 
         // Add action button if actionUrl is available
         notification.actionUrl?.let { actionUrl ->
+            android.util.Log.d("NotificationHelper", "Adding action button with actionUrl: $actionUrl")
             val actionIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("action_url", actionUrl)
+                putExtra("notification_id", notification.id)
+                putExtra("notification_type", notification.type)
             }
             val actionPendingIntent = PendingIntent.getActivity(
                 context,

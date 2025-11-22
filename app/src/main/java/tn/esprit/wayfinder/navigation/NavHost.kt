@@ -6,14 +6,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.flow.collectLatest
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
+import tn.esprit.wayfinder.MainActivity
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.screens.*
@@ -37,6 +38,50 @@ fun AppNavigation() {
         val notificationsViewModel: NotificationsViewModel = viewModel(
             factory = ViewModelFactory(context.applicationContext as Application)
         )
+        
+        // Handle notification navigation - observe StateFlow changes
+        LaunchedEffect(Unit) {
+            MainActivity.notificationActionUrl.collectLatest { actionUrl ->
+                actionUrl?.let { url ->
+                    android.util.Log.d("AppNavigation", "Navigating to notification action: $url")
+                    // Small delay to ensure navigation is ready
+                    delay(100)
+                    // Parse actionUrl and navigate
+                    try {
+                        when {
+                            url.startsWith("/post_detail/") -> {
+                                val postId = url.removePrefix("/post_detail/")
+                                android.util.Log.d("AppNavigation", "Navigating to post_detail: $postId")
+                                navController.navigate("post_detail/$postId") {
+                                    popUpTo("home") { inclusive = false }
+                                }
+                            }
+                            url.startsWith("/journey_detail/") -> {
+                                val journeyId = url.removePrefix("/journey_detail/")
+                                android.util.Log.d("AppNavigation", "Navigating to journey_detail: $journeyId")
+                                navController.navigate("journey_detail/$journeyId") {
+                                    popUpTo("home") { inclusive = false }
+                                }
+                            }
+                            url.startsWith("/booking_detail/") -> {
+                                val bookingId = url.removePrefix("/booking_detail/")
+                                android.util.Log.d("AppNavigation", "Navigating to booking_detail: $bookingId")
+                                navController.navigate("booking_detail/$bookingId") {
+                                    popUpTo("home") { inclusive = false }
+                                }
+                            }
+                            else -> {
+                                android.util.Log.w("AppNavigation", "Unknown actionUrl format: $url")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("AppNavigation", "Error navigating to $url", e)
+                    }
+                    // Clear the action URL after handling
+                    MainActivity.setNotificationActionUrl(null)
+                }
+            }
+        }
         
         // Check for new notifications periodically when app is open
         LaunchedEffect(Unit) {
