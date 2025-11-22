@@ -13,5 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase service account keys (contain secrets)
+app/wayfinder-*.json
+**/wayfinder-*.json
 app/wayfinder-*.json
 *.json
