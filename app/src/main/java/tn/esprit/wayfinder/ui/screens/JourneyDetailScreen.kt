@@ -264,6 +264,7 @@ fun JourneyDetailCard(
     journey: Journey,
     onLikeClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val baseUrl = "https://wayfinder-api-w92x.onrender.com"
     
     Card(
@@ -419,6 +420,8 @@ fun JourneyDetailCard(
 @Composable
 private fun JourneyVideoPlayer(videoUrl: String) {
     val context = LocalContext.current
+    var isVideoReady by remember { mutableStateOf(false) }
+    
     AndroidView(
         modifier = Modifier
             .fillMaxWidth()
@@ -429,9 +432,31 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 val controller = MediaController(ctx)
                 controller.setAnchorView(this)
                 setMediaController(controller)
+                
+                // Add error listener
+                setOnErrorListener { _, what, extra ->
+                    android.util.Log.e("JourneyVideoPlayer", "Video error: what=$what, extra=$extra, url=$videoUrl")
+                    false
+                }
+                
+                // Detect when video starts rendering to avoid black screen
+                setOnInfoListener { _, what, _ ->
+                    if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                        isVideoReady = true
+                    }
+                    false
+                }
+                
                 setVideoURI(Uri.parse(videoUrl))
                 setOnPreparedListener { player ->
                     player.isLooping = true
+                    // Wait for rendering to start before playing
+                    player.setOnInfoListener { _, what, _ ->
+                        if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                            isVideoReady = true
+                        }
+                        false
+                    }
                     start()
                 }
                 tag = videoUrl
@@ -439,12 +464,29 @@ private fun JourneyVideoPlayer(videoUrl: String) {
         },
         update = { videoView ->
             if (videoView.tag != videoUrl) {
+                isVideoReady = false
                 videoView.tag = videoUrl
                 videoView.setVideoURI(Uri.parse(videoUrl))
                 videoView.start()
             }
         }
     )
+    
+    // Show placeholder while video is loading (prevents black screen)
+    if (!isVideoReady) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(Color.Black.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
 }
 
 @Composable

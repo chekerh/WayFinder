@@ -116,7 +116,7 @@ object NotificationHelper {
             )
             builder.addAction(
                 android.R.drawable.ic_menu_view,
-                "Ouvrir",
+                StringTranslator.translate(context, "Ouvrir"),
                 actionPendingIntent
             )
         }

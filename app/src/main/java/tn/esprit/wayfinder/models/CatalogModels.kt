@@ -12,7 +12,8 @@ data class FlightOffer(
     val itineraries: List<FlightItinerary>? = null,
     val travelerPricings: List<TravelerPricing>? = null,
     val validatingAirlineCodes: List<String>? = null,
-    val source: String? = null
+    val source: String? = null,
+    val description: String? = null
 )
 
 @Serializable

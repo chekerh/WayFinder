@@ -48,6 +48,8 @@ import android.widget.VideoView
 import android.widget.MediaController
 import android.net.Uri
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 
@@ -276,6 +278,7 @@ fun JourneyFeedScreen(navController: NavController) {
         
         // Video dialog
         showVideoDialog?.let { videoUrl ->
+            val dialogContext = LocalContext.current
             var isLoading by remember { mutableStateOf(true) }
             var hasError by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -284,7 +287,7 @@ fun JourneyFeedScreen(navController: NavController) {
                 onDismissRequest = { showVideoDialog = null },
                 title = {
                     Text(
-                        text = StringTranslator.translate(context, "Vidéo AI générée"),
+                        text = StringTranslator.translate(dialogContext, "Vidéo AI générée"),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -315,7 +318,7 @@ fun JourneyFeedScreen(navController: NavController) {
                                         modifier = Modifier.size(48.dp)
                                     )
                                     Text(
-                                        text = errorMessage ?: StringTranslator.translate(context, "Erreur de chargement"),
+                                        text = errorMessage ?: StringTranslator.translate(dialogContext, "Erreur de chargement"),
                                         color = Color.White,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
@@ -333,9 +336,9 @@ fun JourneyFeedScreen(navController: NavController) {
                                             try {
                                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
                                                 intent.setDataAndType(Uri.parse(videoUrl), "video/*")
-                                                context.startActivity(intent)
+                                                dialogContext.startActivity(intent)
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Impossible d'ouvrir la vidéo", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(dialogContext, "Impossible d'ouvrir la vidéo", Toast.LENGTH_SHORT).show()
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(
@@ -348,91 +351,130 @@ fun JourneyFeedScreen(navController: NavController) {
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(StringTranslator.translate(context, "Ouvrir dans le navigateur"))
+                                        Text(StringTranslator.translate(dialogContext, "Ouvrir dans le navigateur"))
                                     }
                                 }
                             } else {
-                                AndroidView(
+                                // Show loading indicator while video is loading
+                                Box(
                                     modifier = Modifier.fillMaxSize(),
-                                    factory = { ctx ->
-                                        VideoView(ctx).apply {
-                                            val controller = MediaController(ctx)
-                                            controller.setAnchorView(this)
-                                            setMediaController(controller)
-                                            
-                                            // Add error listener
-                                            setOnErrorListener { _, what, extra ->
-                                                android.util.Log.e("VideoPlayer", "Video error: what=$what, extra=$extra, url=$videoUrl")
-                                                hasError = true
-                                                errorMessage = when (what) {
-                                                    android.media.MediaPlayer.MEDIA_ERROR_UNKNOWN -> "Erreur inconnue"
-                                                    android.media.MediaPlayer.MEDIA_ERROR_SERVER_DIED -> "Serveur vidéo indisponible"
-                                                    else -> "Erreur de lecture (code: $what)"
-                                                }
-                                                true
-                                            }
-                                            
-                                            // Add info listener for debugging
-                                            setOnInfoListener { _, what, extra ->
-                                                android.util.Log.d("VideoPlayer", "Video info: what=$what, extra=$extra")
-                                                when (what) {
-                                                    android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
-                                                        isLoading = true
-                                                    }
-                                                    android.media.MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
-                                                        isLoading = false
-                                                    }
-                                                    android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
-                                                        isLoading = false
-                                                    }
-                                                }
-                                                false
-                                            }
-                                            
-                                            // Parse and set video URI
-                                            try {
-                                                val uri = Uri.parse(videoUrl)
-                                                android.util.Log.d("VideoPlayer", "Loading video from: $videoUrl")
-                                                setVideoURI(uri)
-                                                
-                                                setOnPreparedListener { player ->
-                                                    android.util.Log.d("VideoPlayer", "Video prepared, starting playback")
-                                                    isLoading = false
-                                                    player.isLooping = false
-                                                    start()
-                                                }
-                                            } catch (e: Exception) {
-                                                android.util.Log.e("VideoPlayer", "Error parsing video URL: ${e.message}", e)
-                                                hasError = true
-                                                errorMessage = "URL vidéo invalide"
-                                            }
-                                            
-                                            tag = videoUrl
-                                        }
-                                    },
-                                    update = { videoView ->
-                                        if (videoView.tag != videoUrl) {
-                                            android.util.Log.d("VideoPlayer", "Updating video URL: $videoUrl")
-                                            isLoading = true
-                                            hasError = false
-                                            videoView.tag = videoUrl
-                                            try {
-                                                val uri = Uri.parse(videoUrl)
-                                                videoView.setVideoURI(uri)
-                                                videoView.start()
-                                            } catch (e: Exception) {
-                                                android.util.Log.e("VideoPlayer", "Error updating video: ${e.message}", e)
-                                                hasError = true
-                                                errorMessage = "Erreur de chargement"
-                                            }
-                                        }
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            color = Color.White,
+                                            modifier = Modifier.size(48.dp)
+                                        )
                                     }
-                                )
-                                
-                                if (isLoading && !hasError) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.align(Alignment.Center),
-                                        color = Color.White
+                                    
+                                    AndroidView(
+                                        modifier = Modifier.fillMaxSize(),
+                                        factory = { ctx ->
+                                            VideoView(ctx).apply {
+                                                val controller = MediaController(ctx)
+                                                controller.setAnchorView(this)
+                                                setMediaController(controller)
+                                                
+                                                // Add error listener with better error handling
+                                                setOnErrorListener { _, what, extra ->
+                                                    android.util.Log.e("VideoPlayer", "Video error: what=$what, extra=$extra, url=$videoUrl")
+                                                    hasError = true
+                                                    isLoading = false
+                                                    errorMessage = when (what) {
+                                                        android.media.MediaPlayer.MEDIA_ERROR_UNKNOWN -> {
+                                                            // More specific error message
+                                                            if (videoUrl.contains("sample") || videoUrl.contains("placeholder") || videoUrl.contains("gtv-videos")) {
+                                                                StringTranslator.translate(dialogContext, "Vidéo de test non disponible. Configurez un service de génération vidéo.")
+                                                            } else {
+                                                                StringTranslator.translate(dialogContext, "Impossible de charger la vidéo. Vérifiez votre connexion Internet.")
+                                                            }
+                                                        }
+                                                        android.media.MediaPlayer.MEDIA_ERROR_SERVER_DIED -> StringTranslator.translate(dialogContext, "Serveur vidéo indisponible")
+                                                        android.media.MediaPlayer.MEDIA_ERROR_IO -> StringTranslator.translate(dialogContext, "Erreur de connexion réseau")
+                                                        android.media.MediaPlayer.MEDIA_ERROR_MALFORMED -> StringTranslator.translate(dialogContext, "Format vidéo non supporté")
+                                                        else -> "${StringTranslator.translate(dialogContext, "Erreur de lecture")} (code: $what)"
+                                                    }
+                                                    true
+                                                }
+                                                
+                                                // Add info listener for better state management
+                                                setOnInfoListener { _, what, extra ->
+                                                    android.util.Log.d("VideoPlayer", "Video info: what=$what, extra=$extra")
+                                                    when (what) {
+                                                        android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
+                                                            isLoading = true
+                                                        }
+                                                        android.media.MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
+                                                            isLoading = false
+                                                        }
+                                                        android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
+                                                            isLoading = false
+                                                            // Video is now rendering, hide loading indicator
+                                                        }
+                                                        android.media.MediaPlayer.MEDIA_INFO_VIDEO_TRACK_LAGGING -> {
+                                                            android.util.Log.w("VideoPlayer", "Video track lagging")
+                                                        }
+                                                    }
+                                                    false
+                                                }
+                                                
+                                                // Parse and set video URI with timeout
+                                                try {
+                                                    val uri = Uri.parse(videoUrl)
+                                                    android.util.Log.d("VideoPlayer", "Loading video from: $videoUrl")
+                                                    isLoading = true
+                                                    setVideoURI(uri)
+                                                    
+                                                    setOnPreparedListener { player ->
+                                                        android.util.Log.d("VideoPlayer", "Video prepared, starting playback")
+                                                        isLoading = false
+                                                        player.isLooping = false
+                                                        // Wait a bit before starting to ensure surface is ready
+                                                        Handler(Looper.getMainLooper()).postDelayed({
+                                                            try {
+                                                                start()
+                                                            } catch (e: Exception) {
+                                                                android.util.Log.e("VideoPlayer", "Error starting video: ${e.message}", e)
+                                                                hasError = true
+                                                                errorMessage = StringTranslator.translate(dialogContext, "Erreur de lecture")
+                                                            }
+                                                        }, 100)
+                                                    }
+                                                    
+                                                    // Timeout: if video doesn't load in 10 seconds, show error
+                                                    Handler(Looper.getMainLooper()).postDelayed({
+                                                        if (isLoading) {
+                                                            android.util.Log.w("VideoPlayer", "Video loading timeout")
+                                                            hasError = true
+                                                            isLoading = false
+                                                            errorMessage = StringTranslator.translate(dialogContext, "Le chargement de la vidéo prend trop de temps")
+                                                        }
+                                                    }, 10000)
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("VideoPlayer", "Error parsing video URL: ${e.message}", e)
+                                                    hasError = true
+                                                    isLoading = false
+                                                    errorMessage = StringTranslator.translate(dialogContext, "URL vidéo invalide")
+                                                }
+                                                
+                                                tag = videoUrl
+                                            }
+                                        },
+                                        update = { videoView ->
+                                            if (videoView.tag != videoUrl) {
+                                                videoView.tag = videoUrl
+                                                isLoading = true
+                                                try {
+                                                    val uri = Uri.parse(videoUrl)
+                                                    videoView.setVideoURI(uri)
+                                                    videoView.start()
+                                                } catch (e: Exception) {
+                                                    android.util.Log.e("VideoPlayer", "Error updating video: ${e.message}", e)
+                                                    hasError = true
+                                                    isLoading = false
+                                                }
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -441,7 +483,7 @@ fun JourneyFeedScreen(navController: NavController) {
                 },
                 confirmButton = {
                     TextButton(onClick = { showVideoDialog = null }) {
-                        Text(StringTranslator.translate(context, "Fermer"))
+                        Text(StringTranslator.translate(dialogContext, "Fermer"))
                     }
                 }
             )

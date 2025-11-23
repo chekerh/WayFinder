@@ -27,6 +27,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +62,6 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.components.SkeletonLoadingCard
 import tn.esprit.wayfinder.ui.components.CompactPointsBadge
-import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 import tn.esprit.wayfinder.utils.HapticFeedbackHelper
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
@@ -67,6 +69,8 @@ import tn.esprit.wayfinder.viewmodels.CatalogUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsUiState
+import androidx.compose.ui.draw.scale
+import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -150,7 +154,7 @@ fun HomeScreen(navController: NavController) {
                         )
                         // Sparkle icon for personalization
                         Icon(
-                            imageVector = Icons.Default.AutoAwesome,
+                            imageVector = Icons.Filled.AutoAwesome,
                             contentDescription = null,
                             tint = Color(0xFFFFC107),
                             modifier = Modifier.size(28.dp)
@@ -302,7 +306,7 @@ fun TopBar(
     notificationsViewModel: NotificationsViewModel
 ) {
     val tokenManager = remember { TokenManager(context) }
-    val user = remember { tokenManager.getUser() }
+    var user by remember { mutableStateOf(tokenManager.getUser()) }
     val notificationsState by notificationsViewModel.uiState.collectAsState()
     
     // Get user's first name or username, fallback to "Explorateur"
@@ -371,9 +375,12 @@ fun TopBar(
                 if (user?.onboardingSkipped == true) {
                     OnboardingReminderBadge(
                         onDismiss = {
-                            // Update user to remove skipped flag
-                            val updatedUser = user.copy(onboardingSkipped = false)
-                            tokenManager.saveUser(updatedUser)
+                            // Update user to remove skipped flag and hide badge immediately
+                            val updatedUser = user?.copy(onboardingSkipped = false)
+                            if (updatedUser != null) {
+                                user = updatedUser
+                                tokenManager.saveUser(updatedUser)
+                            }
                         },
                         onClick = {
                             navController.navigate("onboarding")
@@ -394,9 +401,10 @@ fun TopBar(
                         fontWeight = FontWeight.SemiBold
                     )
                     // Compact points badge
-                    if (user?.totalPoints != null && user.totalPoints > 0) {
+                    val currentUser = user
+                    if (currentUser?.totalPoints != null && currentUser.totalPoints > 0) {
                         CompactPointsBadge(
-                            points = user.totalPoints,
+                            points = currentUser.totalPoints,
                             modifier = Modifier.scale(0.85f)
                         )
                     }
@@ -590,10 +598,9 @@ fun EnhancedDestinationsSection(
         pageSpacing = (-120).dp
     ) { page ->
         val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-        val selectedDestination = destinations[page]
 
-        Box(
-            modifier = Modifier
+            Card(
+                modifier = Modifier
                 .zIndex(1f - pageOffset)
                 .graphicsLayer {
                     alpha = lerp(start = 0.5f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
@@ -601,18 +608,20 @@ fun EnhancedDestinationsSection(
                 }
                 .width(290.dp)
                 .height(340.dp)
-        ) {
-            SwipeableDestinationCard(
-                destination = selectedDestination,
-                favoritesViewModel = favoritesViewModel,
-                onCardClick = {
+                .clickable {
+                    val selectedDestination = destinations[page]
                     navController.currentBackStackEntry?.savedStateHandle?.set(
                         SELECTED_DESTINATION_KEY,
                         selectedDestination
                     )
                     navController.navigate("flight_detail/${selectedDestination.id}")
                 },
-                modifier = Modifier.fillMaxSize()
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+        ) {
+            DestinationCardContent(
+                destination = destinations[page],
+                favoritesViewModel = favoritesViewModel
             )
         }
     }
@@ -707,6 +716,7 @@ fun DestinationCardContent(
         }
         
         // Favorite button with state
+        val context = LocalContext.current
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -839,7 +849,7 @@ fun OnboardingReminderBadge(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Info,
+                imageVector = Icons.Filled.Info,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(16.dp)
@@ -856,7 +866,7 @@ fun OnboardingReminderBadge(
                 modifier = Modifier.size(20.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Filled.Close,
                     contentDescription = "Dismiss",
                     tint = Color.White,
                     modifier = Modifier.size(14.dp)

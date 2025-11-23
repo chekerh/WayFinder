@@ -1,5 +1,7 @@
 package tn.esprit.wayfinder.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -43,10 +47,42 @@ fun ReviewsSection(
         reviewsViewModel.loadReviews(itemType, itemId)
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+            }
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF5F5F5).copy(alpha = 0.9f),
+                        Color(0xFFE8E8E8).copy(alpha = 0.85f),
+                        Color(0xFFF5F5F5).copy(alpha = 0.9f)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                        Color(0xFFFFFFFF).copy(alpha = 0.5f)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                        Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                        Color(0xFFCCCCCC).copy(alpha = 0.5f)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
         Column(
             modifier = Modifier

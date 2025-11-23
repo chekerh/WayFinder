@@ -24,10 +24,13 @@ import tn.esprit.wayfinder.navigation.BOOKING_CURRENCY_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_DESTINATION_NAME_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_TOTAL_KEY
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.utils.StringTranslator
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
+    val context = LocalContext.current
     val previousEntry = navController.previousBackStackEntry
     val bookingTotal = previousEntry?.savedStateHandle?.get<Double>(BOOKING_TOTAL_KEY)
     val bookingCurrency = previousEntry?.savedStateHandle?.get<String>(BOOKING_CURRENCY_KEY) ?: "EUR"
@@ -44,7 +47,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Confirmation", fontWeight = FontWeight.Bold) },
+                title = { Text(StringTranslator.translate(context, "Confirmation"), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -75,14 +78,14 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             )
             
             Text(
-                text = "Réservation confirmée!",
+                text = StringTranslator.translate(context, "Réservation confirmée!"),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF4CAF50)
             )
             
             Text(
-                text = "Votre réservation a été confirmée avec succès. Vous recevrez un email de confirmation sous peu.",
+                text = StringTranslator.translate(context, "Votre réservation a été confirmée avec succès. Vous recevrez un email de confirmation sous peu."),
                 fontSize = 16.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -101,7 +104,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Détails de la réservation",
+                        text = StringTranslator.translate(context, "Détails de la réservation"),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -112,7 +115,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Numéro de confirmation", color = Color.Gray)
+                        Text(StringTranslator.translate(context, "Numéro de confirmation"), color = Color.Gray)
                         Text(bookingId, fontWeight = FontWeight.Medium)
                     }
 
@@ -121,7 +124,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Destination", color = Color.Gray)
+                            Text(StringTranslator.translate(context, "Destination"), color = Color.Gray)
                             Text(it, fontWeight = FontWeight.Medium)
                         }
                     }
@@ -131,7 +134,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Total payé", color = Color.Gray)
+                            Text(StringTranslator.translate(context, "Total payé"), color = Color.Gray)
                             Text(
                                 String.format(Locale.getDefault(), "%.2f %s", it, bookingCurrency),
                                 fontWeight = FontWeight.Bold
@@ -143,9 +146,9 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Statut", color = Color.Gray)
+                        Text(StringTranslator.translate(context, "Statut"), color = Color.Gray)
                         Text(
-                            text = "Confirmé",
+                            text = StringTranslator.translate(context, "Confirmé"),
                             color = Color(0xFF4CAF50),
                             fontWeight = FontWeight.Bold
                         )
@@ -171,7 +174,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                 )
             ) {
                 Text(
-                    text = "Voir mes réservations",
+                    text = StringTranslator.translate(context, "Voir mes réservations"),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -189,7 +192,7 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Retour à l'accueil",
+                    text = StringTranslator.translate(context, "Retour à l'accueil"),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )

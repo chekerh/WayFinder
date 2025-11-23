@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -30,6 +31,10 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.ReservationUiState
+import tn.esprit.wayfinder.utils.StringTranslator
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,6 +115,10 @@ fun BookingDetailScreen(navController: NavController, bookingId: String) {
                         bookingViewModel.cancelBooking(bookingId)
                         showCancelDialog = false
                     },
+                    onRebook = {
+                        // Navigate to reservation screen with the same offerId
+                        navController.navigate("booking/${state.booking.offerId}")
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
                 
@@ -145,8 +154,29 @@ fun BookingDetailScreen(navController: NavController, bookingId: String) {
 fun BookingDetailContent(
     booking: tn.esprit.wayfinder.models.Booking,
     onCancel: () -> Unit,
+    onRebook: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
+    // Check if the departure date has passed
+    val canRebook = remember(booking.tripDetails?.departureDate) {
+        booking.tripDetails?.departureDate?.let { departureDateStr ->
+            try {
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val departureDate = dateFormat.parse(departureDateStr)
+                val today = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+                departureDate != null && departureDate.after(today)
+            } catch (e: Exception) {
+                false
+            }
+        } ?: false
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -281,6 +311,27 @@ fun BookingDetailContent(
             title = "Date de réservation",
             value = booking.bookingDate
         )
+
+        // Rebook button for cancelled bookings
+        if (booking.status == BookingStatus.CANCELLED && canRebook) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onRebook,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2)
+                )
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Réserver à nouveau"),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(80.dp))
     }

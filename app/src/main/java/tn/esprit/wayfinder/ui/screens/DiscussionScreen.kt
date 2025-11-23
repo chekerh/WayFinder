@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -121,9 +122,12 @@ fun DiscussionScreen(navController: NavController) {
                                 PostCard(
                                     post = post,
                                     currentUserId = currentUser?.id,
-                                    onLikeClick = { discussionViewModel.likePost(post.id) },
+                                    onLikeClick = { discussionViewModel.likePost(post.id, currentUser?.id) },
                                     onClick = {
                                         navController.navigate("post_detail/${post.id}")
+                                    },
+                                    onDeleteClick = {
+                                        discussionViewModel.deletePost(post.id)
                                     }
                                 )
                             }
@@ -160,7 +164,7 @@ fun DiscussionScreen(navController: NavController) {
         CreatePostDialog(
             onDismiss = { showCreatePostDialog = false },
             onCreatePost = { title, content, tags, destination ->
-                discussionViewModel.createPost(title, content, tags, destination)
+                discussionViewModel.createPost(title, content, tags, destination, null, currentUser?.id)
                 showCreatePostDialog = false
             }
         )
@@ -180,8 +184,11 @@ fun PostCard(
     post: DiscussionPost,
     currentUserId: String?,
     onLikeClick: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit = {}
 ) {
+    val isOwner = currentUserId != null && post.userId.id == currentUserId
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val isLiked = currentUserId != null && post.likedBy.contains(currentUserId)
     
@@ -197,44 +204,58 @@ fun PostCard(
             // User Info
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val userImageUrl = post.userId.profileImageUrl?.let { url ->
-                    if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val userImageUrl = post.userId.profileImageUrl?.let { url ->
+                        if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                    }
+                    if (userImageUrl != null) {
+                        AsyncImage(
+                            model = userImageUrl,
+                            contentDescription = "User Avatar",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(id = R.drawable.europe),
+                            error = painterResource(id = R.drawable.europe)
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.europe),
+                            contentDescription = "User Avatar",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "${post.userId.firstName} ${post.userId.lastName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = formatDate(post.createdAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                if (userImageUrl != null) {
-                    AsyncImage(
-                        model = userImageUrl,
-                        contentDescription = "User Avatar",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.europe),
-                        error = painterResource(id = R.drawable.europe)
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.europe),
-                        contentDescription = "User Avatar",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "${post.userId.firstName} ${post.userId.lastName}",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = formatDate(post.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                
+                // Delete button (only for post owner)
+                if (isOwner) {
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.Red
+                        )
+                    }
                 }
             }
             
@@ -323,6 +344,30 @@ fun PostCard(
                 )
             }
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(StringTranslator.translate(context, "Supprimer le post")) },
+            text = { Text(StringTranslator.translate(context, "Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text(StringTranslator.translate(context, "Supprimer"), color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(StringTranslator.translate(context, "Annuler"))
+                }
+            }
+        )
     }
 }
 

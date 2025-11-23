@@ -13,6 +13,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -36,6 +38,7 @@ import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.DiscussionComment
 import tn.esprit.wayfinder.models.DiscussionPost
+import tn.esprit.wayfinder.models.DiscussionUser
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
 import tn.esprit.wayfinder.viewmodels.PostDetailUiState
@@ -54,9 +57,14 @@ fun PostDetailScreen(navController: NavController, postId: String) {
     
     var commentText by remember { mutableStateOf("") }
     var showEmojiPicker by remember { mutableStateOf(false) }
+    var replyingToComment by remember { mutableStateOf<DiscussionComment?>(null) }
+    var hasLoaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(postId) {
-        discussionViewModel.loadPostDetail(postId)
+        if (!hasLoaded) {
+            discussionViewModel.loadPostDetail(postId)
+            hasLoaded = true
+        }
     }
 
     Scaffold(
@@ -91,7 +99,11 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                     PostDetailCard(
                         post = state.post,
                         currentUserId = currentUser?.id,
-                        onLikeClick = { discussionViewModel.likePost(state.post.id) }
+                        onLikeClick = { discussionViewModel.likePost(state.post.id, currentUser?.id) },
+                        onDeleteClick = {
+                            discussionViewModel.deletePost(state.post.id)
+                            navController.popBackStack()
+                        }
                     )
                     
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -128,9 +140,40 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                                     comment = comment,
                                     currentUserId = currentUser?.id,
                                     onLikeClick = {
-                                        discussionViewModel.likeComment(comment.id, state.post.id)
+                                        discussionViewModel.likeComment(comment.id, state.post.id, currentUser?.id)
+                                    },
+                                    onReplyClick = {
+                                        replyingToComment = comment
+                                        commentText = "@${comment.userId.firstName} "
+                                    },
+                                    postOwnerId = state.post.userId.id,
+                                    onDeleteClick = {
+                                        discussionViewModel.deleteComment(comment.id, state.post.id)
                                     }
                                 )
+                                
+                                // Display replies if any
+                                if (comment.replies.isNotEmpty()) {
+                                    comment.replies.forEach { reply ->
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        CommentCard(
+                                            comment = reply,
+                                            currentUserId = currentUser?.id,
+                                            onLikeClick = {
+                                                discussionViewModel.likeComment(reply.id, state.post.id, currentUser?.id)
+                                            },
+                                            onReplyClick = {
+                                                replyingToComment = comment // Reply to parent comment
+                                                commentText = "@${reply.userId.firstName} "
+                                            },
+                                            isReply = true,
+                                            postOwnerId = state.post.userId.id,
+                                            onDeleteClick = {
+                                                discussionViewModel.deleteComment(reply.id, state.post.id)
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -178,26 +221,74 @@ fun PostDetailScreen(navController: NavController, postId: String) {
                             }
                             
                             // Text Input
-                            OutlinedTextField(
-                                value = commentText,
-                                onValueChange = { newText: String -> commentText = newText },
-                                modifier = Modifier.weight(1f),
-                                placeholder = { Text(StringTranslator.translate(context, "Ajoutez un commentaire...")) },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent
+                            Column(modifier = Modifier.weight(1f)) {
+                                if (replyingToComment != null) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = StringTranslator.translate(context, "Répondre à") + " ${replyingToComment?.userId?.firstName}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFF1976D2),
+                                            modifier = Modifier.padding(bottom = 4.dp)
+                                        )
+                                        TextButton(
+                                            onClick = {
+                                                replyingToComment = null
+                                                commentText = ""
+                                            },
+                                            contentPadding = PaddingValues(0.dp),
+                                            modifier = Modifier.height(20.dp)
+                                        ) {
+                                            Text(
+                                                text = "✕",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = Color.Gray
+                                            )
+                                        }
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = commentText,
+                                    onValueChange = { newText: String -> commentText = newText },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { 
+                                        Text(
+                                            if (replyingToComment != null) 
+                                                StringTranslator.translate(context, "Écrivez une réponse...")
+                                            else 
+                                                StringTranslator.translate(context, "Ajoutez un commentaire...")
+                                        ) 
+                                    },
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent
+                                    )
                                 )
-                            )
+                            }
                             
                             // Emoji/Send Button
                             if (commentText.isNotBlank()) {
                                 IconButton(
                                     onClick = {
-                                        discussionViewModel.createComment(state.post.id, commentText)
+                                        val parentId = replyingToComment?.id
+                                        val currentUserObj = currentUser?.let { user ->
+                                            DiscussionUser(
+                                                id = user.id,
+                                                username = user.username ?: "",
+                                                firstName = user.firstName ?: "",
+                                                lastName = user.lastName ?: "",
+                                                profileImageUrl = user.profileImageUrl
+                                            )
+                                        }
+                                        discussionViewModel.createComment(state.post.id, commentText, parentId, currentUserObj)
                                         commentText = ""
+                                        replyingToComment = null
                                         showEmojiPicker = false
                                     },
                                     modifier = Modifier.size(32.dp)
@@ -255,9 +346,12 @@ fun PostDetailScreen(navController: NavController, postId: String) {
 fun PostDetailCard(
     post: DiscussionPost,
     currentUserId: String?,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    onDeleteClick: () -> Unit = {}
 ) {
     val isLiked = currentUserId != null && post.likedBy.contains(currentUserId)
+    val isOwner = currentUserId != null && post.userId.id == currentUserId
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier
@@ -392,18 +486,52 @@ fun PostDetailCard(
             }
         }
     }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(StringTranslator.translate(LocalContext.current, "Supprimer le post")) },
+            text = { Text(StringTranslator.translate(LocalContext.current, "Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text(StringTranslator.translate(LocalContext.current, "Supprimer"), color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(StringTranslator.translate(LocalContext.current, "Annuler"))
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun CommentCard(
     comment: DiscussionComment,
     currentUserId: String?,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    onReplyClick: () -> Unit = {},
+    isReply: Boolean = false,
+    postOwnerId: String? = null,
+    onDeleteClick: () -> Unit = {}
 ) {
     val isLiked = currentUserId != null && comment.likedBy.contains(currentUserId)
+    val isCommentOwner = currentUserId != null && comment.userId.id == currentUserId
+    val isPostOwner = currentUserId != null && postOwnerId != null && currentUserId == postOwnerId
+    val canDelete = isCommentOwner || isPostOwner
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = if (isReply) 48.dp else 0.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -478,12 +606,12 @@ fun CommentCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     TextButton(
-                        onClick = { /* TODO: Handle reply */ },
+                        onClick = onReplyClick,
                         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
                         modifier = Modifier.height(24.dp)
                     ) {
                         Text(
-                            text = "Répondre",
+                            text = StringTranslator.translate(LocalContext.current, "Répondre"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -503,19 +631,60 @@ fun CommentCard(
                 }
             }
             
-            // Like Button (on the right)
-            IconButton(
-                onClick = onLikeClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Like",
-                    tint = if (isLiked) Color(0xFFFF1744) else Color.Gray,
-                    modifier = Modifier.size(20.dp)
-                )
+            // Like and Delete buttons (on the right)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Delete button (only if user can delete)
+                if (canDelete) {
+                    IconButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.Red,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                // Like Button
+                IconButton(
+                    onClick = onLikeClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = if (isLiked) Color(0xFFFF1744) else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(StringTranslator.translate(LocalContext.current, "Supprimer le commentaire")) },
+            text = { Text(StringTranslator.translate(LocalContext.current, "Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text(StringTranslator.translate(LocalContext.current, "Supprimer"), color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(StringTranslator.translate(LocalContext.current, "Annuler"))
+                }
+            }
+        )
     }
 }
 

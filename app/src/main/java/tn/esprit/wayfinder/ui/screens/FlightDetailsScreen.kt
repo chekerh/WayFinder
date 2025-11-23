@@ -1,25 +1,32 @@
 package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,25 +46,28 @@ import tn.esprit.wayfinder.ui.components.TravelTipsSection
 import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
-import tn.esprit.wayfinder.data.OfflineDestinationsManager
-import tn.esprit.wayfinder.utils.NetworkUtils
+import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.utils.StringTranslator
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
+import tn.esprit.wayfinder.R
+import androidx.compose.material.icons.filled.Favorite
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     val context = LocalContext.current
     val reviewsViewModel: ReviewsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val priceAlertsViewModel: PriceAlertsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val travelTipsViewModel: TravelTipsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
-    val offlineManager = remember { OfflineDestinationsManager(context) }
-    val coroutineScope = rememberCoroutineScope()
+    val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     
     var showPriceAlertDialog by remember { mutableStateOf(false) }
-    var isDownloaded by remember { mutableStateOf(false) }
-    var isDownloading by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(false) }
+    
+    // Check if favorite on composition
+    LaunchedEffect(destinationId) {
+        favoritesViewModel.checkFavorite("flight", destinationId) { favorite ->
+            isFavorite = favorite
+        }
+    }
     
     val savedDestination = remember(destinationId) {
         navController.previousBackStackEntry
@@ -79,375 +89,534 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
         )
     }
     
-    // Check if destination is already downloaded
-    LaunchedEffect(destination.id) {
-        isDownloaded = offlineManager.isDownloaded(destination.id)
-    }
-
     LaunchedEffect(destination) {
         navController.currentBackStackEntry
             ?.savedStateHandle
             ?.set(SELECTED_DESTINATION_KEY, destination)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(StringTranslator.translate(context, "Détails du vol")) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+    // Define amenities/features for the destination
+    val features = remember(destination.country) {
+        listOf(
+            StringTranslator.translate(context, "ensoleillé") to Icons.Outlined.WbSunny,
+            StringTranslator.translate(context, "Resto") to Icons.Outlined.Restaurant,
+            StringTranslator.translate(context, "Wi-Fi gratuit") to Icons.Outlined.Wifi,
+            StringTranslator.translate(context, "Café") to Icons.Outlined.LocalCafe,
+            StringTranslator.translate(context, "Affaires") to Icons.Outlined.Business
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Header Image
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(380.dp)
+        ) {
+            // Display destination image if available, otherwise use gradient
+            if (!destination.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = destination.imageUrl,
+                    contentDescription = destination.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = R.drawable.europe),
+                    error = painterResource(id = R.drawable.europe)
                 )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.surface
-    ) { paddingValues ->
-        Column(
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF4A90E2), Color(0xFF2E5C8A))
+                        )
+                    )
+                )
+            }
+        }
+
+        // Content Card
+        Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(top = 320.dp),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
         ) {
-            // Destination Header Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color(0xFF4A90E2), Color(0xFF2E5C8A))
-                            )
-                        )
-                        .padding(24.dp)
-                ) {
-                    Text(
-                        text = destination.name,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+
+                // Destination Title and Price
+                Text(
+                    text = destination.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (destination.country.isNotBlank()) {
                     Text(
                         text = destination.country,
-                        fontSize = 18.sp,
-                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray,
                         modifier = Modifier.padding(top = 4.dp)
                     )
-                    if (destination.price != null) {
-                        Text(
-                            text = "${destination.price.toInt()} ${destination.currency}",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
+                }
+                if (destination.price != null) {
+                    Text(
+                        text = "${destination.price.toInt()} ${destination.currency}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1976D2),
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Description du pays - TOUJOURS affichée (sans condition)
+                val descriptionText = if (destination.description != null && destination.description.isNotBlank()) {
+                    destination.description
+                } else {
+                    // Description par défaut basée sur le pays ou le nom de la destination
+                    val countryLower = destination.country.lowercase()
+                    val nameLower = destination.name.lowercase()
+                    val cityLower = destination.city?.lowercase() ?: ""
+                    
+                    when {
+                        countryLower.contains("france") || nameLower.contains("paris") || cityLower.contains("paris") -> 
+                            "Paris, la capitale de la France, est réputée pour sa culture, son art, sa gastronomie et ses monuments emblématiques comme la Tour Eiffel, le Louvre et Notre-Dame. Ville romantique par excellence, elle attire des millions de visiteurs chaque année."
+                        countryLower.contains("italie") || countryLower.contains("italy") || nameLower.contains("rome") || cityLower.contains("rome") -> 
+                            "Rome, la capitale de l'Italie, est une ville riche en histoire avec ses monuments antiques, ses églises baroques et sa cuisine délicieuse. Découvrez le Colisée, le Forum romain et la Cité du Vatican."
+                        countryLower.contains("espagne") || countryLower.contains("spain") || nameLower.contains("madrid") || nameLower.contains("barcelone") || cityLower.contains("madrid") || cityLower.contains("barcelone") -> 
+                            "L'Espagne offre une riche diversité culturelle, des plages magnifiques, une architecture unique et une cuisine savoureuse. Découvrez l'art, la danse flamenco et l'histoire fascinante de ce pays méditerranéen."
+                        else -> 
+                            "${destination.name} est une destination magnifique offrant une expérience de voyage unique avec ses paysages, sa culture et ses attractions touristiques. Explorez cette ville fascinante et découvrez tout ce qu'elle a à offrir."
                     }
                 }
-            }
-
-            // Flight Information
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(
+                
+                // Afficher la description - FORCÉE à être visible (sans condition if)
+                Text(
+                    text = descriptionText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // S'adapte automatiquement au mode sombre
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(vertical = 8.dp)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Available Amenities Section
+                Text(
+                    text = StringTranslator.translate(context, "Équipements disponibles"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Informations du vol"),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = StringTranslator.translate(context, "Départ"),
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = destination.departureDate?.substringBefore("T") ?: "N/A",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = destination.departureDate?.substringAfter("T")?.substringBefore(":")?.let {
-                                    "${it}:${destination.departureDate.substringAfter(":").substringBefore(":")}"
-                                } ?: "N/A",
-                                fontSize = 16.sp,
-                                color = Color.Gray
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Filled.Flight,
-                            contentDescription = null,
-                            tint = Color(0xFF1976D2),
-                            modifier = Modifier.size(32.dp)
-                        )
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = StringTranslator.translate(context, "Arrivée"),
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = destination.arrivalDate?.substringBefore("T") ?: "N/A",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = destination.arrivalDate?.substringAfter("T")?.substringBefore(":")?.let {
-                                    "${it}:${destination.arrivalDate.substringAfter(":").substringBefore(":")}"
-                                } ?: "N/A",
-                                fontSize = 16.sp,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = StringTranslator.translate(context, "Compagnie aérienne"),
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = destination.airline ?: "N/A",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = StringTranslator.translate(context, "Durée"),
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = "~4h 30min",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                    features.forEach { (name, icon) ->
+                        FeatureItem(name = name, icon = icon)
                     }
                 }
-            }
+                Spacer(modifier = Modifier.height(24.dp))
 
-            // Description
-            if (destination.description != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(4.dp)
+                // Flight Information - Glass Effect (Glassmorphism)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            // Enable compositing for glass effect
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+                        }
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFF5F5F5).copy(alpha = 0.9f),
+                                    Color(0xFFE8E8E8).copy(alpha = 0.85f),
+                                    Color(0xFFF5F5F5).copy(alpha = 0.9f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                                    Color(0xFFFFFFFF).copy(alpha = 0.5f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                                    Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                                    Color(0xFFCCCCCC).copy(alpha = 0.5f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp)
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.LocationOn,
-                                contentDescription = null,
-                                tint = Color(0xFF1976D2)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = StringTranslator.translate(context, "À propos"),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                         Text(
-                            text = destination.description,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
+                            text = StringTranslator.translate(context, "Informations du vol"),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                }
-            }
 
-            // Travel Tips Section
-            TravelTipsSection(
-                destinationId = destination.id,
-                destinationName = destination.name,
-                city = destination.city,
-                country = destination.country,
-                travelTipsViewModel = travelTipsViewModel,
-                navController = navController
-            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = StringTranslator.translate(context, "Départ"),
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = destination.departureDate?.substringBefore("T") ?: "N/A",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = destination.departureDate?.substringAfter("T")?.substringBefore(":")?.let {
+                                        "${it}:${destination.departureDate.substringAfter(":").substringBefore(":")}"
+                                    } ?: "N/A",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
+                            }
 
-            // Reviews Section
-            ReviewsSection(
-                itemType = "flight",
-                itemId = destination.id,
-                reviewsViewModel = reviewsViewModel
-            )
+                            Icon(
+                                imageVector = Icons.Filled.Flight,
+                                contentDescription = null,
+                                tint = Color(0xFF1976D2),
+                                modifier = Modifier.size(32.dp)
+                            )
 
-            // Download Button
-            if (isDownloaded) {
-                OutlinedButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            offlineManager.removeFromOffline(destination.id)
-                            isDownloaded = false
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1976D2)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CloudDone,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Téléchargé - Supprimer"),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            } else {
-                OutlinedButton(
-                    onClick = {
-                        if (!isDownloading) {
-                            isDownloading = true
-                            coroutineScope.launch {
-                                val success = offlineManager.downloadForOffline(destination)
-                                if (success) {
-                                    isDownloaded = true
-                                }
-                                isDownloading = false
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = StringTranslator.translate(context, "Arrivée"),
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = destination.arrivalDate?.substringBefore("T") ?: "N/A",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = destination.arrivalDate?.substringAfter("T")?.substringBefore(":")?.let {
+                                        "${it}:${destination.arrivalDate.substringAfter(":").substringBefore(":")}"
+                                    } ?: "N/A",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
                             }
                         }
-                    },
+
+                        HorizontalDivider()
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = StringTranslator.translate(context, "Compagnie aérienne"),
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = destination.airline ?: "N/A",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = StringTranslator.translate(context, "Durée"),
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "~4h 30min",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+
+                // Travel Tips Section
+                TravelTipsSection(
+                    destinationId = destination.id,
+                    destinationName = destination.name,
+                    city = destination.city,
+                    country = destination.country,
+                    travelTipsViewModel = travelTipsViewModel,
+                    navController = navController
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Reviews Section
+                ReviewsSection(
+                    itemType = "flight",
+                    itemId = destination.id,
+                    reviewsViewModel = reviewsViewModel
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Price Alert Section - Glass Effect
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = !isDownloading,
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1976D2)
-                    )
-                ) {
-                    if (isDownloading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                        .graphicsLayer {
+                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+                        }
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFF5F5F5).copy(alpha = 0.9f),
+                                    Color(0xFFE8E8E8).copy(alpha = 0.85f),
+                                    Color(0xFFF5F5F5).copy(alpha = 0.9f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
                         )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Filled.Download,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                                    Color(0xFFFFFFFF).copy(alpha = 0.5f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                                    Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                                    Color(0xFFCCCCCC).copy(alpha = 0.5f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Filled.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFC107),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = StringTranslator.translate(context, "Alerte de prix"),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Text(
+                            text = StringTranslator.translate(context, "Soyez notifié lorsque le prix de ce vol change"),
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                        Button(
+                            onClick = { showPriceAlertDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFC107)
+                            )
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Créer une alerte"),
+                                color = Color.Black,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Button(
+                        onClick = { 
+                            navController.navigate("all_flights/null")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1976D2)
+                        )
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Comparer les prix"),
+                            color = Color.White
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isDownloading) StringTranslator.translate(context, "Téléchargement...") else StringTranslator.translate(context, "Télécharger pour hors ligne"),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { showPriceAlertDialog = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.NotificationsActive,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Alerte prix"),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Button(
-                    onClick = {
-                        // Navigate to booking screen
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(SELECTED_DESTINATION_KEY, destination)
-                        navController.navigate("booking/${destination.id}")
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2)
-                    )
-                ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Réserver"),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Button(
+                        onClick = {
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(SELECTED_DESTINATION_KEY, destination)
+                            navController.navigate("booking/${destination.id}")
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFC107)
+                        )
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Réserver"),
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
-    }
 
-    if (showPriceAlertDialog) {
-        CreatePriceAlertDialog(
-            destination = destination,
-            currentPrice = destination.price,
-            currency = destination.currency,
-            onDismiss = { showPriceAlertDialog = false },
-            onCreate = { request ->
-                priceAlertsViewModel.createPriceAlert(request) {
-                    // Show success message or navigate
+        // Buttons overlay - declared after Card to be on top and clickable
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .align(Alignment.TopStart),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { 
+                        navController.popBackStack() 
+                    },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconButton(
+                        onClick = { 
+                            // Share action - TODO: implement share functionality
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Share",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { 
+                            isFavorite = !isFavorite
+                            if (isFavorite) {
+                                favoritesViewModel.addFavorite(
+                                    "flight",
+                                    destination.id,
+                                    mapOf(
+                                        "name" to destination.name,
+                                        "city" to (destination.city ?: ""),
+                                        "country" to destination.country,
+                                        "imageUrl" to (destination.imageUrl ?: ""),
+                                        "price" to (destination.price ?: 0.0),
+                                        "currency" to destination.currency,
+                                        "airline" to (destination.airline ?: "")
+                                    )
+                                )
+                            } else {
+                                favoritesViewModel.removeFavorite("flight", destination.id)
+                            }
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) Color(0xFFFF1744) else Color.White
+                        )
+                    }
                 }
             }
-        )
+        }
+
+        if (showPriceAlertDialog) {
+            CreatePriceAlertDialog(
+                destination = destination,
+                currentPrice = destination.price,
+                currency = destination.currency,
+                onDismiss = { showPriceAlertDialog = false },
+                onCreate = { request ->
+                    priceAlertsViewModel.createPriceAlert(request) {
+                        // Show success message or navigate
+                    }
+                }
+            )
+        }
     }
 }
 

@@ -30,6 +30,10 @@ import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.BookingUiState
 import tn.esprit.wayfinder.utils.StringTranslator
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +120,55 @@ fun BookingHistoryScreen(navController: NavController) {
                     }
                 }
                 is BookingUiState.Success -> {
-                    if (bookings.isEmpty()) {
+                    // Filter out bookings with past departure dates
+                    val activeBookings = remember(bookings) {
+                        bookings.filter { booking ->
+                            val departureDateStr = booking.tripDetails?.departureDate
+                            if (departureDateStr == null || departureDateStr.isBlank()) {
+                                // If no departure date, keep the booking (safer default)
+                                true
+                            } else {
+                                try {
+                                    val dateFormats = listOf(
+                                        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
+                                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                                    )
+                                    
+                                    var departureDate: Date? = null
+                                    for (format in dateFormats) {
+                                        try {
+                                            departureDate = format.parse(departureDateStr)
+                                            if (departureDate != null) break
+                                        } catch (e: Exception) {
+                                            // Try next format
+                                        }
+                                    }
+                                    
+                                    if (departureDate != null) {
+                                        val today = Calendar.getInstance().apply {
+                                            set(Calendar.HOUR_OF_DAY, 0)
+                                            set(Calendar.MINUTE, 0)
+                                            set(Calendar.SECOND, 0)
+                                            set(Calendar.MILLISECOND, 0)
+                                        }.time
+                                        
+                                        // Keep booking if departure date is today or in the future
+                                        departureDate.after(today) || departureDate.equals(today)
+                                    } else {
+                                        // If we can't parse the date, keep the booking
+                                        true
+                                    }
+                                } catch (e: Exception) {
+                                    // If parsing fails, keep the booking
+                                    true
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (activeBookings.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -130,11 +182,15 @@ fun BookingHistoryScreen(navController: NavController) {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(bookings) { booking ->
+                            items(activeBookings) { booking ->
                                 BookingHistoryCard(
                                     booking = booking,
                                     onClick = {
                                         navController.navigate("booking_detail/${booking.id}")
+                                    },
+                                    onRebook = {
+                                        // Navigate to reservation screen with the same offerId
+                                        navController.navigate("booking/${booking.offerId}")
                                     }
                                 )
                             }
@@ -165,61 +221,179 @@ fun BookingHistoryScreen(navController: NavController) {
 }
 
 @Composable
-fun BookingHistoryCard(booking: Booking, onClick: () -> Unit) {
+fun BookingHistoryCard(booking: Booking, onClick: () -> Unit, onRebook: () -> Unit) {
+    val context = LocalContext.current
+    
+    // Check if the departure date has NOT passed (can only rebook if date is today or in the future)
+    // By default, allow rebook for cancelled bookings unless we can prove the date has passed
+    val canRebook = remember(booking.tripDetails?.departureDate) {
+        android.util.Log.d("BookingHistoryCard", "Checking rebook for booking ${booking.confirmationNumber}: tripDetails=${booking.tripDetails}, status=${booking.status}")
+        
+        val departureDateStr = booking.tripDetails?.departureDate
+        
+        if (departureDateStr == null || departureDateStr.isBlank()) {
+            // If no departure date, allow rebooking by default (optimistic approach)
+            // This is safer because many bookings don't have departureDate stored
+            android.util.Log.d("BookingHistoryCard", "No departure date for booking ${booking.confirmationNumber} (tripDetails=${booking.tripDetails}), allowing rebook by default")
+            true
+        } else {
+            try {
+                // Try multiple date formats
+                val dateFormats = listOf(
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()),
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()),
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()),
+                    SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+                )
+                
+                var departureDate: Date? = null
+                var usedFormat: SimpleDateFormat? = null
+                for (format in dateFormats) {
+                    try {
+                        format.isLenient = false
+                        departureDate = format.parse(departureDateStr)
+                        if (departureDate != null) {
+                            usedFormat = format
+                            android.util.Log.d("BookingHistoryCard", "Successfully parsed date '$departureDateStr' to $departureDate using format ${format.toPattern()}")
+                            break
+                        }
+                    } catch (e: Exception) {
+                        // Try next format
+                        android.util.Log.v("BookingHistoryCard", "Failed to parse '$departureDateStr' with format ${format.toPattern()}: ${e.message}")
+                    }
+                }
+                
+                if (departureDate != null) {
+                    val today = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    
+                    val departureCal = Calendar.getInstance().apply {
+                        time = departureDate
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    
+                    // Allow rebooking if departure date is today or in the future
+                    val isTodayOrFuture = departureCal.after(today) || 
+                        (departureCal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                         departureCal.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
+                         departureCal.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH))
+                    
+                    android.util.Log.d("BookingHistoryCard", "Date comparison: departure=${departureCal.time} (${departureCal.timeInMillis}), today=${today.time} (${today.timeInMillis}), isTodayOrFuture=$isTodayOrFuture")
+                    isTodayOrFuture
+                } else {
+                    // If we can't parse the date, check if it contains a past year
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    val containsPastYear = (currentYear - 10..currentYear - 1).any { year ->
+                        departureDateStr.contains(year.toString())
+                    }
+                    
+                    if (containsPastYear) {
+                        android.util.Log.w("BookingHistoryCard", "Could not parse date '$departureDateStr' for booking ${booking.confirmationNumber}, but it contains a past year, cannot rebook")
+                        false
+                    } else {
+                        // If we can't parse and it doesn't contain a past year, allow rebook by default
+                        android.util.Log.w("BookingHistoryCard", "Could not parse date '$departureDateStr' for booking ${booking.confirmationNumber} with any format, allowing rebook by default")
+                        true
+                    }
+                }
+            } catch (e: Exception) {
+                // If parsing fails, don't allow rebooking (safer to be conservative)
+                android.util.Log.e("BookingHistoryCard", "Error parsing date '$departureDateStr' for booking ${booking.confirmationNumber}: ${e.message}", e)
+                false
+            }
+        }
+    }
+    
+    android.util.Log.d("BookingHistoryCard", "Final check for booking ${booking.confirmationNumber}: status=${booking.status}, canRebook=$canRebook, departureDate=${booking.tripDetails?.departureDate}, willShowButton=${booking.status == BookingStatus.CANCELLED && canRebook}")
+    
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Display destination name if available, otherwise use confirmation number
-                val destinationDisplay = booking.tripDetails?.destination?.takeIf { it.isNotBlank() }
-                    ?: booking.confirmationNumber
-                
-                Text(
-                    text = destinationDisplay,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1976D2)
-                )
-                
-                // Show confirmation number below destination if destination is available
-                if (booking.tripDetails?.destination?.isNotBlank() == true) {
-                    Spacer(modifier = Modifier.height(2.dp))
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Display destination name if available, otherwise use confirmation number
+                    val destinationDisplay = booking.tripDetails?.destination?.takeIf { it.isNotBlank() }
+                        ?: booking.confirmationNumber
+                    
                     Text(
-                        text = booking.confirmationNumber,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = destinationDisplay,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1976D2)
+                    )
+                    
+                    // Show confirmation number below destination if destination is available
+                    if (booking.tripDetails?.destination?.isNotBlank() == true) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = booking.confirmationNumber,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = booking.bookingDate.split("T")[0], // Show only date part
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${booking.totalPrice.toInt()} EUR",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1976D2),
+                        fontWeight = FontWeight.Medium
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = booking.bookingDate.split("T")[0], // Show only date part
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${booking.totalPrice.toInt()} EUR",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF1976D2),
-                    fontWeight = FontWeight.Medium
-                )
+                StatusChip(status = booking.status)
             }
             
-            StatusChip(status = booking.status)
+            // Rebook button for cancelled bookings - only show if date is NOT passed
+            if (booking.status == BookingStatus.CANCELLED && canRebook) {
+                android.util.Log.d("BookingHistoryCard", "Showing rebook button for cancelled booking: ${booking.confirmationNumber}, canRebook=$canRebook")
+                Button(
+                    onClick = onRebook,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2)
+                    )
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Réserver à nouveau"),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

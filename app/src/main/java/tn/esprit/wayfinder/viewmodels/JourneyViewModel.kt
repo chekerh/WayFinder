@@ -327,12 +327,17 @@ class JourneyViewModel(private val journeyRepository: JourneyRepository) : ViewM
     fun regenerateVideo(journeyId: String) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("JourneyViewModel", "Starting video regeneration for journey: $journeyId")
                 journeyRepository.regenerateVideo(journeyId)
-                // Reload journeys to show updated video status
+                android.util.Log.d("JourneyViewModel", "Video regeneration request sent successfully")
+                // Reload journeys to show updated video status (processing)
                 loadJourneys()
+                // Note: Video generation is asynchronous, status will be updated via polling
+                // The backend will process the video using the configured service (Cloudinary, Replicate, Kaggle, etc.)
             } catch (e: Exception) {
                 android.util.Log.e("JourneyViewModel", "Error regenerating video: ${e.message}", e)
-                // Show error to user if needed
+                // Error is logged, user will see status update when they refresh
+                // The backend handles all video generation services transparently
             }
         }
     }

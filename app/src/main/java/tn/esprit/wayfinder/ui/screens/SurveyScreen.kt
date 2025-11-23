@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
@@ -77,6 +78,9 @@ fun SurveyScreen(
                 progress = state.progress,
                 onAnswer = {
                     onboardingViewModel.submitAnswer(state.question.id, it)
+                },
+                onSkip = {
+                    onboardingViewModel.skipOnboarding()
                 }
             )
         }
@@ -115,7 +119,8 @@ fun SurveyScreen(
 fun QuestionScreen(
     question: OnboardingQuestion,
     progress: Progress,
-    onAnswer: (Any) -> Unit
+    onAnswer: (Any) -> Unit,
+    onSkip: () -> Unit = {}
 ) {
     val progressValue = progress.total?.let { total ->
         if (total > 0) progress.current.toFloat() / total.toFloat() else 0f
@@ -135,6 +140,22 @@ fun QuestionScreen(
                 )
             )
     ) {
+        // Skip button in top right corner - more visible
+        TextButton(
+            onClick = onSkip,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .zIndex(10f)
+        ) {
+            Text(
+                text = "Passer",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -179,6 +200,21 @@ fun QuestionScreen(
             }
             
             Spacer(modifier = Modifier.weight(1f))
+            
+            // Skip button at the bottom for easier access
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Passer cette étape",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

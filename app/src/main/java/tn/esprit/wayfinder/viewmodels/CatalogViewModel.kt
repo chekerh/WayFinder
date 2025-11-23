@@ -189,7 +189,7 @@ class CatalogViewModel(
             imageUrl = imageUrl,
             price = price,
             currency = flight.price?.currency ?: "EUR",
-            description = "Flight to $cityName via ${firstSegment.carrierCode ?: "various airlines"}",
+            description = flight.description ?: "Flight to $cityName via ${firstSegment.carrierCode ?: "various airlines"}",
             departureDate = firstSegment.departure?.at,
             arrivalDate = lastSegment.arrival?.at,
             airline = firstSegment.carrierCode

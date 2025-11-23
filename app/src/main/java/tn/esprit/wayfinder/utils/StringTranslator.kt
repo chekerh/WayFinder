@@ -27,11 +27,57 @@ object StringTranslator {
         
         // Si la langue est anglaise, traduire le texte
         if (currentLanguage == LanguageManager.LANGUAGE_ENGLISH) {
-            return LanguageDictionary.toEnglish(text)
+            // D'abord, essayer de traduire le texte complet
+            val directTranslation = LanguageDictionary.toEnglish(text)
+            if (directTranslation != text) {
+                return directTranslation
+            }
+            
+            // Si pas de traduction directe, essayer de traduire les parties du message
+            // pour les messages composés comme "Votre réservation pour X a été confirmée. Numéro de confirmation: Y"
+            val compositeTranslation = translateCompositeMessage(text)
+            if (compositeTranslation != text) {
+                return compositeTranslation
+            }
+            
+            // Si aucune traduction trouvée, retourner le texte original
+            return text
         }
         
         // Par défaut, retourner le texte original
         return text
+    }
+    
+    /**
+     * Traduit un message composé en traduisant ses parties individuelles
+     */
+    private fun translateCompositeMessage(text: String): String {
+        var translated = text
+        
+        // Liste des patterns à traduire (ordre important - du plus long au plus court)
+        val patterns = mapOf(
+            "Votre réservation pour" to "Your reservation for",
+            "a été effectué avec succès" to "has been processed successfully",
+            "a été confirmée" to "has been confirmed",
+            "a été annulée" to "has been cancelled",
+            "a été mise à jour" to "has been updated",
+            "Numéro de confirmation:" to "Confirmation number:",
+            "Numéro de confirmation" to "Confirmation number",
+            "Votre paiement de" to "Your payment of",
+            "Le paiement de" to "The payment of",
+            "a échoué" to "failed",
+            "Le prix pour" to "The price for",
+            "a baissé de" to "has dropped by",
+            "Nouveau prix" to "New price",
+            "Veuillez réessayer" to "Please try again"
+        )
+        
+        // Remplacer chaque pattern par sa traduction
+        patterns.forEach { (french, english) ->
+            translated = translated.replace(french, english, ignoreCase = true)
+        }
+        
+        return translated
     }
     
     /**

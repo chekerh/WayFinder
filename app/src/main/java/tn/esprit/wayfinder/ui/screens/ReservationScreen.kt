@@ -36,6 +36,7 @@ import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.*
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.utils.NotificationHelper
+import tn.esprit.wayfinder.manager.LanguageManager
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +58,12 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     var cardHolderName by remember { mutableStateOf("") }
     var expiryDate by remember { mutableStateOf("") }
     var cvv by remember { mutableStateOf("") }
+    
+    // Validation errors
+    var cardNumberError by remember { mutableStateOf<String?>(null) }
+    var cardHolderNameError by remember { mutableStateOf<String?>(null) }
+    var expiryDateError by remember { mutableStateOf<String?>(null) }
+    var cvvError by remember { mutableStateOf<String?>(null) }
     
     LaunchedEffect(destinationId) {
         if (destinationId.isNotBlank()) {
@@ -80,6 +87,12 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
             
             // Show immediate notification popup
             android.util.Log.d("ReservationScreen", "Booking confirmed, showing notification")
+            
+            // Get current language to ensure proper translation
+            val languageManager = LanguageManager(context)
+            val currentLanguage = languageManager.getLanguage()
+            android.util.Log.d("ReservationScreen", "Current language: $currentLanguage")
+            
             val destinationName = selectedDestination?.name ?: StringTranslator.translate(context, "votre destination")
             val notificationTitle = StringTranslator.translate(context, "Réservation confirmée")
             // Build notification message by translating parts separately
@@ -87,7 +100,10 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
             val hasBeenConfirmed = StringTranslator.translate(context, "a été confirmée")
             val confirmationNumberLabel = StringTranslator.translate(context, "Numéro de confirmation")
             val notificationMessage = "$reservationFor $destinationName $hasBeenConfirmed. $confirmationNumberLabel: ${booking.confirmationNumber}"
-            android.util.Log.d("ReservationScreen", "Notification title: $notificationTitle, message: $notificationMessage")
+            
+            android.util.Log.d("ReservationScreen", "Translated title: $notificationTitle")
+            android.util.Log.d("ReservationScreen", "Translated message: $notificationMessage")
+            
             NotificationHelper.showSimpleNotification(
                 context,
                 notificationTitle,
@@ -222,10 +238,15 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         value = cardNumber,
                         onValueChange = { 
                             // Format card number (add spaces every 4 digits)
-                            val formatted = it.filter { it.isDigit() }
-                                .chunked(4)
-                                .joinToString(" ")
-                            if (formatted.length <= 19) cardNumber = formatted
+                            val digitsOnly = it.filter { it.isDigit() }
+                            if (digitsOnly.length <= 16) {
+                                val formatted = digitsOnly.chunked(4).joinToString(" ")
+                                cardNumber = formatted
+                                // Validate: must be 16 digits
+                                cardNumberError = if (digitsOnly.length < 16 && digitsOnly.isNotEmpty()) {
+                                    StringTranslator.translate(context, "Le numéro de carte doit contenir 16 chiffres")
+                                } else null
+                            }
                         },
                         label = { Text(StringTranslator.translate(context, "Numéro de carte")) },
                         placeholder = { Text("1234 5678 9012 3456") },
@@ -235,18 +256,33 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
                             Icon(Icons.Filled.CreditCard, contentDescription = null)
-                        }
+                        },
+                        isError = cardNumberError != null,
+                        supportingText = cardNumberError?.let { { Text(it) } }
                     )
                     
                     OutlinedTextField(
                         value = cardHolderName,
-                        onValueChange = { cardHolderName = it },
+                        onValueChange = { 
+                            // Only allow letters, spaces, and common name characters
+                            if (it.all { char -> char.isLetter() || char.isWhitespace() || char == '-' || char == '\'' }) {
+                                cardHolderName = it
+                                // Validate: must not be empty and at least 2 characters
+                                cardHolderNameError = if (it.isBlank()) {
+                                    StringTranslator.translate(context, "Le nom ne peut pas être vide")
+                                } else if (it.trim().length < 2) {
+                                    StringTranslator.translate(context, "Le nom doit contenir au moins 2 caractères")
+                                } else null
+                            }
+                        },
                         label = { Text(StringTranslator.translate(context, "Nom sur la carte")) },
                         placeholder = { Text("John Doe") },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = {
                             Icon(Icons.Filled.Person, contentDescription = null)
-                        }
+                        },
+                        isError = cardHolderNameError != null,
+                        supportingText = cardHolderNameError?.let { { Text(it) } }
                     )
                     
                     Row(
@@ -255,14 +291,46 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                     ) {
                         OutlinedTextField(
                             value = expiryDate,
-                            onValueChange = { 
-                                // Format MM/YY
-                                val formatted = it.filter { it.isDigit() }
-                                if (formatted.length <= 4) {
-                                    expiryDate = if (formatted.length > 2) {
-                                        "${formatted.substring(0, 2)}/${formatted.substring(2)}"
+                            onValueChange = { newValue ->
+                                // Remove any existing slashes and non-digits
+                                val cleanInput = newValue.replace("/", "").filter { it.isDigit() }
+                                
+                                // Limit to 4 digits
+                                if (cleanInput.length <= 4) {
+                                    val formatted = when {
+                                        cleanInput.isEmpty() -> ""
+                                        cleanInput.length <= 2 -> cleanInput
+                                        cleanInput.length == 3 -> {
+                                            // Format as MM/Y (e.g., "09/2")
+                                            "${cleanInput.substring(0, 2)}/${cleanInput.substring(2)}"
+                                        }
+                                        else -> {
+                                            // Format as MM/YY (e.g., "09/26")
+                                            "${cleanInput.substring(0, 2)}/${cleanInput.substring(2, 4)}"
+                                        }
+                                    }
+                                    
+                                    expiryDate = formatted
+                                    
+                                    // Validate date only when we have exactly 4 digits
+                                    if (cleanInput.length == 4) {
+                                        val monthStr = cleanInput.substring(0, 2)
+                                        val yearStr = cleanInput.substring(2, 4)
+                                        val month = monthStr.toIntOrNull()
+                                        val year = yearStr.toIntOrNull()
+                                        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR) % 100
+                                        
+                                        expiryDateError = when {
+                                            month == null || month < 1 || month > 12 -> {
+                                                StringTranslator.translate(context, "Mois invalide (01-12)")
+                                            }
+                                            year == null || year < currentYear -> {
+                                                StringTranslator.translate(context, "L'année doit être dans le futur")
+                                            }
+                                            else -> null
+                                        }
                                     } else {
-                                        formatted
+                                        expiryDateError = null
                                     }
                                 }
                             },
@@ -271,14 +339,21 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = KeyboardType.Number
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            isError = expiryDateError != null,
+                            supportingText = expiryDateError?.let { { Text(it) } }
                         )
                         
                         OutlinedTextField(
                             value = cvv,
                             onValueChange = { 
-                                if (it.length <= 3 && it.all { char -> char.isDigit() }) {
-                                    cvv = it
+                                val digitsOnly = it.filter { char -> char.isDigit() }
+                                if (digitsOnly.length <= 4) {
+                                    cvv = digitsOnly
+                                    // Validate: must be 3 or 4 digits
+                                    cvvError = if (digitsOnly.length < 3 && digitsOnly.isNotEmpty()) {
+                                        StringTranslator.translate(context, "Le CVV doit contenir 3 ou 4 chiffres")
+                                    } else null
                                 }
                             },
                             label = { Text(StringTranslator.translate(context, "CVV")) },
@@ -286,7 +361,9 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = KeyboardType.Number
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            isError = cvvError != null,
+                            supportingText = cvvError?.let { { Text(it) } }
                         )
                     }
                 }
@@ -405,14 +482,26 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         )
                         Button(
                             onClick = {
-                                bookingViewModel.confirmBooking(
-                                    offerId = destinationId,
-                                    cardNumber = cardNumber.replace(" ", ""),
-                                    cardHolderName = cardHolderName,
-                                    totalPrice = total,
-                                    destination = selectedDestination?.name,
-                                    destinationCountry = selectedDestination?.country
-                                )
+                                val cardNumberDigits = cardNumber.replace(" ", "")
+                                val isValid = cardNumberDigits.length == 16 && 
+                                             cardHolderName.trim().length >= 2 && 
+                                             expiryDate.length == 5 && 
+                                             (cvv.length == 3 || cvv.length == 4) &&
+                                             cardNumberError == null &&
+                                             cardHolderNameError == null &&
+                                             expiryDateError == null &&
+                                             cvvError == null
+                                
+                                if (isValid) {
+                                    bookingViewModel.confirmBooking(
+                                        offerId = destinationId,
+                                        cardNumber = cardNumberDigits,
+                                        cardHolderName = cardHolderName.trim(),
+                                        totalPrice = total,
+                                        destination = selectedDestination?.name,
+                                        destinationCountry = selectedDestination?.country
+                                    )
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -433,12 +522,22 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 else -> {
                     Button(
                         onClick = {
-                            if (cardNumber.isNotBlank() && cardHolderName.isNotBlank() && 
-                                expiryDate.isNotBlank() && cvv.isNotBlank()) {
+                            // Validate all fields before submitting
+                            val cardNumberDigits = cardNumber.replace(" ", "")
+                            val isValid = cardNumberDigits.length == 16 && 
+                                         cardHolderName.trim().length >= 2 && 
+                                         expiryDate.length == 5 && 
+                                         (cvv.length == 3 || cvv.length == 4) &&
+                                         cardNumberError == null &&
+                                         cardHolderNameError == null &&
+                                         expiryDateError == null &&
+                                         cvvError == null
+                            
+                            if (isValid) {
                                 bookingViewModel.confirmBooking(
                                     offerId = destinationId,
-                                    cardNumber = cardNumber.replace(" ", ""),
-                                cardHolderName = cardHolderName,
+                                    cardNumber = cardNumberDigits,
+                                    cardHolderName = cardHolderName.trim(),
                                     totalPrice = total,
                                     destination = selectedDestination?.name,
                                     destinationCountry = selectedDestination?.country
@@ -452,8 +551,17 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF1976D2)
                         ),
-                        enabled = cardNumber.isNotBlank() && cardHolderName.isNotBlank() && 
-                                  expiryDate.isNotBlank() && cvv.isNotBlank()
+                        enabled = {
+                            val cardNumberDigits = cardNumber.replace(" ", "")
+                            cardNumberDigits.length == 16 && 
+                            cardHolderName.trim().length >= 2 && 
+                            expiryDate.length == 5 && 
+                            (cvv.length == 3 || cvv.length == 4) &&
+                            cardNumberError == null &&
+                            cardHolderNameError == null &&
+                            expiryDateError == null &&
+                            cvvError == null
+                        }()
                     ) {
                         Text(
                             text = StringTranslator.translate(context, "Confirmer la réservation"),

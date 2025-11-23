@@ -56,8 +56,8 @@ class DiscussionRepository(private val apiService: ApiService) {
         return apiService.getComments(postId, limit, skip)
     }
     
-    suspend fun createComment(postId: String, content: String): DiscussionComment {
-        val request = CreateCommentRequest(content = content)
+    suspend fun createComment(postId: String, content: String, parentId: String? = null): DiscussionComment {
+        val request = CreateCommentRequest(content = content, parentId = parentId)
         return apiService.createComment(postId, request)
     }
     

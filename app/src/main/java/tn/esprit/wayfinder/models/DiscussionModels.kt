@@ -37,6 +37,8 @@ data class DiscussionComment(
     val content: String,
     @SerialName("likes_count") val likesCount: Int = 0,
     @SerialName("liked_by") val likedBy: List<String> = emptyList(),
+    @SerialName("parent_id") val parentId: String? = null,
+    val replies: List<DiscussionComment> = emptyList(),
     @SerialName("createdAt") val createdAt: String,
     @SerialName("updatedAt") val updatedAt: String
 )
@@ -68,6 +70,7 @@ data class CreatePostRequest(
 
 @Serializable
 data class CreateCommentRequest(
-    val content: String
+    val content: String,
+    @SerialName("parent_id") val parentId: String? = null
 )
 
