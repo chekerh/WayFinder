@@ -22,6 +22,9 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
@@ -31,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -55,6 +59,8 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.components.SkeletonLoadingCard
 import tn.esprit.wayfinder.ui.components.CompactPointsBadge
+import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
+import tn.esprit.wayfinder.utils.HapticFeedbackHelper
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
@@ -617,6 +623,7 @@ fun DestinationCardContent(
     destination: tn.esprit.wayfinder.models.FlightDestination,
     favoritesViewModel: FavoritesViewModel
 ) {
+    val context = LocalContext.current
     // State for favorite button
     var isFavorite by remember { mutableStateOf(false) }
     
@@ -707,8 +714,7 @@ fun DestinationCardContent(
         ) {
             IconButton(
                 onClick = {
-                    val context = LocalContext.current
-                    tn.esprit.wayfinder.utils.HapticFeedbackHelper.triggerButtonPress(context)
+                    HapticFeedbackHelper.triggerButtonPress(context)
                     isFavorite = !isFavorite
                     if (isFavorite) {
                         favoritesViewModel.addFavorite(
