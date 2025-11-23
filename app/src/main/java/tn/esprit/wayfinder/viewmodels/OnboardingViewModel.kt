@@ -115,4 +115,40 @@ class OnboardingViewModel(private val onboardingRepository: OnboardingRepository
             }
         }
     }
+
+    fun skipOnboarding() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = OnboardingUiState.Loading
+                val response = onboardingRepository.skipOnboarding()
+                _uiState.value = OnboardingUiState.Completed(
+                    message = response.message ?: "Onboarding skipped!"
+                )
+            } catch (e: Exception) {
+                _uiState.value = OnboardingUiState.Error(e.message ?: "Failed to skip onboarding")
+            }
+        }
+    }
+
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = OnboardingUiState.Loading
+                val response = onboardingRepository.resetOnboarding()
+                currentSessionId = response.sessionId
+                if (response.completed) {
+                    _uiState.value = OnboardingUiState.Completed(
+                        message = response.message ?: "Onboarding completed!"
+                    )
+                } else {
+                    _uiState.value = OnboardingUiState.QuestionLoaded(
+                        question = requireNotNull(response.question),
+                        progress = requireNotNull(response.progress)
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = OnboardingUiState.Error(e.message ?: "Failed to reset onboarding")
+            }
+        }
+    }
 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,23 +38,38 @@ import tn.esprit.wayfinder.models.QuestionOption
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.OnboardingUiState
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
+import tn.esprit.wayfinder.manager.TokenManager
 
 @Composable
 fun SurveyScreen(
     onComplete: () -> Unit
 ) {
     val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
     val onboardingViewModel: OnboardingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
 
     val uiState by onboardingViewModel.uiState.collectAsState()
+    
+    // Check if user already completed onboarding - if so, reset it
+    val currentUser = remember { tokenManager.getUser() }
+    val shouldReset = remember { currentUser?.onboardingCompleted == true }
 
     LaunchedEffect(Unit) {
-        onboardingViewModel.startOnboarding()
+        if (shouldReset) {
+            // User wants to retake - reset onboarding first
+            onboardingViewModel.resetOnboarding()
+        } else {
+            onboardingViewModel.startOnboarding()
+        }
     }
 
     when (val state = uiState) {
         is OnboardingUiState.Loading -> {
-            LoadingIndicator()
+            LoadingIndicatorWithSkip(
+                onSkip = {
+                    onboardingViewModel.skipOnboarding()
+                }
+            )
         }
         is OnboardingUiState.QuestionLoaded -> {
             QuestionScreen(
@@ -66,6 +82,18 @@ fun SurveyScreen(
         }
         is OnboardingUiState.Completed -> {
             LaunchedEffect(state) {
+                // Refresh user data to update onboarding status
+                val tokenManager = TokenManager(context)
+                val currentUser = tokenManager.getUser()
+                if (currentUser != null) {
+                    // Check if it was skipped by checking the message
+                    val wasSkipped = state.message.contains("skipped", ignoreCase = true)
+                    val updatedUser = currentUser.copy(
+                        onboardingCompleted = true,
+                        onboardingSkipped = wasSkipped
+                    )
+                    tokenManager.saveUser(updatedUser)
+                }
                 delay(2000)
                 onComplete()
             }
@@ -348,6 +376,56 @@ fun PinterestMultipleChoiceQuestion(
     }
 }
 
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun LoadingIndicatorWithSkip(
+    onSkip: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        // Skip button at top right
+        TextButton(
+            onClick = onSkip,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Skip",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+        
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(64.dp),
+                strokeWidth = 4.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Preparing your experience...",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

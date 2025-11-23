@@ -23,4 +23,12 @@ class OnboardingRepository(private val apiService: ApiService) {
     suspend fun resume(sessionId: String?): OnboardingResponse {
         return apiService.resumeOnboarding(ResumeRequest(sessionId))
     }
+
+    suspend fun skipOnboarding(): OnboardingResponse {
+        return apiService.skipOnboarding()
+    }
+
+    suspend fun resetOnboarding(): OnboardingResponse {
+        return apiService.resetOnboarding()
+    }
 }
