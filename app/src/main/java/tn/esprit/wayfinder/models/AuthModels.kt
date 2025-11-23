@@ -18,7 +18,12 @@ data class User(
     val preferences: List<String>,
     val status: String,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean = false,
+    @SerialName("onboarding_skipped") val onboardingSkipped: Boolean = false,
     @SerialName("onboarding_preferences") val onboardingPreferences: Map<String, JsonElement>? = null,
+    @SerialName("total_points") val totalPoints: Int = 0,
+    @SerialName("lifetime_points") val lifetimePoints: Int = 0,
+    @SerialName("current_streak") val currentStreak: Int = 0,
+    @SerialName("longest_streak") val longestStreak: Int = 0,
     @SerialName("createdAt") val createdAt: String? = null,
     @SerialName("updatedAt") val updatedAt: String? = null
 )

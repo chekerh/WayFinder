@@ -26,6 +26,10 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -55,6 +59,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import android.app.Activity
 import android.content.Intent
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.ui.components.PointsDisplayCard
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
 import tn.esprit.wayfinder.viewmodels.JourneyViewModel
@@ -356,6 +361,24 @@ fun ProfileContent(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Points Display Card (Starbucks/Starbucks-style)
+        PointsDisplayCard(
+            totalPoints = user.totalPoints,
+            lifetimePoints = user.lifetimePoints,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Travel Streak Card (Duolingo-inspired)
+        TravelStreakCard(
+            currentStreak = user.currentStreak,
+            longestStreak = user.longestStreak,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         // Contact Information Card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -501,6 +524,63 @@ fun ProfileContent(
                         strokeWidth = 2.dp
                     )
                 }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Retake Onboarding Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    // Navigate to onboarding - it will handle reset internally
+                    navController.navigate("onboarding") {
+                        popUpTo("profile") { inclusive = false }
+                    }
+                },
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Retake Onboarding",
+                        tint = Color(0xFF4A90E2),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column {
+                        Text(
+                            text = StringTranslator.translate(context, "Refaire le questionnaire"),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Mettre à jour vos préférences de voyage"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "View",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            rotationZ = 180f
+                        }
+                )
             }
         }
         
@@ -1176,6 +1256,90 @@ fun LanguageOption(
                 contentDescription = "Selected",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun TravelStreakCard(
+    currentStreak: Int,
+    longestStreak: Int,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "streak")
+    val fireScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fireScale"
+    )
+    
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalFireDepartment,
+                    contentDescription = "Streak",
+                    tint = Color(0xFFFF5722),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .graphicsLayer { scaleX = fireScale; scaleY = fireScale }
+                )
+                Text(
+                    text = "$currentStreak",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF5722)
+                )
+            }
+            
+            Text(
+                text = "Day Streak",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+            
+            Text(
+                text = "Longest streak: $longestStreak days",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Progress bar
+            LinearProgressIndicator(
+                progress = (currentStreak.toFloat() / 30f).coerceIn(0f, 1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = Color(0xFFFF5722),
+                trackColor = Color(0xFFFF5722).copy(alpha = 0.2f)
+            )
+            
+            Text(
+                text = "${30 - currentStreak} days until next milestone!",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

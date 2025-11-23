@@ -102,6 +102,12 @@ interface ApiService {
     @POST("onboarding/resume")
     suspend fun resumeOnboarding(@Body request: ResumeRequest): OnboardingResponse
 
+    @POST("onboarding/skip")
+    suspend fun skipOnboarding(): OnboardingResponse
+
+    @POST("onboarding/reset")
+    suspend fun resetOnboarding(): OnboardingResponse
+
     // --- RECOMMENDATIONS --- //
     @GET("recommendations/personalized")
     suspend fun getPersonalizedRecommendations(

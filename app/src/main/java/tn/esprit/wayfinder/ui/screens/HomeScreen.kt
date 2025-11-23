@@ -53,6 +53,8 @@ import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.ui.components.SkeletonLoadingCard
+import tn.esprit.wayfinder.ui.components.CompactPointsBadge
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
 import tn.esprit.wayfinder.viewmodels.CatalogUiState
@@ -130,12 +132,24 @@ fun HomeScreen(navController: NavController) {
             
             Column {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                        text = StringTranslator.translate(context, "Personnalisé par Gemini"),
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Personnalisé par Gemini"),
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Sparkle icon for personalization
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                     Text(
                         text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
                         style = MaterialTheme.typography.bodyMedium,
@@ -187,14 +201,11 @@ fun HomeScreen(navController: NavController) {
                     
                     when (val state = uiState) {
                         is CatalogUiState.Loading -> {
-                            Box(
+                            SkeletonLoadingCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(340.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
+                                    .height(340.dp)
+                            )
                         }
                         is CatalogUiState.Success -> {
                             // Filter destinations based on selected region
@@ -236,7 +247,7 @@ fun HomeScreen(navController: NavController) {
                                 )
                             }
                             
-                            DestinationsSection(
+                            EnhancedDestinationsSection(
                                 destinations = displayDestinations,
                                 navController = navController,
                                 favoritesViewModel = favoritesViewModel
@@ -293,6 +304,16 @@ fun TopBar(
         ?: user?.username?.takeIf { it.isNotBlank() }
         ?: "Explorateur"
     
+    // Personalized greeting based on time of day
+    val greeting = remember {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        when {
+            hour < 12 -> StringTranslator.translate(context, "Bonjour")
+            hour < 18 -> StringTranslator.translate(context, "Bon après-midi")
+            else -> StringTranslator.translate(context, "Bonsoir")
+        }
+    }
+    
     val unreadCount = when (val state = notificationsState) {
         is NotificationsUiState.Success -> state.unreadCount
         else -> 0
@@ -306,38 +327,80 @@ fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val userImageUrl = user?.profileImageUrl?.let { url ->
-                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
-            }
-            if (userImageUrl != null) {
-                AsyncImage(
-                    model = userImageUrl,
-                    contentDescription = "User Avatar",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .clickable { navController.navigate("profile") },
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(id = R.drawable.europe),
-                    error = painterResource(id = R.drawable.europe)
-                )
-            } else {
-                Image(
-                    painter = painterResource(id = R.drawable.europe),
-                    contentDescription = "User Avatar",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .clickable { navController.navigate("profile") },
-                    contentScale = ContentScale.Crop
-                )
+            Box {
+                val userImageUrl = user?.profileImageUrl?.let { url ->
+                    if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                }
+                if (userImageUrl != null) {
+                    AsyncImage(
+                        model = userImageUrl,
+                        contentDescription = "User Avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable { 
+                HapticFeedbackHelper.triggerButtonPress(context)
+                navController.navigate("profile") 
+            },
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.europe),
+                        error = painterResource(id = R.drawable.europe)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.europe),
+                        contentDescription = "User Avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable { 
+                HapticFeedbackHelper.triggerButtonPress(context)
+                navController.navigate("profile") 
+            },
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                
+                // Show badge if onboarding was skipped
+                if (user?.onboardingSkipped == true) {
+                    OnboardingReminderBadge(
+                        onDismiss = {
+                            // Update user to remove skipped flag
+                            val updatedUser = user.copy(onboardingSkipped = false)
+                            tokenManager.saveUser(updatedUser)
+                        },
+                        onClick = {
+                            navController.navigate("onboarding")
+                        },
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "${StringTranslator.translate(context, "Salut")}, $userName",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "$greeting, $userName! 👋",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    // Compact points badge
+                    if (user?.totalPoints != null && user.totalPoints > 0) {
+                        CompactPointsBadge(
+                            points = user.totalPoints,
+                            modifier = Modifier.scale(0.85f)
+                        )
+                    }
+                }
+                Text(
+                    text = StringTranslator.translate(context, "Prêt pour votre prochaine aventure?"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         
         Box(
@@ -345,7 +408,10 @@ fun TopBar(
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.6f))
-                .clickable { navController.navigate("notifications") },
+                .clickable { 
+                    HapticFeedbackHelper.triggerButtonPress(context)
+                    navController.navigate("notifications") 
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -492,6 +558,60 @@ fun DestinationsSection(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun EnhancedDestinationsSection(
+    destinations: List<tn.esprit.wayfinder.models.FlightDestination>,
+    navController: NavController,
+    favoritesViewModel: FavoritesViewModel
+) {
+    val context = LocalContext.current
+    if (destinations.isEmpty()) {
+        Text(
+            text = StringTranslator.translate(context, "Aucune destination disponible"),
+            color = Color.Gray,
+            modifier = Modifier.padding(16.dp)
+        )
+        return
+    }
+
+    // Show all destinations - user wants to see multiple flights
+    val pagerState = rememberPagerState(pageCount = { destinations.size })
+
+    HorizontalPager(
+        state = pagerState,
+        contentPadding = PaddingValues(horizontal = 80.dp),
+        pageSpacing = (-120).dp
+    ) { page ->
+        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+        val selectedDestination = destinations[page]
+
+        Box(
+            modifier = Modifier
+                .zIndex(1f - pageOffset)
+                .graphicsLayer {
+                    alpha = lerp(start = 0.5f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
+                    scaleY = lerp(start = 0.85f, stop = 1f, fraction = 1f - pageOffset.coerceIn(0f, 1f))
+                }
+                .width(290.dp)
+                .height(340.dp)
+        ) {
+            SwipeableDestinationCard(
+                destination = selectedDestination,
+                favoritesViewModel = favoritesViewModel,
+                onCardClick = {
+                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                        SELECTED_DESTINATION_KEY,
+                        selectedDestination
+                    )
+                    navController.navigate("flight_detail/${selectedDestination.id}")
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+}
+
 @Composable
 fun DestinationCardContent(
     destination: tn.esprit.wayfinder.models.FlightDestination,
@@ -551,13 +671,31 @@ fun DestinationCardContent(
                 modifier = Modifier.padding(top = 4.dp)
             )
             if (destination.price != null && destination.price > 0) {
-                Text(
-                    text = "${destination.price.toInt()} ${destination.currency}",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp)
-                )
+                ) {
+                    Text(
+                        text = "${destination.price.toInt()} ${destination.currency}",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Social proof badge
+                    Surface(
+                        color = Color(0xFF4CAF50).copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Popular",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
         }
         
@@ -569,6 +707,8 @@ fun DestinationCardContent(
         ) {
             IconButton(
                 onClick = {
+                    val context = LocalContext.current
+                    tn.esprit.wayfinder.utils.HapticFeedbackHelper.triggerButtonPress(context)
                     isFavorite = !isFavorite
                     if (isFavorite) {
                         favoritesViewModel.addFavorite(
@@ -666,6 +806,56 @@ fun DiscussionCard(navController: NavController) {
                 tint = Color(0xFF1976D2),
                 modifier = Modifier.size(24.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun OnboardingReminderBadge(
+    onDismiss: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    Card(
+        modifier = modifier
+            .offset(x = (-8).dp, y = (-8).dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFF9800)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = StringTranslator.translate(context, "Complétez votre profil"),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint = Color.White,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }

@@ -17,6 +17,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
+import tn.esprit.wayfinder.utils.HapticFeedbackHelper
 import androidx.navigation.NavController
 
 @Composable
@@ -117,12 +122,23 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavBarIcon(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.15f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "scale"
+    )
+    
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -130,7 +146,14 @@ fun NavBarIcon(
             .background(
                 if (isSelected) Color.White else Color.Transparent
             )
-            .clickable(onClick = onClick),
+            .clickable {
+                HapticFeedbackHelper.triggerButtonPress(context)
+                onClick()
+            }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
         contentAlignment = Alignment.Center
     ) {
         Icon(
