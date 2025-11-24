@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -42,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -1291,66 +1291,58 @@ fun TravelStreakCard(
         ),
         label = "fireScale"
     )
-    
-    val isDark = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background.luminance() < 0.5f
+    val cardGradient = if (isDark) {
+        listOf(
+            colorScheme.surfaceVariant.copy(alpha = 0.95f),
+            colorScheme.surface.copy(alpha = 0.9f)
+        )
+    } else {
+        listOf(
+            Color(0xFFF5F5F5).copy(alpha = 0.9f),
+            Color(0xFFE8E8E8).copy(alpha = 0.85f),
+            Color(0xFFF5F5F5).copy(alpha = 0.9f)
+        )
+    }
+    val overlayGradient = if (isDark) {
+        listOf(
+            colorScheme.surfaceVariant.copy(alpha = 0.85f),
+            colorScheme.surface.copy(alpha = 0.8f)
+        )
+    } else {
+        listOf(
+            Color(0xFFFFFFFF).copy(alpha = 0.6f),
+            Color(0xFFFFFFFF).copy(alpha = 0.5f)
+        )
+    }
+    val borderBrush = Brush.linearGradient(
+        colors = if (isDark) {
+            listOf(
+                colorScheme.outlineVariant.copy(alpha = 0.7f),
+                colorScheme.outline.copy(alpha = 0.5f),
+                colorScheme.outlineVariant.copy(alpha = 0.7f)
+            )
+        } else {
+            listOf(
+                Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                Color(0xFFCCCCCC).copy(alpha = 0.5f)
+            )
+        }
+    )
+    val accentColor = if (isDark) colorScheme.primary else Color(0xFFFF5722)
+    val textOnCard = colorScheme.onSurface
+    val progressTrackColor = if (isDark) colorScheme.primary.copy(alpha = 0.25f) else Color(0xFFFF5722).copy(alpha = 0.2f)
+
     Box(
         modifier = modifier
             .graphicsLayer {
                 compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
             }
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.95f),
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                            Color(0xFFFFFFFF).copy(alpha = 0.95f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                            Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.8f),
-                            Color(0xFFF0F0F0).copy(alpha = 0.75f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                            Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFE0E0E0).copy(alpha = 0.6f),
-                            Color(0xFFD0D0D0).copy(alpha = 0.5f),
-                            Color(0xFFE0E0E0).copy(alpha = 0.6f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                            Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                            Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
+            .background(Brush.verticalGradient(cardGradient), shape = RoundedCornerShape(16.dp))
+            .background(Brush.verticalGradient(overlayGradient), shape = RoundedCornerShape(16.dp))
+            .border(width = 1.dp, brush = borderBrush, shape = RoundedCornerShape(16.dp))
     ) {
         Column(
             modifier = Modifier
@@ -1366,7 +1358,7 @@ fun TravelStreakCard(
                 Icon(
                     imageVector = Icons.Default.LocalFireDepartment,
                     contentDescription = "Streak",
-                    tint = Color(0xFFFF5722),
+                    tint = accentColor,
                     modifier = Modifier
                         .size(32.dp)
                         .graphicsLayer { scaleX = fireScale; scaleY = fireScale }
@@ -1377,7 +1369,7 @@ fun TravelStreakCard(
                         fontSize = if (isDark) 32.sp else MaterialTheme.typography.displaySmall.fontSize
                     ),
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color(0xFF000000) else Color(0xFFFF5722)
+                    color = accentColor
                 )
             }
             
@@ -1387,7 +1379,7 @@ fun TravelStreakCard(
                     fontSize = if (isDark) 18.sp else MaterialTheme.typography.titleMedium.fontSize
                 ),
                 fontWeight = FontWeight.Bold,
-                color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface
+                color = textOnCard
             )
             
             Text(
@@ -1395,7 +1387,7 @@ fun TravelStreakCard(
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
                 ),
-                color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface,
+                color = textOnCard,
                 fontWeight = FontWeight.Bold
             )
             
@@ -1406,8 +1398,8 @@ fun TravelStreakCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = Color(0xFFFF5722),
-                trackColor = Color(0xFFFF5722).copy(alpha = 0.2f)
+                color = accentColor,
+                trackColor = progressTrackColor
             )
             
             Text(
@@ -1415,12 +1407,12 @@ fun TravelStreakCard(
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
                 ),
-                color = if (isDark) Color(0xFFFF6F00) else MaterialTheme.colorScheme.onSurface,
+                color = accentColor,
                 fontWeight = FontWeight.Bold
             )
         }
     }
-    }
+}
 
 
 @Preview(showBackground = true)

@@ -3,7 +3,6 @@ package tn.esprit.wayfinder.ui.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +17,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -42,65 +42,57 @@ fun PointsDisplayCard(
         label = "sparkle"
     )
     
-    val isDark = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background.luminance() < 0.5f
+    val cardGradient = if (isDark) {
+        listOf(
+            colorScheme.surfaceVariant.copy(alpha = 0.95f),
+            colorScheme.surface.copy(alpha = 0.9f)
+        )
+    } else {
+        listOf(
+            Color(0xFFF5F5F5).copy(alpha = 0.9f),
+            Color(0xFFE8E8E8).copy(alpha = 0.85f),
+            Color(0xFFF5F5F5).copy(alpha = 0.9f)
+        )
+    }
+    val overlayGradient = if (isDark) {
+        listOf(
+            colorScheme.surfaceVariant.copy(alpha = 0.85f),
+            colorScheme.surface.copy(alpha = 0.8f)
+        )
+    } else {
+        listOf(
+            Color(0xFFFFFFFF).copy(alpha = 0.6f),
+            Color(0xFFFFFFFF).copy(alpha = 0.5f)
+        )
+    }
+    val borderBrush = Brush.linearGradient(
+        colors = if (isDark) {
+            listOf(
+                colorScheme.outlineVariant.copy(alpha = 0.7f),
+                colorScheme.outline.copy(alpha = 0.5f),
+                colorScheme.outlineVariant.copy(alpha = 0.7f)
+            )
+        } else {
+            listOf(
+                Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                Color(0xFFCCCCCC).copy(alpha = 0.5f)
+            )
+        }
+    )
+    val primaryTextColor = if (isDark) colorScheme.onSurface else Color(0xFF111111)
+    val accentColor = if (isDark) colorScheme.primary else Color(0xFFFFC107)
+    val successColor = if (isDark) colorScheme.tertiary else Color(0xFF4CAF50)
     Box(
         modifier = modifier
             .graphicsLayer {
                 compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
             }
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.95f),
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                            Color(0xFFFFFFFF).copy(alpha = 0.95f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                            Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                            Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.8f),
-                            Color(0xFFF0F0F0).copy(alpha = 0.75f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                            Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFFE0E0E0).copy(alpha = 0.6f),
-                            Color(0xFFD0D0D0).copy(alpha = 0.5f),
-                            Color(0xFFE0E0E0).copy(alpha = 0.6f)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                            Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                            Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                        )
-                    }
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
+            .background(Brush.verticalGradient(cardGradient), shape = RoundedCornerShape(16.dp))
+            .background(Brush.verticalGradient(overlayGradient), shape = RoundedCornerShape(16.dp))
+            .border(width = 1.dp, brush = borderBrush, shape = RoundedCornerShape(16.dp))
     ) {
         Row(
             modifier = Modifier
@@ -145,14 +137,14 @@ fun PointsDisplayCard(
                             fontSize = if (isDark) 32.sp else MaterialTheme.typography.displaySmall.fontSize
                         ),
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) Color(0xFF000000) else Color(0xFFFFC107)
+                        color = accentColor
                     )
                     Text(
                         text = "Points",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = if (isDark) 16.sp else MaterialTheme.typography.bodyMedium.fontSize
                         ),
-                        color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface,
+                        color = primaryTextColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -166,7 +158,7 @@ fun PointsDisplayCard(
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
                     ),
-                    color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface,
+                    color = primaryTextColor,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -174,7 +166,7 @@ fun PointsDisplayCard(
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
                     ),
-                    color = if (isDark) Color(0xFF00FF00) else Color(0xFF4CAF50),
+                    color = successColor,
                     fontWeight = FontWeight.Bold
                 )
             }

@@ -62,13 +62,16 @@ class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
                 // Send to API
                 val model = _selectedModel.value
                 val response = chatRepository.sendMessage(message, model)
+                val enrichedFlights = response.flightPacks?.takeIf { it.isNotEmpty() }
+                    ?: runCatching { chatRepository.getPersonalizedFlightPacks() }
+                        .getOrElse { emptyList() }
 
                 // Add AI response to UI
                 val aiMessage = ChatMessageUi(
                     text = response.message,
                     isFromUser = false,
                     modelUsed = response.modelUsed,
-                    flightPacks = response.flightPacks
+                    flightPacks = enrichedFlights.takeIf { it.isNotEmpty() }
                 )
                 _messages.value = _messages.value + aiMessage
 

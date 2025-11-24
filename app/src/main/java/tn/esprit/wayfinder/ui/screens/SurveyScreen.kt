@@ -39,6 +39,7 @@ import tn.esprit.wayfinder.models.QuestionOption
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.OnboardingUiState
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
+import tn.esprit.wayfinder.viewmodels.OnboardingSyncStatus
 import tn.esprit.wayfinder.manager.TokenManager
 
 @Composable
@@ -50,12 +51,14 @@ fun SurveyScreen(
     val onboardingViewModel: OnboardingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
 
     val uiState by onboardingViewModel.uiState.collectAsState()
+    val syncStatus by onboardingViewModel.syncStatus.collectAsState()
     
     // Check if user already completed onboarding - if so, reset it
     val currentUser = remember { tokenManager.getUser() }
     val shouldReset = remember { currentUser?.onboardingCompleted == true }
 
     LaunchedEffect(Unit) {
+        onboardingViewModel.verifyProgress()
         if (shouldReset) {
             // User wants to retake - reset onboarding first
             onboardingViewModel.resetOnboarding()
@@ -81,7 +84,8 @@ fun SurveyScreen(
                 },
                 onSkip = {
                     onboardingViewModel.skipOnboarding()
-                }
+                },
+                syncStatus = syncStatus
             )
         }
         is OnboardingUiState.Completed -> {
@@ -120,7 +124,8 @@ fun QuestionScreen(
     question: OnboardingQuestion,
     progress: Progress,
     onAnswer: (Any) -> Unit,
-    onSkip: () -> Unit = {}
+    onSkip: () -> Unit = {},
+    syncStatus: OnboardingSyncStatus? = null
 ) {
     val progressValue = progress.total?.let { total ->
         if (total > 0) progress.current.toFloat() / total.toFloat() else 0f
@@ -182,6 +187,15 @@ fun QuestionScreen(
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             
+            syncStatus?.let { status ->
+                SyncStatusIndicator(
+                    status = status,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                )
+            }
+            
             Spacer(modifier = Modifier.weight(1f))
             
             // Pinterest-style question card with animations
@@ -216,6 +230,35 @@ fun QuestionScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SyncStatusIndicator(
+    status: OnboardingSyncStatus,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.CloudDone,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
+        val statusText = if (status.canResume) {
+            "${status.questionsAnswered} réponses sauvegardées • reprise possible"
+        } else {
+            "${status.questionsAnswered} réponses sauvegardées"
+        }
+        Text(
+            text = statusText,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
