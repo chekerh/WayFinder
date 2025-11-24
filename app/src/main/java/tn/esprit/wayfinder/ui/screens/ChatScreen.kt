@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +30,8 @@ import kotlinx.coroutines.launch
 import tn.esprit.wayfinder.models.AvailableModel
 import tn.esprit.wayfinder.models.ChatModel
 import tn.esprit.wayfinder.models.FlightPack
+import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
@@ -36,12 +39,17 @@ import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.ChatViewModel
 import tn.esprit.wayfinder.viewmodels.ChatMessageUi
 import tn.esprit.wayfinder.viewmodels.ChatUiState
+import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(navController: NavController) {
     val context = LocalContext.current
     val chatViewModel: ChatViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val tokenManager = remember { TokenManager(context) }
+    val currentUser = remember { tokenManager.getUser() }
+    var showOnboardingPrompt by remember { mutableStateOf(currentUser?.onboardingSkipped == true) }
     
     val messages by chatViewModel.messages.collectAsState()
     val availableModels by chatViewModel.availableModels.collectAsState()
@@ -149,7 +157,6 @@ fun ChatScreen(navController: NavController) {
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Messages list
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,17 +165,33 @@ fun ChatScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp),
                 state = listState
-        ) {
+            ) {
+                if (showOnboardingPrompt) {
+                    item {
+                        OnboardingReminderCard(
+                            onStart = {
+                                showOnboardingPrompt = false
+                                navController.navigate("onboarding")
+                            },
+                            onContinue = { showOnboardingPrompt = false }
+                        )
+                    }
+                }
                 if (messages.isEmpty()) {
                     item {
                         WelcomeMessage()
                     }
                 }
-                
+
                 items(messages) { message ->
-                    ChatMessageBubble(message = message)
+                    ChatMessageBubble(
+                        message = message,
+                        onFlightPackClick = { pack ->
+                            handleFlightPackClick(navController, pack)
+                        }
+                    )
                 }
-                
+
                 if (isLoading) {
                     item {
                         TypingIndicator()
@@ -231,7 +254,52 @@ private fun WelcomeMessage() {
 }
 
 @Composable
-private fun ChatMessageBubble(message: ChatMessageUi) {
+private fun OnboardingReminderCard(
+    onStart: () -> Unit,
+    onContinue: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Complétez votre questionnaire pour des suggestions personnalisées ✨",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = "Remplissez l'onboarding pour que Wayfinder adapte les packs de vols à vos préférences. Vous pouvez aussi discuter sans ces données.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onStart,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Remplir le formulaire")
+                }
+                TextButton(onClick = onContinue) {
+                    Text("Continuer sans", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatMessageBubble(
+    message: ChatMessageUi,
+    onFlightPackClick: (FlightPack) -> Unit
+) {
     val alignment = if (message.isFromUser) Alignment.CenterEnd else Alignment.CenterStart
     val backgroundColor = if (message.isFromUser) {
         MaterialTheme.colorScheme.primary
@@ -287,50 +355,80 @@ private fun ChatMessageBubble(message: ChatMessageUi) {
             // Flight packs
             message.flightPacks?.forEach { pack ->
                 Spacer(modifier = Modifier.height(8.dp))
-                FlightPackCard(pack = pack)
+                FlightPackCard(
+                    pack = pack,
+                    onClick = { onFlightPackClick(pack) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FlightPackCard(pack: FlightPack) {
+private fun FlightPackCard(
+    pack: FlightPack,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp)
+            .padding(vertical = 2.dp)
+            .then(Modifier),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        onClick = onClick
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pack.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                if (pack.details != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = pack.details,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        text = pack.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    if (pack.details != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = pack.details,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                 }
+                AssistChip(
+                    onClick = onClick,
+                    label = { Text(pack.price) }
+                )
             }
-            Text(
-                text = pack.price,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${pack.origin} → ${pack.destination}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = pack.airline ?: "Multi-airlines",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -439,4 +537,43 @@ fun ChatScreenPreview() {
     WayFinderTheme {
         ChatScreen(rememberNavController())
     }
+}
+
+private fun handleFlightPackClick(navController: NavController, pack: FlightPack) {
+    val destination = pack.toFlightDestination()
+    navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.set(SELECTED_DESTINATION_KEY, destination)
+    navController.navigate("flight_detail/${destination.id}")
+}
+
+private fun FlightPack.toFlightDestination(): FlightDestination {
+    val priceValue = packPriceValue(price)
+    val currency = packCurrency(price) ?: "USD"
+    val generatedId = "${origin}-${destination}-${airline}-${price}".hashCode().toString()
+    return FlightDestination(
+        id = generatedId,
+        name = destination.takeIf { !it.isNullOrBlank() } ?: title,
+        city = destination,
+        country = "",
+        imageUrl = null,
+        price = priceValue,
+        currency = currency,
+        description = details ?: "Flight from $origin to $destination with ${airline ?: "various airlines"}.",
+        departureDate = null,
+        arrivalDate = null,
+        airline = airline
+    )
+}
+
+private fun packPriceValue(priceLabel: String?): Double? {
+    if (priceLabel.isNullOrBlank()) return null
+    val digits = priceLabel.filter { it.isDigit() || it == '.' }
+    return digits.toDoubleOrNull()?.roundToInt()?.toDouble()
+}
+
+private fun packCurrency(priceLabel: String?): String? {
+    if (priceLabel.isNullOrBlank()) return null
+    val parts = priceLabel.trim().split(" ")
+    return parts.lastOrNull()?.takeIf { it.any { ch -> ch.isLetter() } }
 }

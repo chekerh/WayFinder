@@ -31,6 +31,10 @@ import tn.esprit.wayfinder.navigation.BOOKING_CURRENCY_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_DESTINATION_NAME_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_TOTAL_KEY
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
+import tn.esprit.wayfinder.navigation.BOOKING_CARD_NUMBER_KEY
+import tn.esprit.wayfinder.navigation.BOOKING_CARD_NAME_KEY
+import tn.esprit.wayfinder.navigation.BOOKING_CARD_EXPIRY_KEY
+import tn.esprit.wayfinder.navigation.BOOKING_CARD_CVV_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.viewmodels.*
@@ -71,57 +75,6 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
         }
     }
 
-    // Handle successful booking
-    LaunchedEffect(reservationState) {
-        if (reservationState is ReservationUiState.Success) {
-            val booking = (reservationState as ReservationUiState.Success).booking
-            navController.currentBackStackEntry?.savedStateHandle?.set(BOOKING_TOTAL_KEY, booking.totalPrice)
-            navController.currentBackStackEntry?.savedStateHandle?.set(
-                BOOKING_DESTINATION_NAME_KEY,
-                selectedDestination?.name
-            )
-            navController.currentBackStackEntry?.savedStateHandle?.set(
-                BOOKING_CURRENCY_KEY,
-                selectedDestination?.currency ?: "EUR"
-            )
-            
-            // Show immediate notification popup
-            android.util.Log.d("ReservationScreen", "Booking confirmed, showing notification")
-            
-            // Get current language to ensure proper translation
-            val languageManager = LanguageManager(context)
-            val currentLanguage = languageManager.getLanguage()
-            android.util.Log.d("ReservationScreen", "Current language: $currentLanguage")
-            
-            val destinationName = selectedDestination?.name ?: StringTranslator.translate(context, "votre destination")
-            val notificationTitle = StringTranslator.translate(context, "Réservation confirmée")
-            // Build notification message by translating parts separately
-            val reservationFor = StringTranslator.translate(context, "Votre réservation pour")
-            val hasBeenConfirmed = StringTranslator.translate(context, "a été confirmée")
-            val confirmationNumberLabel = StringTranslator.translate(context, "Numéro de confirmation")
-            val notificationMessage = "$reservationFor $destinationName $hasBeenConfirmed. $confirmationNumberLabel: ${booking.confirmationNumber}"
-            
-            android.util.Log.d("ReservationScreen", "Translated title: $notificationTitle")
-            android.util.Log.d("ReservationScreen", "Translated message: $notificationMessage")
-            
-            NotificationHelper.showSimpleNotification(
-                context,
-                notificationTitle,
-                notificationMessage,
-                type = "booking_confirmed"
-            )
-            android.util.Log.d("ReservationScreen", "Notification call completed")
-            
-            // Also check for backend notification after a delay
-            delay(2000) // Wait 2 seconds for backend to process
-            notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
-            
-            navController.navigate("booking_confirmation/${booking.confirmationNumber}") {
-                popUpTo("home") { inclusive = false }
-            }
-            bookingViewModel.resetReservationState()
-        }
-    }
 
     val currency = selectedDestination?.currency ?: "EUR"
     val comparison = (comparisonState as? OfferComparisonUiState.Success)?.comparison
@@ -451,125 +404,56 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 }
             }
             
-            // Confirm Button
-            when (reservationState) {
-                is ReservationUiState.Loading -> {
-                    Button(
-                        onClick = { /* Already processing */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
-                        ),
-                        enabled = false
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White
-                        )
-                    }
-                }
-                is ReservationUiState.Error -> {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = (reservationState as ReservationUiState.Error).message,
-                            color = Color.Red,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Button(
-                            onClick = {
-                                val cardNumberDigits = cardNumber.replace(" ", "")
-                                val isValid = cardNumberDigits.length == 16 && 
-                                             cardHolderName.trim().length >= 2 && 
-                                             expiryDate.length == 5 && 
-                                             (cvv.length == 3 || cvv.length == 4) &&
-                                             cardNumberError == null &&
-                                             cardHolderNameError == null &&
-                                             expiryDateError == null &&
-                                             cvvError == null
-                                
-                                if (isValid) {
-                                    bookingViewModel.confirmBooking(
-                                        offerId = destinationId,
-                                        cardNumber = cardNumberDigits,
-                                        cardHolderName = cardHolderName.trim(),
-                                        totalPrice = total,
-                                        destination = selectedDestination?.name,
-                                        destinationCountry = selectedDestination?.country
-                                    )
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1976D2)
-                            )
-                        ) {
-                            Text(
-                                text = StringTranslator.translate(context, "Réessayer"),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-                else -> {
-                    Button(
-                        onClick = {
-                            // Validate all fields before submitting
-                            val cardNumberDigits = cardNumber.replace(" ", "")
-                            val isValid = cardNumberDigits.length == 16 && 
-                                         cardHolderName.trim().length >= 2 && 
-                                         expiryDate.length == 5 && 
-                                         (cvv.length == 3 || cvv.length == 4) &&
-                                         cardNumberError == null &&
-                                         cardHolderNameError == null &&
-                                         expiryDateError == null &&
-                                         cvvError == null
-                            
-                            if (isValid) {
-                                bookingViewModel.confirmBooking(
-                                    offerId = destinationId,
-                                    cardNumber = cardNumberDigits,
-                                    cardHolderName = cardHolderName.trim(),
-                                    totalPrice = total,
-                                    destination = selectedDestination?.name,
-                                    destinationCountry = selectedDestination?.country
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
-                        ),
-                        enabled = {
-                            val cardNumberDigits = cardNumber.replace(" ", "")
-                            cardNumberDigits.length == 16 && 
-                            cardHolderName.trim().length >= 2 && 
-                            expiryDate.length == 5 && 
+            Button(
+                onClick = {
+                    val cardNumberDigits = cardNumber.replace(" ", "")
+                    val isValid = cardNumberDigits.length == 16 &&
+                            cardHolderName.trim().length >= 2 &&
+                            expiryDate.length == 5 &&
                             (cvv.length == 3 || cvv.length == 4) &&
                             cardNumberError == null &&
                             cardHolderNameError == null &&
                             expiryDateError == null &&
                             cvvError == null
-                        }()
-                    ) {
-                        Text(
-                            text = StringTranslator.translate(context, "Confirmer la réservation"),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+
+                    if (isValid && selectedDestination != null) {
+                        navController.currentBackStackEntry?.savedStateHandle?.apply {
+                            set(SELECTED_DESTINATION_KEY, selectedDestination)
+                            set(BOOKING_TOTAL_KEY, total)
+                            set(BOOKING_CURRENCY_KEY, currency)
+                            set(BOOKING_DESTINATION_NAME_KEY, selectedDestination.name)
+                            set(BOOKING_CARD_NUMBER_KEY, cardNumberDigits)
+                            set(BOOKING_CARD_NAME_KEY, cardHolderName.trim())
+                            set(BOOKING_CARD_EXPIRY_KEY, expiryDate)
+                            set(BOOKING_CARD_CVV_KEY, cvv)
+                        }
+                        navController.navigate("review_booking/${selectedDestination.id}")
                     }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2)
+                ),
+                enabled = selectedDestination != null && run {
+                    val cardNumberDigits = cardNumber.replace(" ", "")
+                    cardNumberDigits.length == 16 &&
+                            cardHolderName.trim().length >= 2 &&
+                            expiryDate.length == 5 &&
+                            (cvv.length == 3 || cvv.length == 4) &&
+                            cardNumberError == null &&
+                            cardHolderNameError == null &&
+                            expiryDateError == null &&
+                            cvvError == null
                 }
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Continuer"),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

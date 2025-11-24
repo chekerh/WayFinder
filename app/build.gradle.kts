@@ -78,6 +78,7 @@ dependencies {
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     // DataStore for caching
     implementation("androidx.datastore:datastore-preferences:1.1.1")

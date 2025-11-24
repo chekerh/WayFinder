@@ -160,6 +160,13 @@ fun AppNavigation() {
             ReservationScreen(navController = navController, destinationId = destinationId)
         }
         composable(
+            "review_booking/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            ReviewBookingScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
             "booking_confirmation/{bookingId}",
             arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
         ) { backStackEntry ->

@@ -2,6 +2,7 @@ package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -174,6 +177,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 
+                FlightTimeline(
+                    originLabel = StringTranslator.translate(context, "Tunis (TUN)"),
+                    destinationLabel = destination.city ?: destination.name,
+                    airline = destination.airline ?: StringTranslator.translate(context, "Compagnie à confirmer"),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 // Description du pays - TOUJOURS affichée (sans condition)
                 val descriptionText = if (destination.description != null && destination.description.isNotBlank()) {
                     destination.description
@@ -206,6 +217,45 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                 )
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                val addOns = listOf(
+                    Triple(
+                        StringTranslator.translate(context, "Assurance voyage"),
+                        StringTranslator.translate(context, "Protection annulation & bagages"),
+                        "19 ${destination.currency}"
+                    ),
+                    Triple(
+                        StringTranslator.translate(context, "Accès salon"),
+                        StringTranslator.translate(context, "Confort avant le décollage"),
+                        "29 ${destination.currency}"
+                    ),
+                    Triple(
+                        StringTranslator.translate(context, "Siège premium"),
+                        StringTranslator.translate(context, "Plus d'espace pour les jambes"),
+                        "35 ${destination.currency}"
+                    )
+                )
+                Text(
+                    text = StringTranslator.translate(context, "Extras recommandés"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    addOns.forEach { (title, subtitle, priceLabel) ->
+                        FlightAddOnChip(
+                            title = title,
+                            subtitle = subtitle,
+                            price = priceLabel
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // Available Amenities Section
@@ -615,6 +665,101 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         // Show success message or navigate
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FlightTimeline(
+    originLabel: String,
+    destinationLabel: String,
+    airline: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
+                    )
+                )
+            )
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(text = "Départ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(text = originLabel, fontWeight = FontWeight.Bold)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(text = "Arrivée", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(text = destinationLabel, fontWeight = FontWeight.Bold)
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Divider(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                thickness = 2.dp
+            )
+            Icon(
+                imageVector = Icons.Filled.Flight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Text(
+            text = airline,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun FlightAddOnChip(
+    title: String,
+    subtitle: String,
+    price: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .widthIn(min = 180.dp)
+            .heightIn(min = 110.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(text = title, fontWeight = FontWeight.Bold)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.weight(1f, fill = true))
+            Text(
+                text = price,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
