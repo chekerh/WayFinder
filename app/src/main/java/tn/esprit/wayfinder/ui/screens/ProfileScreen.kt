@@ -3,7 +3,9 @@ package tn.esprit.wayfinder.ui.screens
 import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -44,7 +46,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -313,16 +317,25 @@ fun ProfileContent(
                     val profileImageUrl = user.profileImageUrl?.let { url ->
                         if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
                     } ?: "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}"
-                    AsyncImage(
-                        model = profileImageUrl,
-                        contentDescription = "Profile Picture",
+                    Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.europe),
-                        error = painterResource(id = R.drawable.europe)
-                    )
+                            .background(
+                                if (isDarkModeEnabled) Color(0xFF1E1E1E) else Color.White,
+                                CircleShape
+                            )
+                    ) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
+                            placeholder = painterResource(id = R.drawable.europe),
+                            error = painterResource(id = R.drawable.europe)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(16.dp))
                     
@@ -1279,12 +1292,65 @@ fun TravelStreakCard(
         label = "fireScale"
     )
     
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    val isDark = isSystemInDarkTheme()
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+            }
+            .background(
+                Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0xFFFFFFFF).copy(alpha = 0.95f),
+                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
+                            Color(0xFFFFFFFF).copy(alpha = 0.95f)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFF5F5F5).copy(alpha = 0.9f),
+                            Color(0xFFE8E8E8).copy(alpha = 0.85f),
+                            Color(0xFFF5F5F5).copy(alpha = 0.9f)
+                        )
+                    }
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .background(
+                Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0xFFFFFFFF).copy(alpha = 0.8f),
+                            Color(0xFFF0F0F0).copy(alpha = 0.75f)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFFFFFFF).copy(alpha = 0.6f),
+                            Color(0xFFFFFFFF).copy(alpha = 0.5f)
+                        )
+                    }
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0xFFE0E0E0).copy(alpha = 0.6f),
+                            Color(0xFFD0D0D0).copy(alpha = 0.5f),
+                            Color(0xFFE0E0E0).copy(alpha = 0.6f)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFCCCCCC).copy(alpha = 0.5f),
+                            Color(0xFFDDDDDD).copy(alpha = 0.4f),
+                            Color(0xFFCCCCCC).copy(alpha = 0.5f)
+                        )
+                    }
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
         Column(
             modifier = Modifier
@@ -1307,22 +1373,30 @@ fun TravelStreakCard(
                 )
                 Text(
                     text = "$currentStreak",
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontSize = if (isDark) 32.sp else MaterialTheme.typography.displaySmall.fontSize
+                    ),
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF5722)
+                    color = if (isDark) Color(0xFF000000) else Color(0xFFFF5722)
                 )
             }
             
             Text(
                 text = "Day Streak",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = if (isDark) 18.sp else MaterialTheme.typography.titleMedium.fontSize
+                ),
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface
             )
             
             Text(
                 text = "Longest streak: $longestStreak days",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
+                ),
+                color = if (isDark) Color(0xFF000000) else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
             )
             
             // Progress bar
@@ -1338,12 +1412,16 @@ fun TravelStreakCard(
             
             Text(
                 text = "${30 - currentStreak} days until next milestone!",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = if (isDark) 14.sp else MaterialTheme.typography.bodySmall.fontSize
+                ),
+                color = if (isDark) Color(0xFFFF6F00) else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
             )
         }
     }
-}
+    }
+
 
 @Preview(showBackground = true)
 @Composable

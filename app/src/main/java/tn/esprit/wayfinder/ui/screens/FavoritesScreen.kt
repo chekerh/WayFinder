@@ -38,6 +38,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.viewmodels.FavoritesUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.utils.StringTranslator
+import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +79,9 @@ fun FavoritesScreen(navController: NavController) {
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        bottomBar = {
+            CustomBottomNavigationBar(navController = navController)
         }
     ) { paddingValues ->
         when (val state = uiState) {
