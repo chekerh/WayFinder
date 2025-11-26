@@ -5,22 +5,30 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.painter.ColorPainter
 
 /**
  * Pinterest-style interest selection card
@@ -51,7 +59,7 @@ fun PinterestInterestCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .heightIn(min = 120.dp)
             .scale(scale)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
@@ -67,15 +75,15 @@ fun PinterestInterestCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Start
         ) {
             icon?.let {
                 Icon(
                     imageVector = it,
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(36.dp),
                     tint = if (isSelected) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -88,14 +96,14 @@ fun PinterestInterestCard(
                 text = label,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    lineHeight = 24.sp
                 ),
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                textAlign = TextAlign.Center
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Start,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -108,10 +116,13 @@ fun PinterestInterestCard(
 @Composable
 fun PinterestQuestionCard(
     question: String,
+    questionId: String = "",
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     var visible by remember { mutableStateOf(false) }
+    val questionIcon = getIconForQuestionType(questionId, question)
+    val backgroundImageUrl = remember(questionId, question) { getImageForQuestion(questionId, question) }
     
     LaunchedEffect(Unit) {
         visible = true
@@ -129,40 +140,104 @@ fun PinterestQuestionCard(
         ) + fadeOut(animationSpec = tween(300)),
         modifier = modifier
     ) {
-        Card(
+        // Background image behind the question card
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+                .padding(horizontal = 16.dp)
         ) {
-            Column(
+            if (backgroundImageUrl != null) {
+                AsyncImage(
+                    model = backgroundImageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(32.dp)),
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                    error = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(32.dp)
+                        )
+                )
+            }
+
+            // Dark overlay so the foreground card pops
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.25f), shape = RoundedCornerShape(32.dp))
+            )
+
+            // Foreground card that contains ONLY the icon, question and answers
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(16.dp)
+                    .defaultMinSize(minHeight = 320.dp)
+                    .align(Alignment.Center),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Text(
-                    text = question,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 22.sp,
-                        lineHeight = 32.sp
-                    ),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                )
-                
-                content()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Question icon at top
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = questionIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Question text
+                    Text(
+                        text = question,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                            lineHeight = 30.sp
+                        ),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                    )
+
+                    // Answers / options content
+                    content()
+                }
             }
         }
     }
@@ -257,26 +332,112 @@ fun PinterestProgressBar(
 }
 
 /**
- * Icon mapping for common interest categories
+ * Icon mapping for common interest categories - Enhanced with more options
  */
 fun getIconForInterest(interest: String): ImageVector? {
-    return when (interest.lowercase()) {
-        "travel", "tourism", "vacation" -> Icons.Default.Flight
-        "beach", "coast", "ocean" -> Icons.Default.BeachAccess
-        "mountain", "hiking", "adventure" -> Icons.Default.Terrain
-        "city", "urban", "metropolitan" -> Icons.Default.LocationCity
-        "culture", "history", "museum" -> Icons.Default.Museum
-        "food", "cuisine", "restaurant" -> Icons.Default.Restaurant
-        "nightlife", "party", "entertainment" -> Icons.Default.Nightlife
-        "nature", "wildlife", "outdoor" -> Icons.Default.Park
-        "luxury", "premium", "exclusive" -> Icons.Default.Star
-        "budget", "affordable", "economy" -> Icons.Default.AttachMoney
-        "family", "kids", "children" -> Icons.Default.FamilyRestroom
-        "romantic", "couples", "honeymoon" -> Icons.Default.Favorite
-        "solo", "independent", "alone" -> Icons.Default.Person
-        "group", "friends", "social" -> Icons.Default.Group
-        "business", "work", "corporate" -> Icons.Default.Business
-        else -> null
+    val lowerInterest = interest.lowercase()
+    return when {
+        // Travel types
+        lowerInterest.contains("solo") || lowerInterest.contains("just me") -> Icons.Default.Person
+        lowerInterest.contains("couple") || lowerInterest.contains("romantic") || lowerInterest.contains("honeymoon") -> Icons.Default.Favorite
+        lowerInterest.contains("family") || lowerInterest.contains("kids") || lowerInterest.contains("children") -> Icons.Default.FamilyRestroom
+        lowerInterest.contains("friends") || lowerInterest.contains("group") || lowerInterest.contains("social") -> Icons.Default.Group
+        lowerInterest.contains("business") || lowerInterest.contains("work") || lowerInterest.contains("corporate") -> Icons.Default.Business
+        lowerInterest.contains("adventure") || lowerInterest.contains("adventure sports") -> Icons.Default.Terrain
+        
+        // Budget
+        lowerInterest.contains("budget") || lowerInterest.contains("affordable") || lowerInterest.contains("economy") || lowerInterest.contains("$500") -> Icons.Default.AttachMoney
+        lowerInterest.contains("mid-range") || lowerInterest.contains("mid range") || lowerInterest.contains("$1,500") -> Icons.Default.AccountBalance
+        lowerInterest.contains("high-end") || lowerInterest.contains("high end") || lowerInterest.contains("$3,500") -> Icons.Default.Star
+        lowerInterest.contains("luxury") || lowerInterest.contains("$7,000") -> Icons.Default.Star
+        
+        // Activities & Interests
+        lowerInterest.contains("sightseeing") || lowerInterest.contains("landmarks") -> Icons.Default.CameraAlt
+        lowerInterest.contains("adventure") || lowerInterest.contains("sports") -> Icons.Default.Sports
+        lowerInterest.contains("relaxation") || lowerInterest.contains("spa") -> Icons.Default.Spa
+        lowerInterest.contains("nightlife") || lowerInterest.contains("entertainment") -> Icons.Default.Nightlife
+        lowerInterest.contains("culture") || lowerInterest.contains("history") || lowerInterest.contains("museum") -> Icons.Default.Museum
+        lowerInterest.contains("nature") || lowerInterest.contains("wildlife") -> Icons.Default.Park
+        lowerInterest.contains("food") || lowerInterest.contains("dining") || lowerInterest.contains("cuisine") -> Icons.Default.Restaurant
+        lowerInterest.contains("shopping") -> Icons.Default.ShoppingBag
+        lowerInterest.contains("beach") || lowerInterest.contains("beaches") || lowerInterest.contains("water") -> Icons.Default.BeachAccess
+        lowerInterest.contains("mountain") || lowerInterest.contains("mountains") || lowerInterest.contains("hiking") -> Icons.Default.Terrain
+        
+        // Destinations
+        lowerInterest.contains("europe") -> Icons.Default.Public
+        lowerInterest.contains("asia") -> Icons.Default.Public
+        lowerInterest.contains("america") || lowerInterest.contains("americas") -> Icons.Default.Public
+        lowerInterest.contains("africa") -> Icons.Default.Public
+        lowerInterest.contains("oceania") || lowerInterest.contains("australia") || lowerInterest.contains("pacific") -> Icons.Default.Public
+        lowerInterest.contains("middle east") -> Icons.Default.Public
+        lowerInterest.contains("tropical") || lowerInterest.contains("islands") -> Icons.Default.BeachAccess
+        lowerInterest.contains("urban") || lowerInterest.contains("cities") || lowerInterest.contains("major cities") -> Icons.Default.LocationCity
+        lowerInterest.contains("rural") || lowerInterest.contains("countryside") || lowerInterest.contains("nature") -> Icons.Default.Park
+        
+        // Travel frequency
+        lowerInterest.contains("rarely") || lowerInterest.contains("once a year") -> Icons.Default.Event
+        lowerInterest.contains("occasionally") || lowerInterest.contains("few times") -> Icons.Default.EventNote
+        lowerInterest.contains("frequently") || lowerInterest.contains("monthly") -> Icons.Default.CalendarToday
+        lowerInterest.contains("very frequently") || lowerInterest.contains("7+") -> Icons.Default.CalendarMonth
+        
+        // General travel
+        lowerInterest.contains("travel") || lowerInterest.contains("tourism") || lowerInterest.contains("vacation") -> Icons.Default.Flight
+        lowerInterest.contains("city") || lowerInterest.contains("urban") || lowerInterest.contains("metropolitan") -> Icons.Default.LocationCity
+        else -> Icons.Default.Explore
+    }
+}
+
+/**
+ * Get icon for question type (displayed at top of question card)
+ */
+fun getIconForQuestionType(questionId: String, questionText: String): ImageVector {
+    val lowerId = questionId.lowercase()
+    val lowerText = questionText.lowercase()
+    
+    return when {
+        lowerId.contains("travel_type") || lowerText.contains("travel style") || lowerText.contains("type of trip") -> Icons.Default.Person
+        lowerId.contains("budget") || lowerText.contains("budget") -> Icons.Default.AccountBalance
+        lowerId.contains("interests") || lowerText.contains("activities") || lowerText.contains("interest") -> Icons.Default.Explore
+        lowerId.contains("destination") || lowerText.contains("destination") || lowerText.contains("regions") -> Icons.Default.Public
+        lowerId.contains("frequency") || lowerText.contains("how often") || lowerText.contains("travel") -> Icons.Default.CalendarToday
+        lowerId.contains("accommodation") || lowerText.contains("accommodation") -> Icons.Default.Hotel
+        lowerId.contains("climate") || lowerText.contains("climate") -> Icons.Filled.WbSunny
+        lowerId.contains("duration") || lowerText.contains("how long") -> Icons.Default.Schedule
+        else -> Icons.Default.QuestionMark
+    }
+}
+
+/**
+ * Returns a curated Unsplash image URL that best matches the question topic.
+ */
+fun getImageForQuestion(questionId: String, questionText: String): String? {
+    val normalizedId = questionId.lowercase()
+    val normalizedText = questionText.lowercase()
+    
+    val imageMap = mapOf(
+        "travel_type" to "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+        "budget" to "https://images.unsplash.com/photo-1450101215322-bf5cd27642fc?auto=format&fit=crop&w=1600&q=80",
+        "interests" to "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1600&q=80",
+        "destination_preferences" to "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
+        "accommodation_preference" to "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1600&q=80",
+        "travel_frequency" to "https://images.unsplash.com/photo-1500534314209-a26db0f5b553?auto=format&fit=crop&w=1600&q=80",
+        "climate_preference" to "https://images.unsplash.com/photo-1500534627210-44b0d3b3c0a5?auto=format&fit=crop&w=1600&q=80",
+        "duration_preference" to "https://images.unsplash.com/photo-1503220317375-aaad61436b1b?auto=format&fit=crop&w=1600&q=80",
+        "group_size" to "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1600&q=80"
+    )
+    
+    imageMap[normalizedId]?.let { return it }
+
+    return when {
+        normalizedText.contains("budget") || normalizedText.contains("cost") -> imageMap["budget"]
+        normalizedText.contains("climate") || normalizedText.contains("weather") || normalizedText.contains("season") -> imageMap["climate_preference"]
+        normalizedText.contains("destination") || normalizedText.contains("region") || normalizedText.contains("where do you want") -> imageMap["destination_preferences"]
+        normalizedText.contains("accommodation") || normalizedText.contains("stay") || normalizedText.contains("hotel") -> imageMap["accommodation_preference"]
+        normalizedText.contains("how often") || normalizedText.contains("frequency") -> imageMap["travel_frequency"]
+        normalizedText.contains("how long") || normalizedText.contains("duration") || normalizedText.contains("trip length") -> imageMap["duration_preference"]
+        normalizedText.contains("activities") || normalizedText.contains("interests") -> imageMap["interests"]
+        normalizedText.contains("with who") || normalizedText.contains("group") || normalizedText.contains("people") -> imageMap["group_size"]
+        else -> imageMap["travel_type"]
     }
 }
 

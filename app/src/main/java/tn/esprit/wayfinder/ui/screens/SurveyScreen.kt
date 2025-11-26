@@ -40,7 +40,10 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.viewmodels.OnboardingUiState
 import tn.esprit.wayfinder.viewmodels.OnboardingViewModel
 import tn.esprit.wayfinder.viewmodels.OnboardingSyncStatus
+import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.manager.TokenManager
+
+private const val MAX_ONBOARDING_QUESTIONS = 5
 
 @Composable
 fun SurveyScreen(
@@ -49,6 +52,7 @@ fun SurveyScreen(
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     val onboardingViewModel: OnboardingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
 
     val uiState by onboardingViewModel.uiState.collectAsState()
     val syncStatus by onboardingViewModel.syncStatus.collectAsState()
@@ -63,7 +67,7 @@ fun SurveyScreen(
             // User wants to retake - reset onboarding first
             onboardingViewModel.resetOnboarding()
         } else {
-            onboardingViewModel.startOnboarding()
+        onboardingViewModel.startOnboarding()
         }
     }
 
@@ -90,19 +94,59 @@ fun SurveyScreen(
         }
         is OnboardingUiState.Completed -> {
             LaunchedEffect(state) {
-                // Refresh user data to update onboarding status
+                // Refresh user data from backend to get latest onboarding status
                 val tokenManager = TokenManager(context)
-                val currentUser = tokenManager.getUser()
-                if (currentUser != null) {
-                    // Check if it was skipped by checking the message
-                    val wasSkipped = state.message.contains("skipped", ignoreCase = true)
-                    val updatedUser = currentUser.copy(
-                        onboardingCompleted = true,
-                        onboardingSkipped = wasSkipped
-                    )
-                    tokenManager.saveUser(updatedUser)
+                val wasSkipped = state.message.contains("skipped", ignoreCase = true)
+                
+                try {
+                    // Try to refresh user profile from backend
+                    userViewModel.loadProfile()
+                    
+                    // Wait for profile to load with timeout
+                    var attempts = 0
+                    while (attempts < 10) { // Wait up to 2 seconds (10 * 200ms)
+                        delay(200)
+                        val updatedUser = tokenManager.getUser()
+                        if (updatedUser != null && updatedUser.onboardingCompleted == true) {
+                            // Profile successfully loaded and updated
+                            break
+                        }
+                        attempts++
+                    }
+                    
+                    // Get updated user from token manager (it should be updated by UserViewModel)
+                    val updatedUser = tokenManager.getUser()
+                    if (updatedUser != null) {
+                        // Ensure flags are set correctly
+                        val finalUser = updatedUser.copy(
+                            onboardingCompleted = true,
+                            onboardingSkipped = wasSkipped
+                        )
+                        tokenManager.saveUser(finalUser)
+                    } else {
+                        // Fallback: update locally if profile load didn't work
+                        val currentUser = tokenManager.getUser()
+                        if (currentUser != null) {
+                            val fallbackUser = currentUser.copy(
+                                onboardingCompleted = true,
+                                onboardingSkipped = wasSkipped
+                            )
+                            tokenManager.saveUser(fallbackUser)
+                        }
+                    }
+                } catch (e: Exception) {
+                    // If refresh fails, update locally
+                    val currentUser = tokenManager.getUser()
+                    if (currentUser != null) {
+                        val updatedUser = currentUser.copy(
+                            onboardingCompleted = true,
+                            onboardingSkipped = wasSkipped
+                        )
+                        tokenManager.saveUser(updatedUser)
+                    }
                 }
-                delay(2000)
+                
+                delay(2000) // Show completion message briefly (2 seconds)
                 onComplete()
             }
             CompletionMessage(message = state.message)
@@ -127,11 +171,8 @@ fun QuestionScreen(
     onSkip: () -> Unit = {},
     syncStatus: OnboardingSyncStatus? = null
 ) {
-    val progressValue = progress.total?.let { total ->
-        if (total > 0) progress.current.toFloat() / total.toFloat() else 0f
-    } ?: (progress.current.toFloat() / 8f)
-    
-    val totalSteps = progress.total ?: 8
+    val totalSteps = minOf(progress.total ?: MAX_ONBOARDING_QUESTIONS, MAX_ONBOARDING_QUESTIONS)
+    val progressValue = (progress.current.toFloat() / totalSteps.toFloat()).coerceIn(0f, 1f)
 
     Box(
         modifier = Modifier
@@ -199,9 +240,12 @@ fun QuestionScreen(
             Spacer(modifier = Modifier.weight(1f))
             
             // Pinterest-style question card with animations
-            PinterestQuestionCard(question = question.text) {
-                when (question.type) {
-                    "single_choice" -> {
+            PinterestQuestionCard(
+                question = question.text,
+                questionId = question.id
+            ) {
+        when (question.type) {
+            "single_choice" -> {
                         PinterestSingleChoiceQuestion(
                             question.options ?: emptyList(),
                             onAnswer
@@ -362,7 +406,7 @@ fun PinterestMultipleChoiceQuestion(
                                     if (maxSelections != null && newSelection.size > maxSelections) {
                                         // Remove oldest selection if max reached
                                         selectedOptions.drop(1).toSet() + option.value
-                                    } else {
+                        } else {
                                         newSelection
                                     }
                                 }

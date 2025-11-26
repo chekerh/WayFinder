@@ -816,12 +816,28 @@ fun DiscussionCard(navController: NavController) {
                 }
             }
             
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Voir plus",
-                tint = Color(0xFF1976D2),
-                modifier = Modifier.size(24.dp)
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "Voir plus",
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(24.dp)
+                )
+                // Quick access to destination video generation test
+                TextButton(
+                    onClick = { navController.navigate("journey_feed") },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Tester les vidéos AI"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF1976D2)
+                    )
+                }
+            }
         }
     }
 }

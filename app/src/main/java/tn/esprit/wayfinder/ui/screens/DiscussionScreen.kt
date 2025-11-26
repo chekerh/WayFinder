@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -91,6 +92,27 @@ fun DiscussionScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Quick access button to test AI video generation from shared journeys
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = { navController.navigate("journey_feed") }) {
+                    Icon(
+                        imageVector = Icons.Filled.VideoLibrary,
+                        contentDescription = "Tester les vidéos AI",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = StringTranslator.translate(context, "Tester les vidéos AI"),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+
             when (val state = uiState) {
                 is DiscussionUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
