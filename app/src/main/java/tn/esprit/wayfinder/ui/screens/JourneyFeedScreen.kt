@@ -76,10 +76,32 @@ fun JourneyFeedScreen(navController: NavController) {
     val destinationVideoState by destinationVideoViewModel.uiState.collectAsState()
     val generationState by destinationVideoViewModel.generationState.collectAsState()
     
+    // Load journeys only once on initial composition
     LaunchedEffect(Unit) {
-        journeyViewModel.loadJourneys()
+        journeyViewModel.loadJourneys(forceRefresh = true)
         currentUserId?.let {
             destinationVideoViewModel.loadUserDestinations(it)
+        }
+    }
+    
+    // Poll for journey video status updates (for processing videos)
+    // Access state through ViewModel to avoid smart cast issues with delegated property
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(10000) // Poll every 10 seconds
+            when (val currentState = journeyViewModel.uiState.value) {
+                is JourneyUiState.Success -> {
+                    val journeysToPoll = currentState.journeys.filter { 
+                        it.videoStatus == "processing" || it.videoStatus == "pending" 
+                    }
+                    
+                    // Refresh journeys to get updated status
+                    journeyViewModel.loadJourneys(forceRefresh = true)
+                }
+                else -> {
+                    // No action needed for other states
+                }
+            }
         }
     }
     

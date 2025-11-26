@@ -31,7 +31,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 @Composable
 fun SplashScreen(navController: NavController) {
     LaunchedEffect(key1 = true) {
-        delay(3000) // 3-second delay
+        delay(1500) // Reduced to 1.5 seconds for faster app startup
         navController.navigate("after_splash_screen") {
             popUpTo("splash_screen") { inclusive = true }
         }

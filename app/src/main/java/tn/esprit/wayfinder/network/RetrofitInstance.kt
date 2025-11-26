@@ -30,11 +30,16 @@ object RetrofitInstance {
 
         // FIX: Reordered interceptors. The logging interceptor should be last to log the final request.
         // This prevents issues where the request method is inadvertently changed from POST to GET.
+        // Add HTTP cache for faster response times
+        val cacheSize = 10 * 1024 * 1024L // 10 MB cache
+        val cache = okhttp3.Cache(context.cacheDir, cacheSize)
+        
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(180, TimeUnit.SECONDS) // Increased for image uploads
-            .writeTimeout(180, TimeUnit.SECONDS) // Increased for image uploads
-            .callTimeout(240, TimeUnit.SECONDS) // 4 minutes total timeout for large uploads
+            .readTimeout(120, TimeUnit.SECONDS) // 2 minutes for image uploads
+            .writeTimeout(120, TimeUnit.SECONDS) // 2 minutes for image uploads
+            .callTimeout(150, TimeUnit.SECONDS) // 2.5 minutes total timeout
+            .cache(cache) // Enable HTTP response caching
             .addInterceptor(AuthInterceptor(context))
             .addInterceptor(loggingInterceptor)
             .build()

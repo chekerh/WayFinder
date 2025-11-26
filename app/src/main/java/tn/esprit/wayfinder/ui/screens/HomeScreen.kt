@@ -93,8 +93,13 @@ fun HomeScreen(navController: NavController) {
     }
     
     // Load flights on first composition and when region changes
+    // Only load if not already loading/loaded to avoid redundant requests
     LaunchedEffect(selectedRegion) {
-        catalogViewModel.loadRecommendedFlights(showAll = false)
+        val currentState = catalogViewModel.uiState.value
+        if (currentState is CatalogUiState.Idle || 
+            (currentState is CatalogUiState.Success && currentState.fromCache)) {
+            catalogViewModel.loadRecommendedFlights(showAll = false)
+        }
     }
 
     // Regions data with country filters

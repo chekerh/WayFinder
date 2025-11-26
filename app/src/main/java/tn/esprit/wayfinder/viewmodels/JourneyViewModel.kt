@@ -97,10 +97,18 @@ class JourneyViewModel(private val journeyRepository: JourneyRepository) : ViewM
         }
     }
     
-    fun loadJourneys(limit: Int = 20, skip: Int = 0) {
+    fun loadJourneys(limit: Int = 20, skip: Int = 0, forceRefresh: Boolean = false) {
         viewModelScope.launch {
+            // Don't reload if we already have data and not forcing refresh
+            val currentState = _uiState.value
+            if (!forceRefresh && currentState is JourneyUiState.Success && currentState.journeys.isNotEmpty()) {
+                return@launch
+            }
+            
             try {
-                _uiState.value = JourneyUiState.Loading
+                if (currentState !is JourneyUiState.Success) {
+                    _uiState.value = JourneyUiState.Loading
+                }
                 val journeys = journeyRepository.getJourneys(limit, skip)
                 _uiState.value = JourneyUiState.Success(journeys)
             } catch (e: Exception) {
