@@ -459,6 +459,7 @@ object LanguageDictionary {
         "Type:" to "Type:",
         "Vidéo AI générée" to "AI generated video",
         "Génération de la vidéo en cours..." to "Video generation in progress...",
+        "Une vidéo AI sera automatiquement générée avec vos photos et de la musique !" to "An AI video will be automatically generated with your photos and music!",
         "Régénérer la vidéo" to "Regenerate video",
         "Générer ma vidéo" to "Generate my video",
         "Lecture de la vidéo:" to "Playing video:",

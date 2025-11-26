@@ -230,6 +230,13 @@ fun ShareJourneyScreen(navController: NavController) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.9f)
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "🎬 ${StringTranslator.translate(context, "Une vidéo AI sera automatiquement générée avec vos photos et de la musique !")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
             
