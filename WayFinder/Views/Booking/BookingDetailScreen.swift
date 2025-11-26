@@ -68,6 +68,13 @@ struct BookingDetailScreen: View {
                             statusColor: statusColor
                         )
                         
+                        // Carte Destination
+                        InfoCard(
+                            label: "Destination",
+                            value: DestinationHelper.getFullDestinationName(from: booking.destination),
+                            statusColor: nil
+                        )
+                        
                         // Carte Numéro de confirmation
                         InfoCard(
                             label: "Numéro de confirmation",
@@ -257,6 +264,7 @@ struct BookingDetailScreen_Previews: PreviewProvider {
             booking: Booking(
                 id: "1",
                 destination: "Paris",
+                destinationCountry: "France",
                 status: .confirmed,
                 confirmationNumber: "CONF-H8SJBGBY",
                 createdAt: "2025-11-20T20:09:48.937Z",

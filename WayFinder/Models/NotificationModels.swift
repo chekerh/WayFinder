@@ -8,6 +8,10 @@ enum NotificationType: String, Decodable {
     case paymentSuccess = "payment_success"
     case paymentFailed = "payment_failed"
     case tripReminder = "trip_reminder"
+    case postLiked = "post_liked"
+    case postCommented = "post_commented"
+    case journeyLiked = "journey_liked"
+    case journeyCommented = "journey_commented"
     case general = "general"
 }
 
@@ -95,6 +99,11 @@ struct NotificationData: Decodable {
     let destinationId: String?
     let price: Double?
     let oldPrice: Double?
+    let postId: String?
+    let commentId: String?
+    let journeyId: String?
+    let likerId: String?
+    let commenterId: String?
 }
 
 struct UnreadCountResponse: Decodable {

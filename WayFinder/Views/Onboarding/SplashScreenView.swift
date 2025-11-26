@@ -10,7 +10,9 @@ import SwiftUI
 
 struct SplashScreenView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var languageManager: LanguageManager
     @State private var showWelcomeView = false // Variable d'état pour passer à l'écran de bienvenue
+    @State private var navigateToHome = false // Variable d'état pour naviguer vers HomeScreen si connecté
     
     var body: some View {
         ZStack {
@@ -53,13 +55,30 @@ struct SplashScreenView: View {
             }
         }
         .onAppear {
-            // Lancer l'écran de bienvenue après 3 secondes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                showWelcomeView = true
+            // Vérifier si l'utilisateur est déjà connecté
+            if TokenStorage.fetch() != nil {
+                // Si un token existe, naviguer directement vers HomeScreen après un court délai
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    navigateToHome = true
+                }
+            } else {
+                // Sinon, lancer l'écran de bienvenue après 3 secondes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    showWelcomeView = true
+                }
             }
         }
         .fullScreenCover(isPresented: $showWelcomeView) {
             WelcomeView()
+        }
+        .fullScreenCover(isPresented: $navigateToHome) {
+            NavigationStack {
+                HomeScreen()
+                    .navigationBarBackButtonHidden(true)
+                    .environmentObject(languageManager)
+                    .environment(\.locale, languageManager.locale)
+                    .environment(\.layoutDirection, languageManager.layoutDirection)
+            }
         }
     }
 }

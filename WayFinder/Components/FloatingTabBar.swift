@@ -30,7 +30,7 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .explore: return "bubble.left.and.bubble.right"
 
-        case .alerts: return "bell"
+        case .alerts: return "airplane"
 
         case .profile: return "person"
 
@@ -50,7 +50,7 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .explore: return "tab_explore"
 
-        case .alerts: return "tab_alerts"
+        case .alerts: return "tab_bookings"
 
         case .profile: return "tab_profile"
 

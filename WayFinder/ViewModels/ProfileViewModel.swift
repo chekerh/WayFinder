@@ -117,5 +117,9 @@ final class ProfileViewModel: ObservableObject {
         // Enfin depuis le profil
         return profile?.resolvedProfileImageUrl
     }
+    
+    var userId: String? {
+        return profile?.id
+    }
 }
 

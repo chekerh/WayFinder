@@ -4,6 +4,7 @@ struct BookingHistoryView: View {
     @StateObject private var viewModel = BookingViewModel()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    var onBackToHome: (() -> Void)? = nil
     
     var body: some View {
         ZStack {
@@ -59,7 +60,13 @@ struct BookingHistoryView: View {
                 VStack(spacing: 0) {
                     // Header avec bouton retour et titre
                     HStack {
-                        Button(action: { dismiss() }) {
+                        Button(action: {
+                            if let onBackToHome = onBackToHome {
+                                onBackToHome()
+                            } else {
+                                dismiss()
+                            }
+                        }) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
@@ -135,10 +142,15 @@ private struct BookingCard: View {
             NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
-                        // Numéro de confirmation en gras
-                        Text(booking.confirmationNumber)
-                            .font(.system(size: 16, weight: .bold))
+                        // Destination avec pays en gras et grand (ex: "Paris, France")
+                        Text(DestinationHelper.getFullDestinationName(from: booking.destination))
+                            .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        
+                        // Numéro de confirmation en plus petit
+                        Text(booking.confirmationNumber)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         
                         // Date et heure
                         Text(formatDate(booking.createdAt))

@@ -211,16 +211,46 @@ private extension SignInView {
             let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let username = trimmedEmail.split(separator: "@").first.map(String.init)?.lowercased() ?? trimmedFirstName.lowercased()
             
-            _ = try await AuthService.shared.register(
-                username: username,
-                email: trimmedEmail,
-                firstName: trimmedFirstName,
-                lastName: trimmedLastName,
-                password: password
-            )
-            showSuccess = true
+            // Generate a unique username by adding a random suffix if needed
+            var baseUsername = trimmedEmail.split(separator: "@").first.map(String.init)?.lowercased() ?? trimmedFirstName.lowercased()
+            var username = baseUsername
+            var attempts = 0
+            let maxAttempts = 5
+            
+            // Try to register with the base username, if it fails due to username conflict, add a random suffix
+            while attempts < maxAttempts {
+                do {
+                    _ = try await AuthService.shared.register(
+                        username: username,
+                        email: trimmedEmail,
+                        firstName: trimmedFirstName,
+                        lastName: trimmedLastName,
+                        password: password
+                    )
+                    showSuccess = true
+                    return // Success, exit the function
+                } catch {
+                    let errorMessage = error.localizedDescription.lowercased()
+                    // Check if it's a username conflict error
+                    if errorMessage.contains("nom d'utilisateur") || 
+                       errorMessage.contains("username already exists") ||
+                       errorMessage.contains("username") && errorMessage.contains("déjà") {
+                        // Generate a new username with a random suffix
+                        let randomSuffix = Int.random(in: 1000...9999)
+                        username = "\(baseUsername)\(randomSuffix)"
+                        attempts += 1
+                        continue // Try again with the new username
+                    } else {
+                        // It's a different error (email conflict, etc.), show it
+                        self.errorMessage = error.localizedDescription
+                        return
+                    }
+                }
+            }
+            
+            // If we exhausted all attempts
+            errorMessage = "Impossible de générer un nom d'utilisateur unique. Veuillez réessayer."
         } catch {
             errorMessage = error.localizedDescription
         }

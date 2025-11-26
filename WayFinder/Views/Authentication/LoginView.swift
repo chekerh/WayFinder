@@ -26,6 +26,7 @@ struct LoginView: View {
     @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var loggedInUserName: String?
     @State private var showSignUp = false
+    @State private var showOTPLogin = false
     
     private let googleLoginEnabled = true
     
@@ -47,6 +48,18 @@ struct LoginView: View {
                                 set: { showSignUp = $0 != nil }
                             )) { _ in
                                 SignInView()
+                                    .navigationBarBackButtonHidden(true)
+                            }
+                            
+                            NavigationLink(value: "otpLogin") {
+                                EmptyView()
+                            }
+                            .hidden()
+                            .navigationDestination(item: Binding(
+                                get: { showOTPLogin ? "otpLogin" : nil },
+                                set: { showOTPLogin = $0 != nil }
+                            )) { _ in
+                                EmailOTPEntryView()
                                     .navigationBarBackButtonHidden(true)
                             }
                             
@@ -167,6 +180,15 @@ struct LoginView: View {
                                     }
                                 }
                                 
+                                Button(action: {
+                                    showOTPLogin = true
+                                }) {
+                                    Text("Se connecter avec un code")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(ThemeColors.accent())
+                                }
+                                .padding(.top, 8)
+                                
                                 HStack {
                                     Rectangle()
                                         .fill(Color.gray.opacity(0.2))
@@ -243,6 +265,12 @@ struct LoginView: View {
                 } // Fin GeometryReader
             } // Fin ZStack
             .navigationBarHidden(true)
+            .onAppear {
+                // Pré-remplir l'email depuis UserStorage si disponible et si l'email est vide
+                if email.isEmpty, let storedEmail = UserDefaults.standard.string(forKey: UserStorage.userEmailKey) {
+                    email = storedEmail
+                }
+            }
         }
     } // Fin body
 } // Fin struct

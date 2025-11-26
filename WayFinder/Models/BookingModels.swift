@@ -41,6 +41,7 @@ struct BookingOffer: Decodable, Identifiable {
 struct Booking: Decodable, Identifiable {
     let id: String
     let destination: String
+    let destinationCountry: String? // Nom du pays (ex: "South Korea")
     let status: BookingStatus
     let confirmationNumber: String
     let createdAt: String
@@ -60,10 +61,12 @@ struct Booking: Decodable, Identifiable {
         case tripDetails = "trip_details"
         case departureDate = "departure_date"
         case returnDate = "return_date"
+        case destinationCountry = "destination_country"
     }
     
     enum TripDetailsKeys: String, CodingKey {
         case destination
+        case destination_country
         case departure_date
         case return_date
     }
@@ -102,14 +105,21 @@ struct Booking: Decodable, Identifiable {
         
         // Decode destination from trip_details.destination or use offer_id as fallback
         var decodedDestination: String? = nil
+        var decodedDestinationCountry: String? = nil
         var decodedDepartureDate: String? = nil
         var decodedReturnDate: String? = nil
         
         // Try to get destination and dates from trip_details
         if let tripDetails = try? container.nestedContainer(keyedBy: TripDetailsKeys.self, forKey: .tripDetails) {
             decodedDestination = try? tripDetails.decode(String.self, forKey: .destination)
+            decodedDestinationCountry = try? tripDetails.decode(String.self, forKey: .destination_country)
             decodedDepartureDate = try? tripDetails.decode(String.self, forKey: .departure_date)
             decodedReturnDate = try? tripDetails.decode(String.self, forKey: .return_date)
+        }
+        
+        // Try to get destination_country from root level if not in trip_details
+        if decodedDestinationCountry == nil {
+            decodedDestinationCountry = try? container.decode(String.self, forKey: .destinationCountry)
         }
         
         // Fallback to offer_id if destination is not in trip_details
@@ -119,6 +129,7 @@ struct Booking: Decodable, Identifiable {
         
         // Fallback to "N/A" if still no destination
         destination = decodedDestination ?? "N/A"
+        destinationCountry = decodedDestinationCountry
         
         // If dates weren't found in trip_details, try root level
         if decodedDepartureDate == nil {
@@ -134,9 +145,10 @@ struct Booking: Decodable, Identifiable {
     }
     
     // Initializer pour les previews et tests
-    init(id: String, destination: String, status: BookingStatus, confirmationNumber: String, createdAt: String, price: Double?, currency: String?, departureDate: String?, returnDate: String?) {
+    init(id: String, destination: String, destinationCountry: String? = nil, status: BookingStatus, confirmationNumber: String, createdAt: String, price: Double?, currency: String?, departureDate: String?, returnDate: String?) {
         self.id = id
         self.destination = destination
+        self.destinationCountry = destinationCountry
         self.status = status
         self.confirmationNumber = confirmationNumber
         self.createdAt = createdAt

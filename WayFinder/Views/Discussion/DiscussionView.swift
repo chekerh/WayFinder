@@ -924,35 +924,41 @@ struct CreatePostView: View {
     
     var body: some View {
         ZStack {
-            // Overlay semi-transparent
-            Color.black.opacity(0.4)
+            // Overlay semi-transparent avec blur
+            Color.black.opacity(0.5)
                 .ignoresSafeArea()
+                .background(.ultraThinMaterial)
                 .onTapGesture {
                     if !isCreating {
                         isPresented = false
                     }
                 }
             
-            // Popup content
+            // Popup content avec coins arrondis
             VStack(spacing: 0) {
-                // Header
-                HStack {
+                // Header amélioré avec coins arrondis en haut
+                HStack(spacing: 12) {
                     Button(action: {
                         if !isCreating {
                             isPresented = false
                         }
                     }) {
-                        Text("Annuler")
-                            .font(.system(size: 17))
-                            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle()
+                                    .fill(ThemeColors.surface(colorScheme).opacity(0.6))
+                            )
                     }
                     .disabled(isCreating)
                     
                     Spacer()
                     
                     Text("Nouveau post")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
                     
                     Spacer()
                     
@@ -963,100 +969,166 @@ struct CreatePostView: View {
                     }) {
                         if isCreating {
                             ProgressView()
-                                .tint(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                .tint(.white)
+                                .frame(width: 90, height: 38)
                         } else {
-                            Text("Publier")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(title.isEmpty || content.isEmpty ? .gray : Color(red: 0.098, green: 0.463, blue: 0.824))
+                            HStack(spacing: 6) {
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Publier")
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: 110, height: 38)
+                            .background(
+                                Capsule()
+                                    .fill(title.isEmpty || content.isEmpty ? Color.gray.opacity(0.3) : Color(red: 0.098, green: 0.463, blue: 0.824))
+                            )
                         }
                     }
                     .disabled(isCreating || title.isEmpty || content.isEmpty)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 24)
+                .padding(.top, 28)
+                .padding(.bottom, 22)
                 .background(
-                    Rectangle()
-                        .fill(Color(.systemBackground))
+                    UnevenRoundedRectangle(cornerRadii: .init(
+                        topLeading: 32,
+                        bottomLeading: 0,
+                        bottomTrailing: 0,
+                        topTrailing: 32
+                    ))
+                    .fill(ThemeColors.surface(colorScheme))
                 )
                 
-                Divider()
-                
-                // Content
+                // Content amélioré
                 ScrollView {
-                    VStack(spacing: 16) {
-                        // Titre
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Titre")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    VStack(spacing: 20) {
+                        // Titre avec icône
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "text.bubble.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                Text("Titre")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            }
+                            
                             TextField("Entrez le titre de votre post", text: $title)
                                 .focused($focusedField, equals: .title)
                                 .textFieldStyle(.plain)
-                                .padding(12)
+                                .font(.system(size: 16))
+                                .padding(18)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(.systemGray6))
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(ThemeColors.surface(colorScheme))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(focusedField == .title ? Color(red: 0.098, green: 0.463, blue: 0.824) : Color.clear, lineWidth: 2.5)
+                                        )
                                 )
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
                         
-                        // Contenu
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Contenu")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            TextEditor(text: $content)
-                                .focused($focusedField, equals: .content)
-                                .frame(minHeight: 120)
-                                .padding(8)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(.systemGray6))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                )
+                        // Contenu avec icône
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "doc.text.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                Text("Contenu")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            }
+                            
+                            ZStack(alignment: .topLeading) {
+                                if content.isEmpty {
+                                    Text("Partagez vos expériences et conseils...")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(ThemeColors.secondaryText(colorScheme).opacity(0.5))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 14)
+                                }
+                                
+                                TextEditor(text: $content)
+                                    .focused($focusedField, equals: .content)
+                                    .font(.system(size: 16))
+                                    .frame(minHeight: 150)
+                                    .scrollContentBackground(.hidden)
+                                    .padding(10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(ThemeColors.surface(colorScheme))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 16)
+                                                    .stroke(focusedField == .content ? Color(red: 0.098, green: 0.463, blue: 0.824) : Color.clear, lineWidth: 2.5)
+                                            )
+                                    )
+                            }
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 24)
                         
-                        // Destination (optionnel)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Destination (optionnel)")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        // Destination (optionnel) avec icône
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.7))
+                                Text("Destination (optionnel)")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            }
+                            
                             TextField("Ex: Paris, Tokyo...", text: $destination)
                                 .focused($focusedField, equals: .destination)
                                 .textFieldStyle(.plain)
-                                .padding(12)
+                                .font(.system(size: 16))
+                                .padding(18)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(.systemGray6))
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(ThemeColors.surface(colorScheme))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(focusedField == .destination ? Color(red: 0.098, green: 0.463, blue: 0.824) : Color.clear, lineWidth: 2.5)
+                                        )
                                 )
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 24)
                         
-                        // Message d'erreur
+                        // Message d'erreur amélioré
                         if let errorMessage = errorMessage {
-                            Text(errorMessage)
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 20)
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.red)
+                                Text(errorMessage)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.red.opacity(0.1))
+                            )
+                            .padding(.horizontal, 24)
                         }
                     }
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 32)
                 }
-                .background(Color(.systemBackground))
+                .background(ThemeColors.background(colorScheme))
             }
             .frame(maxWidth: 500)
-            .frame(height: min(600, UIScreen.main.bounds.height * 0.75))
+            .frame(height: min(650, UIScreen.main.bounds.height * 0.8))
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.systemBackground))
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(ThemeColors.background(colorScheme))
+                    .shadow(color: Color.black.opacity(0.2), radius: 40, x: 0, y: 20)
             )
-            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
-            .padding(.horizontal, 20)
+            .clipShape(RoundedRectangle(cornerRadius: 32))
+            .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .transition(.opacity.combined(with: .scale(scale: 0.95)))

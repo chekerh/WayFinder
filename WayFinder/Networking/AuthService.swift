@@ -28,6 +28,9 @@ final class AuthService {
         let response = try await APIService.shared.request(builder, decodeTo: LoginResponse.self)
         TokenStorage.save(token: response.accessToken)
 
+        // Register FCM token after login
+        await registerFcmTokenIfAvailable()
+
         if let user = response.user {
             // Sauvegarder le profil avec l'email pour la persistance
             UserStorage.saveProfile(user)
@@ -79,6 +82,9 @@ final class AuthService {
         let response = try await APIService.shared.request(builder, decodeTo: LoginResponse.self)
         TokenStorage.save(token: response.accessToken)
 
+        // Register FCM token after login
+        await registerFcmTokenIfAvailable()
+
         if let user = response.user {
             // Sauvegarder le profil avec l'email pour la persistance
             UserStorage.saveProfile(user)
@@ -115,6 +121,9 @@ final class AuthService {
 
         let response = try await APIService.shared.request(builder, decodeTo: LoginResponse.self)
         TokenStorage.save(token: response.accessToken)
+
+        // Register FCM token after login
+        await registerFcmTokenIfAvailable()
 
         if let user = response.user {
             // Sauvegarder le profil avec l'email pour la persistance
@@ -160,6 +169,87 @@ final class AuthService {
         TokenStorage.delete()
         UserStorage.clear()
         PreferenceStorage.clearPreferenceId()
+    }
+    
+    /// Envoie un code OTP à l'email de l'utilisateur
+    func sendOTP(email: String) async throws -> SendOTPResponse {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(SendOTPRequest(email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/send-otp",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        return try await APIService.shared.request(builder, decodeTo: SendOTPResponse.self)
+    }
+
+    /// Vérifie le code OTP et connecte l'utilisateur
+    func verifyOTP(email: String, code: String) async throws -> UserProfile {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(VerifyOTPRequest(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            code: code.trimmingCharacters(in: .whitespacesAndNewlines)
+        ))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/verify-otp",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        let response = try await APIService.shared.request(builder, decodeTo: VerifyOTPResponse.self)
+        TokenStorage.save(token: response.accessToken)
+
+        // Register FCM token after login
+        await registerFcmTokenIfAvailable()
+
+        if let user = response.user {
+            // Sauvegarder le profil avec l'email pour la persistance
+            UserStorage.saveProfile(user)
+            
+            // Restaurer l'image après reconnexion via ProfileImageService
+            if let email = user.email {
+                ProfileImageService.shared.restoreAfterLogin(email: email)
+                if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                    ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                }
+                print("✅ [AuthService] OTP login - Profile saved and image restored for email: \(email)")
+            } else {
+                print("✅ [AuthService] OTP login - Profile saved")
+            }
+            
+            return user
+        }
+
+        let profile = try await UserService.shared.fetchProfile()
+        // Sauvegarder le profil récupéré avec l'email
+        UserStorage.saveProfile(profile)
+        
+        // Restaurer l'image après reconnexion via ProfileImageService
+        if let email = profile.email {
+            ProfileImageService.shared.restoreAfterLogin(email: email)
+            if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+            }
+        }
+        
+        return profile
+    }
+
+    /// Enregistre le token FCM si disponible après la connexion
+    private func registerFcmTokenIfAvailable() async {
+        if let fcmToken = await FirebaseMessagingService.shared.fcmToken {
+            do {
+                try await FirebaseMessagingService.shared.registerTokenWithBackend(token: fcmToken)
+                print("✅ [AuthService] FCM token registered after login")
+            } catch {
+                print("⚠️ [AuthService] Failed to register FCM token after login: \(error.localizedDescription)")
+            }
+        }
     }
 }
 

@@ -21,6 +21,13 @@ struct LoginResponse: Decodable {
     let refreshToken: String?
     let user: UserProfile?
     let onboardingCompleted: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case refreshToken = "refresh_token"
+        case user
+        case onboardingCompleted = "onboarding_completed"
+    }
 }
 
 struct UserProfile: Decodable {
@@ -98,5 +105,36 @@ struct RegisterRequest: Encodable {
 struct RegisterResponse: Decodable {
     let message: String
     let user: UserProfile?
+}
+
+struct SendOTPRequest: Encodable {
+    let email: String
+}
+
+struct SendOTPResponse: Decodable {
+    let message: String
+    let email: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case message
+        case email
+    }
+}
+
+struct VerifyOTPRequest: Encodable {
+    let email: String
+    let code: String
+}
+
+struct VerifyOTPResponse: Decodable {
+    let accessToken: String
+    let user: UserProfile?
+    let onboardingCompleted: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case user
+        case onboardingCompleted = "onboarding_completed"
+    }
 }
 

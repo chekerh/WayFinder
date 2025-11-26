@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3E98A6252ED332EB00DA95CA /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3E98A6242ED332EB00DA95CA /* FirebaseCore */; };
+		3E98A6272ED332EB00DA95CA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 3E98A6262ED332EB00DA95CA /* FirebaseMessaging */; };
 		3EC115822EC540BD002BFE19 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3EC115812EC540BD002BFE19 /* GoogleSignIn */; };
 /* End PBXBuildFile section */
 
@@ -29,9 +31,16 @@
 
 /* Begin PBXFileReference section */
 		3E0E8CF82ECE66660009FE05 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E273EAB2ED1CCB00077020E /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E4A22A82ECDB76000A2451A /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E5B404C2EC92F4B002D8476 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E69D05D2ED23B2A0053E581 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E97ECE72ED07A97003E1FA5 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E98A0592ED31C4500DA95CA /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E98A5AA2ED32E2800DA95CA /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E98C6BE2ED33F8300DA95CA /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
+		3E98CC1E2ED3567E00DA95CA /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3EBDE1A02ECD2F8700484DAC /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
@@ -40,6 +49,7 @@
 		3ECAE3EA2EBA8FAB00751992 /* WayFinderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WayFinderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3F42EBA8FAC00751992 /* WayFinderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WayFinderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3ECAE3F82EBA8FAC00751992 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		3ECAE3F92EBA8FAC00751993 /* WayFinder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WayFinder.entitlements; sourceTree = "<group>"; };
 		3ED28F4C2ECAD9D200C657E7 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 		3EF733CB2ECF73DC006F6736 /* WayFinder.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = WayFinder.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -80,7 +90,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3E98A6272ED332EB00DA95CA /* FirebaseMessaging in Frameworks */,
 				3EC115822EC540BD002BFE19 /* GoogleSignIn in Frameworks */,
+				3E98A6252ED332EB00DA95CA /* FirebaseCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,41 +115,100 @@
 /* Begin PBXGroup section */
 		3E0E8CFA2ECE66660009FE05 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E273EAD2ED1CCB00077020E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3E4A22AA2ECDB76000A2451A /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3E5B404E2EC92F4B002D8476 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E69D05F2ED23B2A0053E581 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3E6B3AEA2EC650870052FA2C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E97ECE92ED07A97003E1FA5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E98A05C2ED31C4500DA95CA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E98A5AD2ED32E2800DA95CA /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E98C6C12ED33F8300DA95CA /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3E98CC212ED3567E00DA95CA /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3E9ADD092EC9DD06003B961F /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3EBDE1A22ECD2F8700484DAC /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3EC1157E2EC54074002BFE19 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3EC115BC2EC541E1002BFE19 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
@@ -148,7 +219,9 @@
 				3ECAE3ED2EBA8FAB00751992 /* WayFinderTests */,
 				3ECAE3F72EBA8FAC00751992 /* WayFinderUITests */,
 				3ECAE3F82EBA8FAC00751992 /* README.md */,
+				3ECAE3F92EBA8FAC00751993 /* WayFinder.entitlements */,
 				3ECAE3D92EBA8FAB00751992 /* Products */,
+				E6906C4FE92EBAE2D5F9C531 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -164,12 +237,23 @@
 		};
 		3ED28F4E2ECAD9D200C657E7 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		3EF733CD2ECF73DC006F6736 /* Products */ = {
 			isa = PBXGroup;
+			children = (
+			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E6906C4FE92EBAE2D5F9C531 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -193,6 +277,8 @@
 			name = WayFinder;
 			packageProductDependencies = (
 				3EC115812EC540BD002BFE19 /* GoogleSignIn */,
+				3E98A6242ED332EB00DA95CA /* FirebaseCore */,
+				3E98A6262ED332EB00DA95CA /* FirebaseMessaging */,
 			);
 			productName = WayFinder;
 			productReference = 3ECAE3D82EBA8FAB00751992 /* WayFinder.app */;
@@ -215,8 +301,6 @@
 				3ECAE3ED2EBA8FAB00751992 /* WayFinderTests */,
 			);
 			name = WayFinderTests;
-			packageProductDependencies = (
-			);
 			productName = WayFinderTests;
 			productReference = 3ECAE3EA2EBA8FAB00751992 /* WayFinderTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -238,8 +322,6 @@
 				3ECAE3F72EBA8FAC00751992 /* WayFinderUITests */,
 			);
 			name = WayFinderUITests;
-			packageProductDependencies = (
-			);
 			productName = WayFinderUITests;
 			productReference = 3ECAE3F42EBA8FAC00751992 /* WayFinderUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -280,11 +362,28 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				3E98A6232ED332EB00DA95CA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3ECAE3D92EBA8FAB00751992 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
+				{
+					ProductGroup = 3E98A5AD2ED32E2800DA95CA /* Products */;
+					ProjectRef = 3E98A5AA2ED32E2800DA95CA /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E97ECE92ED07A97003E1FA5 /* Products */;
+					ProjectRef = 3E97ECE72ED07A97003E1FA5 /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E273EAD2ED1CCB00077020E /* Products */;
+					ProjectRef = 3E273EAB2ED1CCB00077020E /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E69D05F2ED23B2A0053E581 /* Products */;
+					ProjectRef = 3E69D05D2ED23B2A0053E581 /* WayFinder.xcodeproj */;
+				},
 				{
 					ProductGroup = 3EBDE1A22ECD2F8700484DAC /* Products */;
 					ProjectRef = 3EBDE1A02ECD2F8700484DAC /* WayFinder.xcodeproj */;
@@ -302,28 +401,40 @@
 					ProjectRef = 3E5B404C2EC92F4B002D8476 /* WayFinder.xcodeproj */;
 				},
 				{
-					ProductGroup = 3E6B3AEA2EC650870052FA2C /* Products */;
-					ProjectRef = 3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */;
+					ProductGroup = 3E98C6C12ED33F8300DA95CA /* Products */;
+					ProjectRef = 3E98C6BE2ED33F8300DA95CA /* WayFinder.xcodeproj */;
 				},
 				{
-					ProductGroup = 3EC115BC2EC541E1002BFE19 /* Products */;
-					ProjectRef = 3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */;
+					ProductGroup = 3E6B3AEA2EC650870052FA2C /* Products */;
+					ProjectRef = 3E6B3AE82EC650870052FA2C /* WayFinder.xcodeproj */;
 				},
 				{
 					ProductGroup = 3EC1157E2EC54074002BFE19 /* Products */;
 					ProjectRef = 3EC1157D2EC54074002BFE19 /* WayFinder.xcodeproj */;
 				},
 				{
-					ProductGroup = 3E4A22AA2ECDB76000A2451A /* Products */;
-					ProjectRef = 3E4A22A82ECDB76000A2451A /* WayFinder.xcodeproj */;
-				},
-				{
 					ProductGroup = 3EF733CD2ECF73DC006F6736 /* Products */;
 					ProjectRef = 3EF733CB2ECF73DC006F6736 /* WayFinder.xcodeproj */;
 				},
 				{
+					ProductGroup = 3E4A22AA2ECDB76000A2451A /* Products */;
+					ProjectRef = 3E4A22A82ECDB76000A2451A /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3EC115BC2EC541E1002BFE19 /* Products */;
+					ProjectRef = 3EC115BA2EC541E1002BFE19 /* WayFinder.xcodeproj */;
+				},
+				{
 					ProductGroup = 3E9ADD092EC9DD06003B961F /* Products */;
 					ProjectRef = 3E9ADD072EC9DD06003B961F /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E98A05C2ED31C4500DA95CA /* Products */;
+					ProjectRef = 3E98A0592ED31C4500DA95CA /* WayFinder.xcodeproj */;
+				},
+				{
+					ProductGroup = 3E98CC212ED3567E00DA95CA /* Products */;
+					ProjectRef = 3E98CC1E2ED3567E00DA95CA /* WayFinder.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -521,10 +632,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WayFinder/WayFinder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = F454GL3545;
 				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WayFinder/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -550,10 +663,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WayFinder/WayFinder.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = F454GL3545;
 				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WayFinder/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -684,6 +799,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		3E98A6232ED332EB00DA95CA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.6.0;
+			};
+		};
 		3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -695,6 +818,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		3E98A6242ED332EB00DA95CA /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3E98A6232ED332EB00DA95CA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		3E98A6262ED332EB00DA95CA /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3E98A6232ED332EB00DA95CA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		3EC115812EC540BD002BFE19 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3EC115802EC540BC002BFE19 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

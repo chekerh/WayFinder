@@ -28,8 +28,19 @@ final class NotificationViewModel: ObservableObject {
         
         print("🔄 [NotificationViewModel] Loading notifications")
         do {
+            let previousIds = Set(notifications.map { $0.id })
             notifications = try await service.getNotifications()
             print("✅ [NotificationViewModel] Loaded \(notifications.count) notifications")
+            
+            // Check for new notifications and trigger popup display immediately
+            let currentIds = Set(notifications.map { $0.id })
+            let newIds = currentIds.subtracting(previousIds)
+            
+            if !newIds.isEmpty {
+                print("🆕 [NotificationViewModel] Found \(newIds.count) new notification(s), triggering popup display")
+                // Notify FirebaseMessagingService to check for new notifications immediately
+                FirebaseMessagingService.shared.checkForNewNotifications()
+            }
         } catch {
             print("❌ [NotificationViewModel] Error loading notifications: \(error.localizedDescription)")
             errorMessage = error.localizedDescription

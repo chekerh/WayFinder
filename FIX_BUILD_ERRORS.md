@@ -1,60 +1,80 @@
-# Guide pour corriger les erreurs de build
+# 🔧 Résolution des erreurs de build
 
-## Erreurs identifiées
+## Problèmes identifiés
 
-1. **"Missing package product 'GoogleSignIn'"** - Package Swift non résolu
-2. **"Write() failed, errno=28"** - Espace disque plein
-3. **"Linker command failed"** - Conséquence des erreurs précédentes
+1. **Erreur "Couldn't load project"** : Xcode essaie de charger un projet dans un mauvais chemin
+2. **Erreur "Command SwiftCompile failed"** : Problème de compilation
+3. **Warnings "Search path not found"** : Chemins de recherche manquants
+4. **"GoogleUtilities' not found"** : Module Firebase non trouvé
 
-## Solutions étape par étape
+## Solutions
 
-### Étape 1 : Libérer de l'espace disque (PRIORITAIRE)
+### Solution 1 : Nettoyer le cache de build
 
-Le disque est plein (100% utilisé). Tu dois libérer au moins 5-10 Go avant de pouvoir builder.
-
-**Actions rapides :**
-1. Vider la corbeille
-2. Nettoyer les téléchargements volumineux
-3. Supprimer des fichiers temporaires :
+Dans Xcode :
+1. Menu **Product** > **Clean Build Folder** (ou ⌘ + Shift + K)
+2. Fermez Xcode complètement
+3. Supprimez le cache :
    ```bash
-   # Nettoyer les caches système
-   sudo rm -rf ~/Library/Caches/*
-   # Nettoyer les logs
-   sudo rm -rf ~/Library/Logs/*
+   rm -rf ~/Library/Developer/Xcode/DerivedData/WayFinder-*
    ```
+4. Rouvrez `WayFinder.xcworkspace`
 
-### Étape 2 : Réinitialiser les packages Swift dans Xcode
+### Solution 2 : Vérifier que vous ouvrez le bon fichier
 
-1. **Ouvre Xcode**
-2. **File > Packages > Reset Package Caches**
-3. **File > Packages > Resolve Package Versions**
-4. Attends que les packages se téléchargent (peut prendre plusieurs minutes)
+⚠️ **IMPORTANT** : Vous devez ouvrir :
+- ✅ `WayFinder.xcworkspace` (à la racine de `/Users/sarrachmek/Desktop/dam/ios/`)
+- ❌ PAS `WayFinder.xcodeproj`
+- ❌ PAS le projet dans `/Users/sarrachmek/Desktop/dam/ios/WayFinder/WayFinder.xcodeproj`
 
-### Étape 3 : Nettoyer le build
+### Solution 3 : Réinstaller les pods
 
-1. Dans Xcode : **Product > Clean Build Folder** (⇧⌘K)
-2. Ferme Xcode complètement
-3. Relance Xcode et réessaie de builder
-
-### Étape 4 : Si GoogleSignIn pose toujours problème (solution temporaire)
-
-Si tu n'as pas besoin de Google Sign-In immédiatement, tu peux le désactiver temporairement :
-
-1. Dans Xcode, va dans **Project Settings > Package Dependencies**
-2. Désactive ou supprime temporairement GoogleSignIn-iOS
-3. Le code utilise déjà `#if canImport(GoogleSignIn)` donc ça ne cassera pas l'app
-
-### Étape 5 : Vérifier l'espace disque
-
+Si les erreurs persistent :
 ```bash
-df -h
+cd /Users/sarrachmek/Desktop/dam/ios
+rm -rf Pods Podfile.lock
+pod install
 ```
 
-Tu dois avoir au moins 5-10 Go libres pour que Xcode puisse builder correctement.
+### Solution 4 : Vérifier le schéma de build
+
+Dans Xcode :
+1. Cliquez sur le schéma de build (à côté du bouton Play)
+2. Sélectionnez **"WayFinder"** (pas "Pods-WayFinder")
+3. Sélectionnez un simulateur ou un appareil
+
+### Solution 5 : Vérifier les chemins de recherche
+
+Dans Xcode :
+1. Sélectionnez le projet "WayFinder" (icône bleue)
+2. Sélectionnez la target "WayFinder"
+3. Allez dans **Build Settings**
+4. Cherchez "Search Paths"
+5. Vérifiez que les chemins vers les Pods sont corrects
+
+## Étapes à suivre maintenant
+
+1. **Fermez Xcode complètement**
+2. **Nettoyez le cache** (déjà fait via la commande)
+3. **Rouvrez le workspace** :
+   ```bash
+   cd /Users/sarrachmek/Desktop/dam/ios
+   open WayFinder.xcworkspace
+   ```
+4. **Dans Xcode** :
+   - Menu **Product** > **Clean Build Folder** (⌘ + Shift + K)
+   - Attendez que le nettoyage se termine
+   - Menu **Product** > **Build** (⌘ + B)
+5. **Vérifiez les erreurs** :
+   - Si vous voyez encore des erreurs, partagez-les avec moi
 
 ## Si les erreurs persistent
 
-1. **Vérifie les erreurs spécifiques** dans le panneau Issues (⌘5)
-2. **Partage les messages d'erreur exacts** pour que je puisse t'aider plus précisément
-3. **Vérifie que le backend est accessible** - l'erreur API dans la console est normale si le backend n'est pas démarré
+Essayez cette commande pour réinstaller proprement les pods :
+```bash
+cd /Users/sarrachmek/Desktop/dam/ios
+pod deintegrate
+pod install
+```
 
+Puis rouvrez le workspace et réessayez de compiler.

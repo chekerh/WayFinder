@@ -172,6 +172,30 @@ final class UserService {
         
         return uploadResponse
     }
+    
+    /// Enregistre le token FCM auprès du backend
+    func registerFcmToken(token: String) async throws {
+        guard let authToken = TokenStorage.fetch() else {
+            throw APIError.custom("Token manquant")
+        }
+        
+        let request = FcmTokenRequest(token: token)
+        let encoder = JSONEncoder()
+        let body = try encoder.encode(request)
+        
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "user/fcm-token",
+            headers: [
+                "Authorization": "Bearer \(authToken)",
+                "Content-Type": "application/json"
+            ],
+            body: body
+        )
+        
+        let response: FcmTokenResponse = try await APIService.shared.request(builder, decodeTo: FcmTokenResponse.self)
+        print("✅ [UserService] FCM token registered: \(response.message)")
+    }
 }
 
 struct UploadProfileImageResponse: Decodable {
@@ -254,6 +278,14 @@ struct UpdateProfileImageRequest: Encodable {
     enum CodingKeys: String, CodingKey {
         case profileImageUrl = "profile_image_url"
     }
+}
+
+struct FcmTokenRequest: Encodable {
+    let token: String
+}
+
+struct FcmTokenResponse: Decodable {
+    let message: String
 }
 
 private extension UserService {

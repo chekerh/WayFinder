@@ -8,54 +8,139 @@
 import SwiftUI
 
 struct OTPScreenView: View {
+    let email: String
+    @Environment(\.dismiss) private var dismiss
     @State private var codeDigits: [String] = Array(repeating: "", count: 4)
+    @State private var isLoading = false
+    @State private var isVerifying = false
+    @State private var errorMessage: String?
+    @State private var successMessage: String?
+    @State private var showHome = false
+    @State private var loggedInUserName: String?
+    @State private var timer: Timer?
+    @State private var remainingSeconds = 60
+    @State private var canResend = false
+    @FocusState private var focusedField: Int?
+    
+    init(email: String) {
+        self.email = email
+    }
     
     var body: some View {
-        VStack {
-            HeaderShape()
-                .fill(Color(red: 0.90, green: 0.95, blue: 1.0))
-                .frame(height: 320)
-                .overlay(headerContent, alignment: .topLeading)
-                .overlay(codeSection, alignment: .bottom)
-                .padding(.bottom, -80)
-            
-            Spacer()
-            
-            Spacer()
-            
-            VStack(spacing: 8) {
-                Button(action: {
-                    // Action
-                }) {
-                    HStack(spacing: 16) {
-                        Text("otp_button")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                        
-                        Image(systemName: "globe")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
+        NavigationStack {
+            VStack {
+                HeaderShape()
+                    .fill(Color(red: 0.90, green: 0.95, blue: 1.0))
+                    .frame(height: 320)
+                    .overlay(headerContent, alignment: .topLeading)
+                    .overlay(codeSection, alignment: .bottom)
+                    .padding(.bottom, -80)
+                
+                Spacer()
+                
+                // Email info
+                VStack(spacing: 8) {
+                    Text("Code envoyé à")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                    Text(email)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.18, green: 0.20, blue: 0.23))
+                }
+                .padding(.vertical, 16)
+                
+                // Error message
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 24)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Success message
+                if let successMessage {
+                    Text(successMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.green)
+                        .padding(.horizontal, 24)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Resend code button
+                if canResend {
+                    Button(action: {
+                        Task { await sendOTP() }
+                    }) {
+                        Text("Renvoyer le code")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(red: 0.18, green: 0.55, blue: 0.99))
+                    }
+                    .padding(.vertical, 8)
+                } else if remainingSeconds > 0 {
+                    Text("Renvoyer le code dans \(remainingSeconds)s")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                        .padding(.vertical, 8)
+                }
+                
+                Spacer()
+                
+                VStack(spacing: 8) {
+                    Button(action: {
+                        Task { await verifyOTP() }
+                    }) {
+                        if isVerifying {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            HStack(spacing: 16) {
+                                Text("Se connecter")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
                     }
                     .padding(.horizontal, 32)
                     .padding(.vertical, 16)
-                    .background(Color(red: 0.18, green: 0.55, blue: 0.99))
+                    .background(isOTPComplete ? Color(red: 0.18, green: 0.55, blue: 0.99) : Color.gray)
                     .clipShape(Capsule())
+                    .disabled(!isOTPComplete || isVerifying || isLoading)
+                    .padding(.horizontal, 80)
+                    
+                    termsText
+                        .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 80)
-                
-                termsText
-                    .padding(.horizontal, 24)
+                .padding(.bottom, 24)
             }
-            .padding(.bottom, 24)
+            .background(Color(red: 0.90, green: 0.95, blue: 1.0).ignoresSafeArea())
+            .navigationDestination(item: Binding(
+                get: { showHome ? "home" : nil },
+                set: { showHome = $0 != nil }
+            )) { _ in
+                if let name = loggedInUserName {
+                    HomeScreen(initialName: name)
+                        .navigationBarBackButtonHidden(true)
+                }
+            }
+            .onAppear {
+                Task { await sendOTP() }
+            }
+            .onDisappear {
+                timer?.invalidate()
+            }
         }
-        .background(Color(red: 0.90, green: 0.95, blue: 1.0).ignoresSafeArea())
+    }
+    
+    private var isOTPComplete: Bool {
+        codeDigits.allSatisfy { !$0.isEmpty && $0.count == 1 }
     }
     
     private var headerContent: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
                 Button(action: {
-                    // Back action
+                    dismiss()
                 }) {
                     Circle()
                         .fill(Color.white.opacity(0.75))
@@ -73,7 +158,7 @@ struct OTPScreenView: View {
                 Spacer()
             }
             
-            Text("otp_title")
+            Text("Entrer le code")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundColor(Color(red: 0.16, green: 0.17, blue: 0.20))
                 .padding(.leading, 40)
@@ -84,11 +169,92 @@ struct OTPScreenView: View {
         VStack(spacing: 36) {
             HStack(spacing: 28) {
                 ForEach(0..<4, id: \.self) { index in
-                    OTPDigitField(text: $codeDigits[index])
+                    OTPDigitField(
+                        text: $codeDigits[index],
+                        isFocused: focusedField == index
+                    )
+                    .focused($focusedField, equals: index)
+                    .onChange(of: codeDigits[index]) { oldValue, newValue in
+                        handleOTPChange(at: index, newValue: newValue)
+                    }
                 }
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 60)
+        }
+    }
+    
+    private func handleOTPChange(at index: Int, newValue: String) {
+        // Remove non-digit characters
+        let filtered = newValue.filter { $0.isNumber }
+        if filtered.count > 1 {
+            codeDigits[index] = String(filtered.prefix(1))
+        } else {
+            codeDigits[index] = filtered
+        }
+        
+        // Auto-advance to next field
+        if !filtered.isEmpty && index < 3 {
+            focusedField = index + 1
+        }
+        
+        // Auto-submit when all fields are filled
+        if isOTPComplete && codeDigits.allSatisfy({ !$0.isEmpty }) {
+            Task {
+                try? await Task.sleep(nanoseconds: 300_000_000) // Small delay for UX
+                await verifyOTP()
+            }
+        }
+    }
+    
+    @MainActor
+    private func sendOTP() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        
+        do {
+            let response = try await AuthService.shared.sendOTP(email: email)
+            successMessage = response.message
+            startResendTimer()
+        } catch {
+            errorMessage = "Erreur lors de l'envoi du code: \(error.localizedDescription)"
+        }
+    }
+    
+    @MainActor
+    private func verifyOTP() async {
+        guard isOTPComplete else { return }
+        
+        isVerifying = true
+        errorMessage = nil
+        defer { isVerifying = false }
+        
+        let otpCode = codeDigits.joined()
+        
+        do {
+            let user = try await AuthService.shared.verifyOTP(email: email, code: otpCode)
+            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
+            showHome = true
+        } catch {
+            errorMessage = "Code incorrect. Veuillez réessayer."
+            // Clear OTP fields on error
+            codeDigits = Array(repeating: "", count: 4)
+            focusedField = 0
+        }
+    }
+    
+    private func startResendTimer() {
+        canResend = false
+        remainingSeconds = 60
+        
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            remainingSeconds -= 1
+            if remainingSeconds <= 0 {
+                canResend = true
+                timer.invalidate()
+            }
         }
     }
     
@@ -138,14 +304,13 @@ struct OTPScreenView: View {
 
 private struct OTPDigitField: View {
     @Binding var text: String
-    @FocusState private var isFocused: Bool
+    let isFocused: Bool
     
     var body: some View {
         TextField("", text: $text)
             .keyboardType(.numberPad)
             .textContentType(.oneTimeCode)
             .multilineTextAlignment(.center)
-            .focused($isFocused)
             .frame(width: 64, height: 58)
             .background(
                 RoundedRectangle(cornerRadius: 12)
@@ -153,20 +318,15 @@ private struct OTPDigitField: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(red: 0.76, green: 0.80, blue: 0.85), lineWidth: 4)
+                    .stroke(isFocused ? Color(red: 0.18, green: 0.55, blue: 0.99) : Color(red: 0.76, green: 0.80, blue: 0.85), lineWidth: isFocused ? 3 : 2)
             )
             .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
             .font(.system(size: 24, weight: .semibold))
-            .onReceive(text.publisher.collect()) { value in
-                if let first = value.first {
-                    text = String(first)
-                }
-            }
     }
 }
 
 struct OTPScreenView_Previews: PreviewProvider {
     static var previews: some View {
-        OTPScreenView()
+        OTPScreenView(email: "test@example.com")
     }
 }

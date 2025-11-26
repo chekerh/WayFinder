@@ -74,23 +74,60 @@ final class APIService {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
+            // Essayer de décoder l'erreur NestJS standard
             if let nestError = try? JSONDecoder().decode(NestError.self, from: data) {
                 print("❌ [API] Error: \(nestError.message.text)")
                 throw APIError.custom(nestError.message.text)
             }
+            
+            // Essayer d'extraire le message directement depuis le JSON
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["message"] as? String {
+                print("❌ [API] Error message: \(message)")
+                throw APIError.custom(message)
+            }
+            
+            // Si le message est un tableau (format de validation NestJS)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let messageArray = json["message"] as? [String],
+               let firstMessage = messageArray.first {
+                print("❌ [API] Error message: \(firstMessage)")
+                throw APIError.custom(firstMessage)
+            }
+            
             print("❌ [API] HTTP Error: \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode, data)
         }
 
         do {
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            // Ne pas utiliser convertFromSnakeCase si le modèle a des CodingKeys personnalisés
+            // decoder.keyDecodingStrategy = .convertFromSnakeCase
             decoder.dateDecodingStrategy = .iso8601
             let result = try decoder.decode(T.self, from: data)
             print("✅ [API] Decode success")
             return result
         } catch {
             print("❌ [API] Decode error: \(error.localizedDescription)")
+            if let decodingError = error as? DecodingError {
+                print("❌ [API] DecodingError details:")
+                switch decodingError {
+                case .typeMismatch(let type, let context):
+                    print("   Type mismatch: expected \(type), path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("   Value not found: \(type), path: \(context.codingPath)")
+                case .keyNotFound(let key, let context):
+                    print("   Key not found: \(key.stringValue), path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("   Data corrupted: \(context.debugDescription)")
+                @unknown default:
+                    print("   Unknown decoding error")
+                }
+            }
+            // Afficher le JSON brut pour debug
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("❌ [API] Raw JSON: \(jsonString)")
+            }
             throw APIError.decodingError(error)
         }
     }
@@ -146,10 +183,27 @@ final class APIService {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
+            // Essayer de décoder l'erreur NestJS standard
             if let nestError = try? JSONDecoder().decode(NestError.self, from: data) {
                 print("❌ [API] Error: \(nestError.message.text)")
                 throw APIError.custom(nestError.message.text)
             }
+            
+            // Essayer d'extraire le message directement depuis le JSON
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["message"] as? String {
+                print("❌ [API] Error message: \(message)")
+                throw APIError.custom(message)
+            }
+            
+            // Si le message est un tableau (format de validation NestJS)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let messageArray = json["message"] as? [String],
+               let firstMessage = messageArray.first {
+                print("❌ [API] Error message: \(firstMessage)")
+                throw APIError.custom(firstMessage)
+            }
+            
             print("❌ [API] HTTP Error: \(httpResponse.statusCode)")
             throw APIError.httpError(httpResponse.statusCode, data)
         }

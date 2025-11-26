@@ -19,6 +19,8 @@ struct HomeScreen: View {
     @State private var selectedTab: FloatingTab = .activity
     @State private var selectedRegion: String? = nil
     @State private var showNotifications = false
+    @State private var navigateToPostId: String? = nil // Pour naviguer vers un post spécifique
+    @State private var showDiscussionView = false // Pour afficher DiscussionView au lieu de ChatView
     let initialName: String?
     
     init(initialName: String? = nil) {
@@ -167,50 +169,23 @@ struct HomeScreen: View {
                         FavoritesView(viewModel: favoritesViewModel)
                     }
                 case .explore:
-                    // Laisser vide pour le moment
                     NavigationStack {
-                        ZStack {
-                            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
-                                .ignoresSafeArea()
-                            
-                            VStack(spacing: 16) {
-                                Image(systemName: "bubble.left.and.bubble.right")
-                                    .font(.system(size: 48))
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                Text("Bientôt disponible")
-                                    .font(.headline)
-                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                Text("Cette fonctionnalité sera disponible prochainement")
-                                    .font(.subheadline)
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            }
+                        if showDiscussionView {
+                            DiscussionViewWithNavigation(
+                                navigateToPostId: $navigateToPostId,
+                                onDismiss: { showDiscussionView = false }
+                            )
+                        } else {
+                            ChatView(onBackToHome: {
+                                selectedTab = .activity
+                            })
                         }
-                        .navigationBarTitleDisplayMode(.inline)
                     }
                 case .alerts:
-                    // Laisser vide pour le moment
                     NavigationStack {
-                        ZStack {
-                            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
-                                .ignoresSafeArea()
-                            
-                            VStack(spacing: 16) {
-                                Image(systemName: "bell")
-                                    .font(.system(size: 48))
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                Text("Bientôt disponible")
-                                    .font(.headline)
-                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                Text("Cette fonctionnalité sera disponible prochainement")
-                                    .font(.subheadline)
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            }
-                        }
-                        .navigationBarTitleDisplayMode(.inline)
+                        BookingHistoryView(onBackToHome: {
+                            selectedTab = .activity
+                        })
                     }
                 case .profile:
                     NavigationStack {
@@ -220,7 +195,9 @@ struct HomeScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingTabBar(selection: $selectedTab)
+            if selectedTab != .explore {
+                FloatingTabBar(selection: $selectedTab)
+            }
         }
         .onAppear {
             // Recharger l'image à chaque fois que l'écran apparaît
@@ -270,6 +247,17 @@ struct HomeScreen: View {
             NavigationStack {
                 NotificationView()
             }
+        }
+        .onAppear {
+            // Activer le polling des notifications quand on arrive dans l'interface principale
+            FirebaseMessagingService.shared.setMainInterfaceState(true)
+            
+            // Écouter les notifications tapées pour naviguer
+            setupNotificationNavigation()
+        }
+        .onDisappear {
+            // Désactiver le polling quand on quitte l'interface principale
+            FirebaseMessagingService.shared.setMainInterfaceState(false)
         }
     }
     
@@ -402,6 +390,14 @@ struct RegionChip: View {
     }
 }
 
+// MARK: - ScrollOffsetPreferenceKey
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // MARK: - DestinationsSection
 struct DestinationsSection: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -409,17 +405,231 @@ struct DestinationsSection: View {
     @ObservedObject var favoritesViewModel: FavoriteViewModel
     
     @State private var currentIndex: Int = 0
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging: Bool = false
+    @State private var dragStartLocation: CGPoint = .zero
+    
+    private var cardWidth: CGFloat {
+        // Responsive card width based on screen size
+        let screenWidth = UIScreen.main.bounds.width
+        if screenWidth > 768 {
+            // iPad
+            return min(320, screenWidth * 0.4)
+        } else {
+            // iPhone
+            return min(290, screenWidth * 0.75)
+        }
+    }
+    private let cardHeight: CGFloat = 340
+    private let cardSpacing: CGFloat = 20 // Horizontal spacing between cards (no overlap)
+    private let cardScale: CGFloat = 0.88 // Scale for non-focused cards
     
     var body: some View {
-        TabView(selection: $currentIndex) {
-            ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
-                DestinationCard(destination: destination, favoritesViewModel: favoritesViewModel)
-                    .tag(index)
-                    .padding(.horizontal, 80)
+        GeometryReader { geometry in
+            let screenWidth = geometry.size.width
+            let centerX = screenWidth / 2
+            
+            ZStack {
+                // Render all cards - z-index controls the layering
+                ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
+                    NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
+                        ZStack {
+                            DestinationCard(
+                                destination: destination,
+                                favoritesViewModel: favoritesViewModel,
+                                index: index,
+                                currentIndex: currentIndex,
+                                totalCount: destinations.count,
+                                dragOffset: dragOffset,
+                                isDragging: isDragging
+                            )
+                            .frame(width: cardWidth, height: cardHeight)
+                            .offset(
+                                x: calculateHorizontalOffset(for: index, centerX: centerX),
+                                y: calculateVerticalOffset(for: index)
+                            )
+                            .scaleEffect(calculateScale(for: index))
+                            .opacity(calculateOpacity(for: index))
+                            .blur(radius: calculateBlur(for: index))
+                            .zIndex(calculateZIndex(for: index))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: currentIndex)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: dragOffset)
+                            
+                            // Favorite button overlay - more visible on focused card
+                            VStack {
+                                HStack {
+                                    Spacer()
+                                    FavoriteButtonOverlay(
+                                        destination: destination,
+                                        favoritesViewModel: favoritesViewModel,
+                                        isFocused: index == currentIndex
+                                    )
+                                    .padding(.trailing, 16)
+                                    .padding(.top, 16)
+                                }
+                                Spacer()
+                            }
+                            .frame(width: cardWidth, height: cardHeight)
+                            .offset(
+                                x: calculateHorizontalOffset(for: index, centerX: centerX),
+                                y: calculateVerticalOffset(for: index)
+                            )
+                            .zIndex(calculateZIndex(for: index) + 1)
+                            .opacity(calculateOpacity(for: index))
+                            .scaleEffect(calculateScale(for: index))
+                            .blur(radius: calculateBlur(for: index))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .frame(height: calculateTotalHeight())
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 15)
+                    .onChanged { value in
+                        // Only start dragging if movement is significant
+                        if abs(value.translation.width) > 10 {
+                            if !isDragging {
+                                dragStartLocation = value.startLocation
+                            }
+                            isDragging = true
+                            dragOffset = value.translation.width
+                        }
+                    }
+                    .onEnded { value in
+                        isDragging = false
+                        let threshold: CGFloat = 50
+                        let velocity = value.predictedEndTranslation.width - value.translation.width
+                        
+                        // Only process scroll if there was significant movement
+                        if abs(value.translation.width) > 10 {
+                            // Check velocity for faster scrolling
+                            if abs(velocity) > 200 {
+                                if velocity > 0 && currentIndex > 0 {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        currentIndex -= 1
+                                    }
+                                } else if velocity < 0 && currentIndex < destinations.count - 1 {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        currentIndex += 1
+                                    }
+                                }
+                            } else if abs(value.translation.width) > threshold {
+                                if value.translation.width > threshold && currentIndex > 0 {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        currentIndex -= 1
+                                    }
+                                } else if value.translation.width < -threshold && currentIndex < destinations.count - 1 {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        currentIndex += 1
+                                    }
+                                }
+                            }
+                        }
+                        
+                        dragOffset = 0
+                    }
+            )
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 340)
+        .frame(height: calculateTotalHeight())
+    }
+    
+    private func calculateHorizontalOffset(for index: Int, centerX: CGFloat) -> CGFloat {
+        let distance = index - currentIndex
+        
+        if distance == 0 {
+            // Selected card is centered horizontally
+            let dragAdjustment = isDragging ? dragOffset : 0
+            return centerX - cardWidth / 2 + dragAdjustment
+        } else {
+            // Other cards are positioned to the left and right WITHOUT overlap
+            let scaledCardWidth = cardWidth * cardScale
+            
+            // Calculate center position of each card
+            var cardCenter: CGFloat = centerX
+            
+            if distance < 0 {
+                // Cards to the left: move left by (selected card half + spacing + scaled card half) for first card
+                // Then add (scaled card width + spacing) for each additional card
+                let firstCardOffset = -(cardWidth / 2 + cardSpacing + scaledCardWidth / 2)
+                let additionalOffset = CGFloat(abs(distance) - 1) * (scaledCardWidth + cardSpacing)
+                cardCenter = centerX + firstCardOffset - additionalOffset
+            } else {
+                // Cards to the right: move right by (selected card half + spacing + scaled card half) for first card
+                // Then add (scaled card width + spacing) for each additional card
+                let firstCardOffset = cardWidth / 2 + cardSpacing + scaledCardWidth / 2
+                let additionalOffset = CGFloat(distance - 1) * (scaledCardWidth + cardSpacing)
+                cardCenter = centerX + firstCardOffset + additionalOffset
+            }
+            
+            // Return left edge of the card (center - half width)
+            return cardCenter - scaledCardWidth / 2
+        }
+    }
+    
+    private func calculateVerticalOffset(for index: Int) -> CGFloat {
+        // All cards aligned horizontally - no vertical offset
+        return 0
+    }
+    
+    private func calculateScale(for index: Int) -> CGFloat {
+        let distance = abs(index - currentIndex)
+        
+        if distance == 0 {
+            // Selected card - full size
+            return 1.0
+        } else if distance == 1 {
+            // Adjacent cards - slightly smaller
+            return cardScale
+        } else {
+            // Cards further away - progressively smaller
+            return max(0.75, cardScale - CGFloat(distance - 1) * 0.05)
+        }
+    }
+    
+    private func calculateOpacity(for index: Int) -> Double {
+        let distance = abs(index - currentIndex)
+        if distance == 0 {
+            // Selected card: full opacity
+            return 1.0
+        } else if distance == 1 {
+            // Adjacent cards: slightly reduced opacity but still visible
+            return 0.9
+        } else {
+            // Cards further away: more reduced opacity
+            return max(0.7, 0.9 - Double(distance - 1) * 0.1)
+        }
+    }
+    
+    private func calculateBlur(for index: Int) -> CGFloat {
+        let distance = abs(index - currentIndex)
+        if distance == 0 {
+            // Selected card: no blur - crystal clear
+            return 0
+        } else if distance == 1 {
+            // Adjacent cards: subtle blur for focus effect
+            return 2.0
+        } else {
+            // Cards further away: more pronounced blur
+            return min(4.5, 2.0 + CGFloat(distance - 1) * 1.0)
+        }
+    }
+    
+    private func calculateZIndex(for index: Int) -> Double {
+        let distance = abs(index - currentIndex)
+        // Selected card has highest z-index (appears on top)
+        // Other cards have lower z-index
+        if distance == 0 {
+            return Double(1000) // Highest z-index for selected card
+        } else {
+            return Double(1000) - Double(distance) // Lower z-index for others
+        }
+    }
+    
+    private func calculateTotalHeight() -> CGFloat {
+        // All cards aligned horizontally - just need card height
+        return cardHeight
     }
 }
 
@@ -427,13 +637,32 @@ struct DestinationCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let destination: FlightDestination
     @ObservedObject var favoritesViewModel: FavoriteViewModel
+    let index: Int
+    let currentIndex: Int
+    let totalCount: Int
+    let dragOffset: CGFloat
+    let isDragging: Bool
     
-    @State private var isFavorite: Bool = false
+    private var cardWidth: CGFloat {
+        min(290, UIScreen.main.bounds.width * 0.75)
+    }
+    private let cardHeight: CGFloat = 340
+    
+    private var isCurrentCard: Bool {
+        index == currentIndex
+    }
+    
+    private var distance: Int {
+        abs(index - currentIndex)
+    }
     
     var body: some View {
-        NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            
             ZStack(alignment: .bottomLeading) {
-                // Background Image
+                // Background Image with enhanced styling
                 Group {
                     if let imageUrl = destination.imageUrl, let url = URL(string: imageUrl) {
                         AsyncImage(url: url) { phase in
@@ -459,86 +688,152 @@ struct DestinationCard: View {
                             ))
                     }
                 }
-                .frame(width: 290, height: 340)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .frame(width: width, height: height)
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(
+                            isCurrentCard ? Color.white.opacity(0.3) : Color.clear,
+                            lineWidth: isCurrentCard ? 2 : 0
+                        )
+                )
                 
-                // Gradient Overlay
+                // Enhanced Gradient Overlay
                 LinearGradient(
-                    colors: [Color.clear, Color.black.opacity(0.7)],
-                    startPoint: .center,
+                    colors: [
+                        Color.clear,
+                        Color.black.opacity(0.3),
+                        Color.black.opacity(0.7)
+                    ],
+                    startPoint: UnitPoint(x: 0.5, y: 0.4),
                     endPoint: .bottom
                 )
-                .frame(width: 290, height: 340)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .frame(width: width, height: height)
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+            
+                // Content with enhanced typography
+            VStack(alignment: .leading, spacing: 0) {
+                Text(destination.name)
+                        .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                 
-                // Content
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(destination.name)
-                        .font(.system(size: 24, weight: .bold))
+                Text(destination.country)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.white.opacity(0.95))
+                        .padding(.top, 6)
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
+                
+                if let price = destination.price, price > 0 {
+                        HStack(spacing: 4) {
+                            Text("\(Int(price))")
+                                .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
-                    
-                    Text(destination.country)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                    
-                    if let price = destination.price, price > 0 {
-                        Text("\(Int(price)) \(destination.currency)")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.top, 4)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                
-                // Favorite Button (separate from navigation)
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            Task {
-                                let newFavoriteState = !isFavorite
-                                if newFavoriteState {
-                                    await favoritesViewModel.addFavorite(
-                                        itemType: .flight,
-                                        itemId: destination.id,
-                                        itemData: [
-                                            "name": destination.name,
-                                            "city": destination.city,
-                                            "country": destination.country,
-                                            "imageUrl": destination.imageUrl ?? "",
-                                            "price": "\(destination.price ?? 0)",
-                                            "currency": destination.currency,
-                                            "airline": destination.airline ?? ""
-                                        ]
-                                    )
-                                } else {
-                                    await favoritesViewModel.removeFavorite(itemType: .flight, itemId: destination.id)
-                                }
-                                isFavorite = newFavoriteState
-                            }
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.white.opacity(0.3))
-                                    .frame(width: 40, height: 40)
-                                
-                                Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                    .foregroundColor(isFavorite ? Color(red: 1.0, green: 0.09, blue: 0.267) : .white)
-                                    .font(.system(size: 20))
-                            }
+                            Text(destination.currency)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
                         }
-                        .buttonStyle(.plain)
-                    }
-                    Spacer()
+                        .padding(.top, 10)
+                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
-                .padding(12)
             }
-            .frame(width: 290, height: 340)
-            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(26)
+            }
+            .frame(width: width, height: height)
+            .shadow(
+                color: isCurrentCard 
+                    ? Color.black.opacity(0.35) 
+                    : Color.black.opacity(0.15),
+                radius: isCurrentCard ? 20 : 10,
+                x: 0,
+                y: isCurrentCard ? 15 : 6
+            )
+        }
+    }
+}
+
+// MARK: - FavoriteButtonOverlay
+struct FavoriteButtonOverlay: View {
+    let destination: FlightDestination
+    @ObservedObject var favoritesViewModel: FavoriteViewModel
+    let isFocused: Bool
+    
+    @State private var isFavorite: Bool = false
+    @State private var isPressed: Bool = false
+    
+    init(destination: FlightDestination, favoritesViewModel: FavoriteViewModel, isFocused: Bool = false) {
+        self.destination = destination
+        self.favoritesViewModel = favoritesViewModel
+        self.isFocused = isFocused
+    }
+    
+    var body: some View {
+        Button(action: {
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                    isPressed = false
+                }
+            }
+            
+            Task {
+                let newFavoriteState = !isFavorite
+                if newFavoriteState {
+                    await favoritesViewModel.addFavorite(
+                        itemType: .flight,
+                        itemId: destination.id,
+                        itemData: [
+                            "name": destination.name,
+                            "city": destination.city,
+                            "country": destination.country,
+                            "imageUrl": destination.imageUrl ?? "",
+                            "price": "\(destination.price ?? 0)",
+                            "currency": destination.currency,
+                            "airline": destination.airline ?? ""
+                        ]
+                    )
+                } else {
+                    await favoritesViewModel.removeFavorite(itemType: .flight, itemId: destination.id)
+                }
+                isFavorite = newFavoriteState
+            }
+        }) {
+            ZStack {
+                // Enhanced background with blur effect
+                Circle()
+                    .fill(
+                        isFocused 
+                            ? (isFavorite ? Color(red: 1.0, green: 0.09, blue: 0.267).opacity(0.25) : Color.white.opacity(0.4))
+                            : Color.white.opacity(0.3)
+                    )
+                    .frame(width: isFocused ? 48 : 44, height: isFocused ? 48 : 44)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .blur(radius: 8)
+                    )
+                
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .foregroundColor(isFavorite ? Color(red: 1.0, green: 0.09, blue: 0.267) : .white)
+                    .font(.system(size: isFocused ? 22 : 20, weight: isFavorite ? .semibold : .medium))
+                    .scaleEffect(isPressed ? 0.9 : (isFavorite ? 1.15 : 1.0))
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isFavorite)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.6), value: isPressed)
+            }
         }
         .buttonStyle(.plain)
+        .frame(width: isFocused ? 48 : 44, height: isFocused ? 48 : 44)
+        .contentShape(Circle())
+        .scaleEffect(isFocused ? 1.0 : 0.95)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
         .task {
             // Check if favorite on load
             isFavorite = await favoritesViewModel.checkFavorite(itemType: .flight, itemId: destination.id)
@@ -980,5 +1275,68 @@ struct ComparisonCard: View {
 struct HomeScreen_Previews: PreviewProvider {
     static var previews: some View {
         HomeScreen()
+    }
+}
+
+// MARK: - Notification Navigation Helper
+extension HomeScreen {
+    private func setupNotificationNavigation() {
+        // Écouter les notifications tapées pour naviguer
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("FCMNotificationTapped"),
+            object: nil,
+            queue: .main
+        ) { notification in
+            guard let userInfo = notification.userInfo else { return }
+            
+            let type = userInfo["type"] as? String ?? ""
+            let postId = userInfo["postId"] as? String
+            let commentId = userInfo["commentId"] as? String
+            let journeyId = userInfo["journeyId"] as? String
+            
+            print("🧭 [HomeScreen] Handling notification navigation")
+            print("   Type: \(type)")
+            print("   PostId: \(postId ?? "nil")")
+            print("   CommentId: \(commentId ?? "nil")")
+            
+            // Naviguer vers les discussions si c'est un commentaire ou un like
+            if type == "post_commented" || type == "post_liked" || type == "journey_commented" || type == "journey_liked" {
+                if let postId = postId {
+                    // Changer vers l'onglet explore et afficher DiscussionView
+                    showDiscussionView = true
+                    selectedTab = .explore
+                    
+                    // Naviguer vers le post spécifique après un court délai
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        navigateToPostId = postId
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Vue wrapper pour DiscussionView avec navigation automatique vers un post
+struct DiscussionViewWithNavigation: View {
+    @Binding var navigateToPostId: String?
+    let onDismiss: () -> Void
+    @StateObject private var viewModel = DiscussionViewModel()
+    @State private var selectedPostId: String? = nil
+    
+    var body: some View {
+        DiscussionView()
+            .onChange(of: navigateToPostId) { oldValue, newValue in
+                if let postId = newValue {
+                    // Ouvrir les commentaires du post
+                    selectedPostId = postId
+                    navigateToPostId = nil // Réinitialiser
+                }
+            }
+            .sheet(item: Binding(
+                get: { selectedPostId.map { PostCommentItem(id: $0) } },
+                set: { selectedPostId = $0?.id }
+            )) { item in
+                PostCommentsView(postId: item.id, viewModel: viewModel)
+            }
     }
 }

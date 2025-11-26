@@ -3,6 +3,8 @@ import SwiftUI
 struct NotificationView: View {
     @StateObject private var viewModel = NotificationViewModel()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    @State private var navigateToPostId: String? = nil
     
     var body: some View {
         ZStack {
@@ -93,6 +95,9 @@ struct NotificationView: View {
                                         Task {
                                             await viewModel.deleteNotification(notificationId: notification.id)
                                         }
+                                    },
+                                    onTap: {
+                                        handleNotificationTap(notification: notification)
                                     }
                                 )
                             }
@@ -111,6 +116,32 @@ struct NotificationView: View {
             await viewModel.loadNotifications()
         }
     }
+    
+    private func handleNotificationTap(notification: Notification) {
+        // Marquer comme lu
+        Task {
+            await viewModel.markAsRead(notificationId: notification.id)
+        }
+        
+        // Naviguer selon le type de notification
+        let type = notification.type.rawValue
+        if type == "post_commented" || type == "post_liked" || type == "journey_commented" || type == "journey_liked" {
+            if let postId = notification.data?.postId {
+                // Envoyer une notification pour naviguer
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("FCMNotificationTapped"),
+                    object: nil,
+                    userInfo: [
+                        "type": type,
+                        "postId": postId,
+                        "commentId": notification.data?.commentId ?? ""
+                    ]
+                )
+                // Fermer la vue des notifications
+                dismiss()
+            }
+        }
+    }
 }
 
 struct NotificationCard: View {
@@ -118,68 +149,123 @@ struct NotificationCard: View {
     let notification: Notification
     let onRead: () -> Void
     let onDelete: () -> Void
+    let onTap: () -> Void
+    
+    @State private var offset: CGFloat = 0
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Icône selon le type
-            Image(systemName: iconForType(notification.type))
-                .font(.system(size: 20))
-                .foregroundColor(notification.isRead ? ThemeColors.secondaryText(colorScheme) : ThemeColors.accent())
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill((notification.isRead ? ThemeColors.secondaryText(colorScheme) : ThemeColors.accent()).opacity(0.1))
-                )
+        ZStack(alignment: .trailing) {
+            // Bouton de suppression (visible quand on swipe vers la gauche)
+            HStack {
+                Spacer()
+                Button(action: {
+                    withAnimation(.spring()) {
+                        offset = 0
+                    }
+                    // Attendre un peu avant de supprimer pour voir l'animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onDelete()
+                    }
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(width: 60)
+                        .frame(maxHeight: .infinity)
+                        .background(
+                            Color.red
+                                .clipShape(Rectangle())
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .opacity(offset < -10 ? 1 : 0) // Visible seulement quand on swipe
+            .allowsHitTesting(offset < -10) // Désactiver les interactions quand invisible
             
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(notification.title)
-                        .font(.system(size: 16, weight: notification.isRead ? .regular : .semibold))
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    
-                    Spacer()
-                    
-                    if !notification.isRead {
+            // Contenu de la notification
+            HStack(alignment: .top, spacing: 12) {
+                // Icône selon le type
+                Image(systemName: iconForType(notification.type))
+                    .font(.system(size: 20))
+                    .foregroundColor(notification.isRead ? ThemeColors.secondaryText(colorScheme) : ThemeColors.accent())
+                    .frame(width: 32, height: 32)
+                    .background(
                         Circle()
-                            .fill(ThemeColors.accent())
-                            .frame(width: 8, height: 8)
+                            .fill((notification.isRead ? ThemeColors.secondaryText(colorScheme) : ThemeColors.accent()).opacity(0.1))
+                    )
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(notification.title)
+                            .font(.system(size: 16, weight: notification.isRead ? .regular : .semibold))
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        
+                        Spacer()
+                        
+                        if !notification.isRead {
+                            Circle()
+                                .fill(ThemeColors.accent())
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                    
+                    Text(notification.message)
+                        .font(.system(size: 14))
+                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        .lineLimit(2)
+                    
+                    if let createdAt = notification.createdAt {
+                        Text(formatDate(createdAt))
+                            .font(.caption)
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }
                 }
                 
-                Text(notification.message)
-                    .font(.system(size: 14))
-                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    .lineLimit(2)
-                
-                if let createdAt = notification.createdAt {
-                    Text(formatDate(createdAt))
-                        .font(.caption)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                }
+                Spacer()
             }
-            
-            Spacer()
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(notification.isRead ? ThemeColors.surface(colorScheme) : ThemeColors.surface(colorScheme).opacity(0.7))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(notification.isRead ? Color.clear : ThemeColors.accent().opacity(0.3), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+            .offset(x: offset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if value.translation.width < 0 {
+                            // Swipe vers la gauche
+                            offset = max(value.translation.width, -60)
+                        } else if offset < 0 {
+                            // Permettre de revenir en arrière
+                            offset = min(0, offset + value.translation.width)
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.width < -30 || offset < -30 {
+                            // Ouvrir le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = -60
+                            }
+                        } else {
+                            // Fermer le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = 0
+                            }
+                        }
+                    }
+            )
+            .onTapGesture {
+                // Appeler onTap pour gérer la navigation
+                onTap()
+            }
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(notification.isRead ? ThemeColors.surface(colorScheme) : ThemeColors.surface(colorScheme).opacity(0.7))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(notification.isRead ? Color.clear : ThemeColors.accent().opacity(0.3), lineWidth: 1)
-        )
+        .clipped() // Empêcher le bouton de dépasser les bords
         .contentShape(Rectangle())
-        .onTapGesture {
-            if !notification.isRead {
-                onRead()
-            }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive, action: onDelete) {
-                Label("Supprimer", systemImage: "trash")
-            }
-        }
     }
     
     private func iconForType(_ type: NotificationType) -> String {
@@ -196,6 +282,10 @@ struct NotificationCard: View {
             return "exclamationmark.triangle.fill"
         case .tripReminder:
             return "calendar"
+        case .postLiked, .journeyLiked:
+            return "heart.fill"
+        case .postCommented, .journeyCommented:
+            return "message.fill"
         case .general:
             return "bell.fill"
         }

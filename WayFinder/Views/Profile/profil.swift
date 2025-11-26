@@ -23,7 +23,8 @@ struct ProfileView: View {
     private let actions: [ProfileAction] = [
         .init(icon: "slider.horizontal.3", titleKey: "profile_preferences"),
         .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
-        .init(icon: "calendar", titleKey: "profile_list_reservations", destination: .bookingHistory),
+        .init(icon: "square.and.arrow.up", titleKey: "profile_share_trip", destination: .shareTrip),
+        .init(icon: "photo.on.rectangle.angled", titleKey: "profile_shared_journeys", destination: .sharedJourneys),
         .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
         .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
     ]
@@ -298,6 +299,8 @@ private enum ProfileDestination {
     case changePassword
     case changeEmail
     case settings
+    case shareTrip
+    case sharedJourneys
 }
 
 private struct ProfileAction: Identifiable {
@@ -359,6 +362,10 @@ private extension ProfileView {
             ChangeEmailView()
         case .settings:
             SettingsView()
+        case .shareTrip:
+            ShareTripView()
+        case .sharedJourneys:
+            JourneyFeedView()
         }
     }
     
@@ -370,6 +377,8 @@ private extension ProfileView {
     }
     
     func performLogout() {
+        // Arrêter le polling des notifications lors de la déconnexion
+        FirebaseMessagingService.shared.setMainInterfaceState(false)
         AuthService.shared.logout()
         showAuthFlow = true
     }

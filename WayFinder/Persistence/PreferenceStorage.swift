@@ -94,10 +94,11 @@ enum UserStorage {
     static func clear() {
         let defaults = UserDefaults.standard
         // Ne supprimer que le nom, pas l'image de profil ni l'email
+        // On garde l'email pour pouvoir le pré-remplir lors de la prochaine connexion
         defaults.removeObject(forKey: displayNameKey)
         // NE PAS supprimer profileImageUrlKey pour garder l'image après déconnexion
         // defaults.removeObject(forKey: profileImageUrlKey)
-        // NE PAS supprimer userEmailKey pour pouvoir récupérer l'image
+        // NE PAS supprimer userEmailKey pour pouvoir pré-remplir l'email et récupérer l'image
         // defaults.removeObject(forKey: userEmailKey)
     }
     
