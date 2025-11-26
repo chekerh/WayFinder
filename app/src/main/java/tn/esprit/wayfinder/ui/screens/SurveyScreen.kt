@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.tooling.preview.Preview
+import coil.compose.AsyncImage
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.*
@@ -173,20 +176,48 @@ fun QuestionScreen(
 ) {
     val totalSteps = minOf(progress.total ?: MAX_ONBOARDING_QUESTIONS, MAX_ONBOARDING_QUESTIONS)
     val progressValue = (progress.current.toFloat() / totalSteps.toFloat()).coerceIn(0f, 1f)
+    val backgroundImageUrl = remember(question.id, question.text) { 
+        getImageForQuestion(question.id, question.text) 
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
-                    )
-                )
-            )
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Skip button in top right corner - more visible
+        // Full-screen background image
+        if (backgroundImageUrl != null) {
+            AsyncImage(
+                model = backgroundImageUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.4f),
+                contentScale = ContentScale.Crop,
+                placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                error = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Dark overlay for readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.15f))
+        )
+
+        // Top skip button
         TextButton(
             onClick = onSkip,
             modifier = Modifier
@@ -196,21 +227,21 @@ fun QuestionScreen(
         ) {
             Text(
                 text = "Passer",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
             )
         }
-        
+
+        // Main content - using BoxWithConstraints to better manage space
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
-            
+            Spacer(modifier = Modifier.height(56.dp)) // Space for skip button
+
             // Pinterest-style progress bar
             PinterestProgressBar(
                 progress = progressValue,
@@ -218,8 +249,6 @@ fun QuestionScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp)
             )
-            
-            Spacer(modifier = Modifier.height(8.dp))
             
             // Progress dots
             PinterestProgressDots(
@@ -237,34 +266,37 @@ fun QuestionScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(12.dp))
             
-            // Pinterest-style question card with animations
-            PinterestQuestionCard(
-                question = question.text,
-                questionId = question.id
+            // Pinterest-style question card with animations - takes available space
+            Box(
+                modifier = Modifier.weight(1f)
             ) {
-        when (question.type) {
-            "single_choice" -> {
-                        PinterestSingleChoiceQuestion(
-                            question.options ?: emptyList(),
-                            onAnswer
-                        )
-                    }
-                    "multiple_choice" -> {
-                        PinterestMultipleChoiceQuestion(question, onAnswer)
+                PinterestQuestionCard(
+                    question = question.text,
+                    questionId = question.id,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    when (question.type) {
+                        "single_choice" -> {
+                            PinterestSingleChoiceQuestion(
+                                question.options ?: emptyList(),
+                                onAnswer
+                            )
+                        }
+                        "multiple_choice" -> {
+                            PinterestMultipleChoiceQuestion(question, onAnswer)
+                        }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.weight(1f))
-            
-            // Skip button at the bottom for easier access
+            // Skip button at the bottom of the page
             TextButton(
                 onClick = onSkip,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                    .padding(vertical = 12.dp)
             ) {
                 Text(
                     text = "Passer cette étape",
@@ -342,13 +374,57 @@ fun PinterestSingleChoiceQuestion(
                     isSelected = isSelected,
                     onClick = {
                         selectedIndex = index
-                        // Auto-submit after selection with a small delay for animation
-                        coroutineScope.launch {
-                            delay(300)
-                            onAnswer(option.value)
-                        }
                     },
                     modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Confirm button for single choice
+        val canProceed = selectedIndex != null
+        
+        AnimatedVisibility(
+            visible = canProceed,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(200)
+            ) + fadeOut()
+        ) {
+            Button(
+                onClick = {
+                    selectedIndex?.let { idx ->
+                        coroutineScope.launch {
+                            onAnswer(options[idx].value)
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
+                )
+            ) {
+                Text(
+                    text = "Confirmer",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
                 )
             }
         }
