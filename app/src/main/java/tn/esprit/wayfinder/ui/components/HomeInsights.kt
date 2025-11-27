@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -80,7 +82,7 @@ fun HomeInsightsOverlay(
                 id = "chat",
                 title = StringTranslator.translate(context, "Assistant IA 💬"),
                 description = StringTranslator.translate(context, "Discutez avec notre assistant IA pour obtenir des suggestions de voyages personnalisées et des réponses à vos questions."),
-                icon = Icons.Filled.Chat,
+                icon = Icons.AutoMirrored.Filled.Chat,
                 highlightSection = "chat"
             ))
             
@@ -109,7 +111,7 @@ fun HomeInsightsOverlay(
     var currentInsightIndex by remember { mutableStateOf(0) }
     val currentInsight = insights.getOrNull(currentInsightIndex)
     
-    if (currentInsight != null) {
+    currentInsight?.let {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -118,7 +120,7 @@ fun HomeInsightsOverlay(
                 .clickable { /* Prevent clicks from passing through */ }
         ) {
             AnimatedVisibility(
-                visible = currentInsight != null,
+                visible = true,
                 enter = fadeIn() + slideInVertically(
                     initialOffsetY = { it },
                     animationSpec = tween(300, easing = FastOutSlowInEasing)
@@ -176,7 +178,7 @@ fun HomeInsightsOverlay(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = currentInsight.icon,
+                                imageVector = it.icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(40.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -185,7 +187,7 @@ fun HomeInsightsOverlay(
                         
                         // Title
                         Text(
-                            text = currentInsight.title,
+                            text = it.title,
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 22.sp
@@ -196,7 +198,7 @@ fun HomeInsightsOverlay(
                         
                         // Description
                         Text(
-                            text = currentInsight.description,
+                            text = it.description,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 16.sp,
                                 lineHeight = 24.sp

@@ -14,7 +14,6 @@ class FavoritesRepository(private val apiService: ApiService) {
         Log.d("FavoritesRepository", "getFavorites called with itemType: $itemType")
         Log.d("FavoritesRepository", "About to call apiService.getFavorites...")
         Log.d("FavoritesRepository", "Thread: ${Thread.currentThread().name}")
-        Log.d("FavoritesRepository", "apiService is null: ${apiService == null}")
         
         return try {
             Log.d("FavoritesRepository", "Calling apiService.getFavorites now...")

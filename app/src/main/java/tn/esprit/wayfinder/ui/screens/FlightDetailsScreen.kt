@@ -710,7 +710,7 @@ private fun FlightTimeline(
                 .height(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                 thickness = 2.dp

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -343,7 +344,7 @@ fun getIconForInterest(interest: String): ImageVector? {
         
         // Travel frequency
         lowerInterest.contains("rarely") || lowerInterest.contains("once a year") -> Icons.Default.Event
-        lowerInterest.contains("occasionally") || lowerInterest.contains("few times") -> Icons.Default.EventNote
+        lowerInterest.contains("occasionally") || lowerInterest.contains("few times") -> Icons.AutoMirrored.Filled.EventNote
         lowerInterest.contains("frequently") || lowerInterest.contains("monthly") -> Icons.Default.CalendarToday
         lowerInterest.contains("very frequently") || lowerInterest.contains("7+") -> Icons.Default.CalendarMonth
         

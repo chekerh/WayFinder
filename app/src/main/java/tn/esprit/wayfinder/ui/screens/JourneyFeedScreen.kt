@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Divider
 import androidx.compose.material3.*
@@ -238,7 +239,7 @@ fun JourneyFeedScreen(navController: NavController) {
                                 }
                                 item {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Divider()
+                                    HorizontalDivider()
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = StringTranslator.translate(context, "Tous les voyages"),
@@ -794,7 +795,7 @@ fun JourneyCard(
                     modifier = Modifier.clickable { onCommentClick() }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Comment,
+                        imageVector = Icons.AutoMirrored.Filled.Comment,
                         contentDescription = "Comment",
                         tint = Color.Gray,
                         modifier = Modifier.size(24.dp)

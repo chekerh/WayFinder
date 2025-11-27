@@ -15,7 +15,12 @@ class LocaleHelper(base: Context) : ContextWrapper(base) {
         fun wrap(context: Context, language: String): ContextWrapper {
             var ctx = context
             val config = context.resources.configuration
-            val locale = Locale(language)
+            val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Locale.forLanguageTag(language)
+            } else {
+                @Suppress("DEPRECATION")
+                Locale(language)
+            }
             Locale.setDefault(locale)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

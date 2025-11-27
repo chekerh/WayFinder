@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
@@ -225,7 +227,7 @@ fun JourneyDetailContent(
                                     }
                                 }) {
                                     Icon(
-                                        imageVector = Icons.Default.Send,
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = "Send",
                                         tint = Color(0xFF4A90E2)
                                     )
@@ -402,7 +404,7 @@ fun JourneyDetailCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Comment,
+                        imageVector = Icons.AutoMirrored.Filled.Comment,
                         contentDescription = "Comment",
                         tint = Color.Gray,
                         modifier = Modifier.size(24.dp)

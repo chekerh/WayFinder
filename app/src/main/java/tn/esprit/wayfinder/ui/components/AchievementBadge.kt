@@ -74,7 +74,7 @@ fun AchievementBadge(
         // Progress ring (if not unlocked)
         if (!isUnlocked && progressValue > 0) {
             CircularProgressIndicator(
-                progress = progressValue,
+                progress = { progressValue },
                 modifier = Modifier.fillMaxSize(),
                 strokeWidth = 3.dp,
                 color = getAchievementColor(achievementType),

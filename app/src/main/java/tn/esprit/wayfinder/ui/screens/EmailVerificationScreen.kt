@@ -206,7 +206,7 @@ fun EmailVerificationScreen(
                             }
                         }
 
-                        Divider()
+                        HorizontalDivider()
 
                         Text(
                             text = "Vous n'avez pas reçu l'email?",

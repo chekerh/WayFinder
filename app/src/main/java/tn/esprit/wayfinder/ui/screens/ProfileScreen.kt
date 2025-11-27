@@ -1393,7 +1393,7 @@ fun TravelStreakCard(
             
             // Progress bar
             LinearProgressIndicator(
-                progress = (currentStreak.toFloat() / 30f).coerceIn(0f, 1f),
+                progress = { (currentStreak.toFloat() / 30f).coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
