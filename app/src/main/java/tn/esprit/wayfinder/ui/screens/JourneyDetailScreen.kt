@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -338,22 +339,42 @@ fun JourneyDetailCard(
                 )
             }
             
-            // Only show video when it's fully ready (completed status AND valid URL)
-            // Hide completely during processing to avoid black screens or loading indicators
-            if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty() && journey.videoUrl.isNotBlank()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Vidéo AI générée"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+            when {
+                journey.videoStatus == "completed" && !journey.videoUrl.isNullOrBlank() -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Vidéo AI générée"),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        JourneyVideoPlayer(videoUrl = journey.videoUrl!!)
+                    }
+                }
+                journey.videoStatus == "processing" || journey.videoStatus == "pending" -> {
+                    VideoGenerationStatusCard(
+                        icon = Icons.Default.Schedule,
+                        title = StringTranslator.translate(context, "Vidéo en cours de génération"),
+                        message = StringTranslator.translate(
+                            context,
+                            "Merci de patienter ~1 à 2 minutes. Vous recevrez une notification dès qu'elle sera prête."
+                        ),
+                        showProgress = true
                     )
-                    JourneyVideoPlayer(videoUrl = journey.videoUrl)
+                }
+                journey.videoStatus == "failed" -> {
+                    VideoGenerationStatusCard(
+                        icon = Icons.Default.Warning,
+                        title = StringTranslator.translate(context, "Échec de la génération"),
+                        message = StringTranslator.translate(
+                            context,
+                            "Impossible de générer la vidéo. Touchez « Regénérer la vidéo » depuis la page du voyage."
+                        ),
+                        isError = true
+                    )
                 }
             }
-            // Do not show anything for processing, pending, or failed states
-            // The video will appear automatically when ready
             
             // Tags
             if (journey.tags.isNotEmpty()) {
@@ -487,6 +508,62 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 color = Color.White,
                 modifier = Modifier.size(32.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun VideoGenerationStatusCard(
+    icon: ImageVector,
+    title: String,
+    message: String,
+    showProgress: Boolean = false,
+    isError: Boolean = false,
+) {
+    val containerColor = if (isError) {
+        MaterialTheme.colorScheme.errorContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = if (isError) {
+        MaterialTheme.colorScheme.onErrorContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (showProgress) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
