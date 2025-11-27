@@ -29,6 +29,14 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.material3.*
@@ -84,7 +92,6 @@ fun ProfileScreen(navController: NavController) {
     val languageManager = remember { LanguageManager(context) }
     val currentUser = remember { tokenManager.getUser() }
     val startDestination = remember { navController.graph.startDestinationRoute ?: "home" }
-    var isMenuExpanded by remember { mutableStateOf(false) }
     
     // Dark mode state
     var isDarkModeEnabled by remember { mutableStateOf(themeManager.isDarkModeEnabled()) }
@@ -93,6 +100,9 @@ fun ProfileScreen(navController: NavController) {
     // Language state
     var selectedLanguage by remember { mutableStateOf(languageManager.getLanguage()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    
+    // Settings menu state
+    var isSettingsMenuExpanded by remember { mutableStateOf(false) }
 
     // Load profile and check if user can share journey
     LaunchedEffect(Unit) {
@@ -116,42 +126,98 @@ fun ProfileScreen(navController: NavController) {
             TopAppBar(
                 title = {
                     Text(
-                        StringTranslator.translate(context, "Profil"),
-                        fontWeight = FontWeight.Bold
+                        StringTranslator.translate(context, "My Profile"),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
                 actions = {
                     Box {
-                        IconButton(onClick = { isMenuExpanded = true }) {
-                            Icon(Icons.Filled.MoreVert, contentDescription = "Options")
+                        // Settings menu icon
+                        IconButton(onClick = { 
+                            isSettingsMenuExpanded = true
+                        }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Settings")
                         }
+                        
+                        // Settings dropdown menu
                         DropdownMenu(
-                            expanded = isMenuExpanded,
-                            onDismissRequest = { isMenuExpanded = false }
+                            expanded = isSettingsMenuExpanded,
+                            onDismissRequest = { isSettingsMenuExpanded = false }
                         ) {
+                            // Dark/Light mode toggle with switch
                             DropdownMenuItem(
-                                text = { Text(StringTranslator.translate(context, "Modifier le profil")) },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Filled.Edit,
-                                        contentDescription = null
-                                    )
+                                text = { 
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isDarkModeEnabled) Icons.Filled.DarkMode else Icons.Filled.LightMode,
+                                                contentDescription = null,
+                                                tint = Color(0xFF1976D2)
+                                            )
+                                            Text(
+                                                text = if (isDarkModeEnabled) 
+                                                    StringTranslator.translate(context, "Mode sombre") 
+                                                else 
+                                                    StringTranslator.translate(context, "Mode clair")
+                                            )
+                                        }
+                                        Switch(
+                                            checked = isDarkModeEnabled,
+                                            onCheckedChange = {
+                                                isDarkModeEnabled = it
+                                                themeManager.setDarkModeEnabled(it)
+                                                themeManager.setFollowSystemTheme(false)
+                                                (context as? android.app.Activity)?.recreate()
+                                            },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = Color(0xFF1976D2),
+                                                uncheckedThumbColor = Color.White,
+                                                uncheckedTrackColor = Color(0xFFCCCCCC)
+                                            )
+                                        )
+                                    }
                                 },
                                 onClick = {
-                                    isMenuExpanded = false
-                                    navController.navigate("edit_profile")
+                                    // Allow clicking anywhere to toggle
+                                    isDarkModeEnabled = !isDarkModeEnabled
+                                    themeManager.setDarkModeEnabled(!isDarkModeEnabled)
+                                    themeManager.setFollowSystemTheme(false)
+                                    (context as? android.app.Activity)?.recreate()
                                 }
                             )
+                            
+                            HorizontalDivider()
+                            
+                            // Logout
                             DropdownMenuItem(
-                                text = { Text(StringTranslator.translate(context, "Se déconnecter")) },
-                                leadingIcon = {
+                                text = { 
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Logout,
                                         contentDescription = null
                                     )
+                                        Text(StringTranslator.translate(context, "Se déconnecter"))
+                                    }
                                 },
                                 onClick = {
-                                    isMenuExpanded = false
+                                    isSettingsMenuExpanded = false
                                     tokenManager.deleteToken()
                                     navController.navigate("login") {
                                         popUpTo(startDestination) { inclusive = true }
@@ -198,21 +264,6 @@ fun ProfileScreen(navController: NavController) {
                     canShareJourney = canShareState?.canShare ?: false,
                     canShareState = canShareState,
                     navController = navController,
-                    themeManager = themeManager,
-                    isDarkModeEnabled = isDarkModeEnabled,
-                    followSystemTheme = followSystemTheme,
-                    onDarkModeToggle = { enabled ->
-                        isDarkModeEnabled = enabled
-                        themeManager.setDarkModeEnabled(enabled)
-                        // Reload activity to apply theme change
-                        (context as? android.app.Activity)?.recreate()
-                    },
-                    onFollowSystemToggle = { follow ->
-                        followSystemTheme = follow
-                        themeManager.setFollowSystemTheme(follow)
-                        // Reload activity to apply theme change
-                        (context as? android.app.Activity)?.recreate()
-                    },
                     context = context,
                     languageManager = languageManager,
                     selectedLanguage = selectedLanguage,
@@ -266,11 +317,6 @@ fun ProfileContent(
     canShareJourney: Boolean,
     canShareState: CanShareJourneyResponse?,
     navController: NavController,
-    themeManager: ThemeManager? = null,
-    isDarkModeEnabled: Boolean = false,
-    followSystemTheme: Boolean = true,
-    onDarkModeToggle: ((Boolean) -> Unit)? = null,
-    onFollowSystemToggle: ((Boolean) -> Unit)? = null,
     context: android.content.Context,
     languageManager: LanguageManager,
     selectedLanguage: String,
@@ -279,569 +325,127 @@ fun ProfileContent(
     onShowLanguageDialogChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tokenManager = remember { TokenManager(context) }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .background(MaterialTheme.colorScheme.surface)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Profile Header Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+        // Profile Header - Image on left, info on right
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "It's Your Profiles"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Profile Picture
-                    val profileImageUrl = user.profileImageUrl?.let { url ->
-                        if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
-                    } ?: "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}"
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .background(
-                                if (isDarkModeEnabled) Color(0xFF1E1E1E) else Color.White,
-                                CircleShape
-                            )
-                    ) {
+            // Profile Picture - Left side
                         AsyncImage(
-                            model = profileImageUrl,
+                model = user.profileImageUrl?.let { url ->
+                    if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                } ?: "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}",
                             contentDescription = "Profile Picture",
                             modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .clickable { navController.navigate("edit_profile") },
                             contentScale = ContentScale.Crop,
                             placeholder = painterResource(id = R.drawable.europe),
                             error = painterResource(id = R.drawable.europe)
                         )
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    Column {
+            
+            // Name, Username and Edit Button - Right side
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Name
                         Text(
                             text = "${user.firstName} ${user.lastName}",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                         )
+                
+                // Username
                         Text(
                             text = "@${user.username}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Text(
-                                text = "213 Photos",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = "1,123 Save Post",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                    
-                        Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Points Display Card (Starbucks/Starbucks-style)
-        PointsDisplayCard(
-            totalPoints = user.totalPoints,
-            lifetimePoints = user.lifetimePoints,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Travel Streak Card (Duolingo-inspired)
-        TravelStreakCard(
-            currentStreak = user.currentStreak,
-            longestStreak = user.longestStreak,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Contact Information Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ContactInfoItem(
-                    label = "Email",
-                    value = user.email
-                )
-                ContactInfoItem(
-                    label = "Phone",
-                    value = user.phone?.takeIf { it.isNotBlank() } ?: "Ajouter un numéro"
-                )
-                ContactInfoItem(
-                    label = "Location",
-                    value = user.location?.takeIf { it.isNotBlank() } ?: "Ajouter une localisation"
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Bio Section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Edit Profile Button - Blue (reduced width)
+                Button(
+                    onClick = { navController.navigate("edit_profile") },
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2)
+                    )
                 ) {
                     Text(
-                        text = StringTranslator.translate(context, "Your Bio auto generated by Gemini"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = StringTranslator.translate(context, "Edit Profile"),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
-                    // Gemini logo placeholder
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(Color(0xFF4285F4), CircleShape)
-                    ) {
-                        Text(
-                            text = "G",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text(
-                    text = user.bio?.takeIf { it.isNotBlank() }
-                        ?: "Ajoutez une bio pour aider Gemini à personnaliser vos recommandations de voyage.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Share My Journey Card
-        // Always show the button, but disable it if user doesn't have confirmed bookings
-        Card(
+        // Menu Items List
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(
-                    enabled = canShareJourney,
-                    onClick = {
-                        if (canShareJourney) {
-                            onShareJourneyClick()
-                        }
-                    }
-                ),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (canShareJourney) Color(0xFF4A90E2) else Color(0xFF9E9E9E)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // Favoris
+            ProfileMenuItem(
+                icon = Icons.Filled.Favorite,
+                text = StringTranslator.translate(context, "Favoris"),
+                onClick = { navController.navigate("favorites") }
             )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share Journey",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Column {
-                        Text(
-                            text = StringTranslator.translate(context, "Partager mon voyage"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = when {
-                                canShareJourney -> StringTranslator.translate(context, "Partagez vos photos et créez une vidéo")
-                                canShareState == null -> StringTranslator.translate(context, "Vérification en cours...")
-                                else -> canShareState?.message ?: StringTranslator.translate(context, "Vous devez avoir une réservation confirmée")
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                    }
-                }
-                if (canShareJourney) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "View",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .graphicsLayer {
-                                rotationZ = 180f
-                            }
-                    )
-                } else if (canShareState == null) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Retake Onboarding Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    // Navigate to onboarding - it will handle reset internally
-                    navController.navigate("onboarding") {
-                        popUpTo("profile") { inclusive = false }
-                    }
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Retake Onboarding",
-                        tint = Color(0xFF4A90E2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Column {
-                        Text(
-                            text = StringTranslator.translate(context, "Refaire le questionnaire"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = StringTranslator.translate(context, "Mettre à jour vos préférences de voyage"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Booking History Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    onBookingHistoryClick()
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = StringTranslator.translate(context, "Historique des réservations"),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // View Shared Journeys Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("journey_feed")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Journeys",
-                        tint = Color(0xFF4A90E2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = StringTranslator.translate(context, "Voir les voyages partagés"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Apparence / Dark Mode Settings Card
-        if (themeManager != null && onDarkModeToggle != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Apparence"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    // Follow System Theme Toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (followSystemTheme) Icons.Default.CloudDone else Icons.Default.DarkMode,
-                                contentDescription = "System Theme",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = StringTranslator.translate(context, "Suivre le thème système"),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = if (followSystemTheme) "Le thème suit les paramètres système" else "Le thème est défini manuellement",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = followSystemTheme,
-                            onCheckedChange = { enabled ->
-                                onFollowSystemToggle?.invoke(enabled)
-                            }
-                        )
-                    }
-                    
-                    // Dark Mode Toggle (only shown if not following system)
-                    if (!followSystemTheme) {
-                        HorizontalDivider()
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isDarkModeEnabled) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                    contentDescription = "Dark Mode",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = StringTranslator.translate(context, "Mode sombre"),
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Text(
-                                        text = if (isDarkModeEnabled) "Thème sombre activé" else "Thème clair activé",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            Switch(
-                                checked = isDarkModeEnabled,
-                                onCheckedChange = { enabled ->
-                                    onDarkModeToggle.invoke(enabled)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
             
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // Language Selection Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = context.getString(R.string.language),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onShowLanguageDialogChange(true) },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Language,
-                            contentDescription = "Language",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column {
-                            Text(
-                                text = context.getString(R.string.select_language),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = when (selectedLanguage) {
-                                    LanguageManager.LANGUAGE_FRENCH -> context.getString(R.string.language_french)
-                                    LanguageManager.LANGUAGE_ENGLISH -> context.getString(R.string.language_english)
-                                    else -> context.getString(R.string.language_french)
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Select",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .graphicsLayer {
-                                rotationZ = 180f
-                            }
-                    )
-                }
-            }
+            // Language
+            ProfileMenuItem(
+                icon = Icons.Filled.Language,
+                text = StringTranslator.translate(context, "Language"),
+                onClick = { onShowLanguageDialogChange(true) }
+            )
+            
+            // Location
+            ProfileMenuItem(
+                icon = Icons.Filled.LocationOn,
+                text = StringTranslator.translate(context, "Location"),
+                onClick = { /* Empty action */ }
+            )
+            
+            // Historique de réservations
+            ProfileMenuItem(
+                icon = Icons.Filled.Schedule,
+                    text = StringTranslator.translate(context, "Historique des réservations"),
+                onClick = { navController.navigate("booking_history") }
+            )
+            
+            // View Shared Journeys
+            ProfileMenuItem(
+                icon = Icons.Filled.Share,
+                        text = StringTranslator.translate(context, "Voir les voyages partagés"),
+                onClick = { navController.navigate("journey_feed") }
+            )
         }
         
         // Language Selection Dialog
@@ -880,280 +484,75 @@ fun ProfileContent(
             )
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Favorites Card
-        Card(
+        // Points Display Card (Starbucks/Starbucks-style)
+        PointsDisplayCard(
+            totalPoints = user.totalPoints,
+            lifetimePoints = user.lifetimePoints,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    navController.navigate("favorites")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = StringTranslator.translate(context, "Mes favoris"),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Itineraries Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("itineraries")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = StringTranslator.translate(context, "Mes itinéraires"),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Notifications Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("notifications")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Notifications,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Notifications"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Search History Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("search_history")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.History,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Historique de recherche"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Price Alerts Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("price_alerts")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.NotificationsActive,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Alertes de prix"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Offline Destinations Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    navController.navigate("offline_destinations")
-                },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.CloudDone,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Destinations hors ligne"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "View",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .graphicsLayer {
-                            rotationZ = 180f
-                        }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // My Memories Section
-        Text(
-            text = StringTranslator.translate(context, "My Memories"),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp)
         )
         
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(listOf(
-                MemoryAlbum("Best Beaches", 10, R.drawable.travel_image),
-                MemoryAlbum("Wonderful POI", 18, R.drawable.travel_image)
-            )) { album ->
-                MemoryCard(album = album)
-            }
-        }
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Travel Streak Card (Duolingo-inspired)
+        TravelStreakCard(
+            currentStreak = user.currentStreak,
+            longestStreak = user.longestStreak,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
+    }
+}
+
+@Composable
+fun ProfileMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+                    Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Navigate",
+            tint = Color.Gray,
+                    modifier = Modifier
+                .size(20.dp)
+                        .graphicsLayer {
+                            rotationZ = 180f
+                        }
+                )
     }
 }
 

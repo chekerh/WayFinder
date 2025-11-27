@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Close
@@ -294,8 +295,12 @@ fun HomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(32.dp))
             
             // Discussion Section - Placed after Comparateur avec Gemini section
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 DiscussionCard(navController = navController)
+                InstagramReelsCard(navController = navController)
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -773,76 +778,115 @@ fun DiscussionCard(navController: NavController) {
             .clickable {
                 navController.navigate("discussions")
             },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                // Chat Icon
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            Color(0xFF1976D2).copy(alpha = 0.1f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = "Discussions",
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+                // Discussion Icon - Blue speech bubbles (directly, no circle background)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = "Discussions",
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(32.dp)
+                )
                 
                 Column {
                     Text(
                         text = StringTranslator.translate(context, "Discussions de la communauté"),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = StringTranslator.translate(context, "Partagez vos expériences et découvrez les conseils des voyageurs"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
+                        color = Color.Gray,
+                        lineHeight = 18.sp
                     )
                 }
             }
             
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Arrow icon on the right
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "View more",
+                tint = Color(0xFF1976D2),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun InstagramReelsCard(navController: NavController) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("journey_feed")
+            },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
             ) {
+                // Instagram Reels Icon - Blue share/video icon
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Voir plus",
+                    imageVector = Icons.Filled.Share,
+                    contentDescription = "Instagram Reels",
                     tint = Color(0xFF1976D2),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(32.dp)
                 )
-                // Quick access to destination video generation test
-                TextButton(
-                    onClick = { navController.navigate("journey_feed") },
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                ) {
+                
+                Column {
                     Text(
-                        text = StringTranslator.translate(context, "Tester les vidéos AI"),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF1976D2)
+                        text = StringTranslator.translate(context, "Créez vos Reels WayFinder"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = StringTranslator.translate(context, "Transformez vos voyages en Reels captivants et publiez-les automatiquement sur Instagram"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        lineHeight = 18.sp
                     )
                 }
             }
+            
+            // Arrow icon on the right
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "View more",
+                tint = Color(0xFF1976D2),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

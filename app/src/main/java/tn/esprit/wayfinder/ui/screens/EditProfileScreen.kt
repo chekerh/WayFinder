@@ -15,6 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -27,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,12 +61,15 @@ fun EditProfileScreen(navController: NavController) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     var selectedPreferences by remember { mutableStateOf<Set<String>>(emptySet()) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var currentProfileImageUrl by remember { mutableStateOf<String?>(null) }
+    var passwordVisible by remember { mutableStateOf(false) }
     
     val availablePreferences = listOf(
         "Beach", "Mountain", "City", "Culture", "Adventure", "Relaxation",
@@ -122,6 +130,7 @@ fun EditProfileScreen(navController: NavController) {
             firstName = user.firstName
             lastName = user.lastName
             email = user.email
+            username = user.username
             phone = user.phone.orEmpty()
             location = user.location.orEmpty()
             bio = user.bio.orEmpty()
@@ -140,10 +149,39 @@ fun EditProfileScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(StringTranslator.translate(context, "Modifier le profil"), fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        StringTranslator.translate(context, "Edit Profile"),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            userViewModel.updateProfile(
+                                firstName = firstName,
+                                lastName = lastName,
+                                email = email,
+                                phone = phone.ifBlank { null },
+                                location = location.ifBlank { null },
+                                bio = bio.ifBlank { null },
+                                preferences = selectedPreferences.toList()
+                            )
+                        },
+                        enabled = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = "Save",
+                            tint = if (firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()) 
+                                Color(0xFF4CAF50) else Color.Gray
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -161,8 +199,8 @@ fun EditProfileScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             when (uiState) {
                 is UserUiState.Loading -> {
@@ -180,9 +218,13 @@ fun EditProfileScreen(navController: NavController) {
                     )
                 }
                 else -> {
-                    // Profile Image Section
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Profile Image Section - Centered
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Box {
@@ -195,7 +237,7 @@ fun EditProfileScreen(navController: NavController) {
                                     model = imageToShow.toString(),
                                     contentDescription = "Profile Picture",
                                     modifier = Modifier
-                                        .size(120.dp)
+                                        .size(100.dp)
                                         .clip(CircleShape),
                                     contentScale = ContentScale.Crop,
                                     placeholder = painterResource(id = R.drawable.europe),
@@ -206,7 +248,7 @@ fun EditProfileScreen(navController: NavController) {
                                     painter = painterResource(id = R.drawable.europe),
                                     contentDescription = "Profile Picture",
                                     modifier = Modifier
-                                        .size(120.dp)
+                                        .size(100.dp)
                                         .clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )
@@ -217,179 +259,140 @@ fun EditProfileScreen(navController: NavController) {
                                 onClick = { imagePickerLauncher.launch("image/*") },
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .size(40.dp)
+                                    .size(36.dp)
                                     .background(Color(0xFF1976D2), CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.CameraAlt,
                                     contentDescription = "Change Profile Picture",
                                     tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
-                    // First Name
+                    // Name Field (Combined first and last name or separate)
                     OutlinedTextField(
-                        value = firstName,
-                        onValueChange = { firstName = it },
-                        label = { Text(StringTranslator.translate(context, "Prénom")) },
+                        value = "$firstName $lastName".trim(),
+                        onValueChange = { 
+                            val names = it.trim().split(" ")
+                            firstName = names.firstOrNull() ?: ""
+                            lastName = names.drop(1).joinToString(" ")
+                        },
+                        label = { Text(StringTranslator.translate(context, "Name")) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        )
                     )
                     
-                    // Last Name
-                    OutlinedTextField(
-                        value = lastName,
-                        onValueChange = { lastName = it },
-                        label = { Text(StringTranslator.translate(context, "Nom")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Email
+                    // Email Address
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text(StringTranslator.translate(context, "Email")) },
+                        label = { Text(StringTranslator.translate(context, "E mail address")) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Email
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        )
                     )
                     
-                    // Phone
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // User name
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text(StringTranslator.translate(context, "User name")) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        ),
+                        leadingIcon = {
+                            Text(
+                                text = "@",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Password
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text(StringTranslator.translate(context, "Password")) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = KeyboardType.Password
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                    tint = Color.Gray
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Phone number
                     OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = { Text(StringTranslator.translate(context, "Téléphone")) },
+                        label = { Text(StringTranslator.translate(context, "Phone number")) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Phone
                         ),
                         singleLine = true,
-                        placeholder = { Text("+123456789") }
-                    )
-                    
-                    // Location
-                    OutlinedTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        label = { Text(StringTranslator.translate(context, "Localisation")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        placeholder = { Text("Paris, France") }
-                    )
-                    
-                    // Bio
-                    OutlinedTextField(
-                        value = bio,
-                        onValueChange = { bio = it },
-                        label = { Text(StringTranslator.translate(context, "Bio")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp),
-                        maxLines = 5
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Preferences Section
-                    Text(
-                        text = StringTranslator.translate(context, "Préférences de voyage"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = StringTranslator.translate(context, "Sélectionnez vos intérêts pour des recommandations personnalisées"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Preferences Chips
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Display preferences in rows of 3
-                        availablePreferences.chunked(3).forEach { rowPreferences ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                rowPreferences.forEach { preference ->
-                                    FilterChip(
-                                        selected = selectedPreferences.contains(preference),
-                                        onClick = {
-                                            selectedPreferences = if (selectedPreferences.contains(preference)) {
-                                                selectedPreferences - preference
-                                            } else {
-                                                selectedPreferences + preference
-                                            }
-                                        },
-                                        label = { Text(preference) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                // Fill remaining space if row has less than 3 items
-                                repeat(3 - rowPreferences.size) {
-                                    Spacer(modifier = Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Save Button
-                    Button(
-                        onClick = {
-                            userViewModel.updateProfile(
-                                firstName = firstName,
-                                lastName = lastName,
-                                email = email,
-                                phone = phone.ifBlank { null },
-                                location = location.ifBlank { null },
-                                bio = bio.ifBlank { null },
-                                preferences = selectedPreferences.toList()
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        ),
+                        leadingIcon = {
+                            Text(
+                                text = "+91",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 16.dp, end = 8.dp)
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
-                        ),
-                        enabled = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
-                    ) {
-                        if (uiState is UserUiState.Loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White
-                            )
-                        } else {
-                            Text(
-                                text = StringTranslator.translate(context, "Enregistrer"),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                        placeholder = { Text("6895312") }
+                    )
                     
-                    // Show success message
-                    if (uiState is UserUiState.Success && firstName.isNotBlank()) {
-                        Text(
-                            text = "Profil mis à jour avec succès!",
-                            color = Color(0xFF4CAF50),
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
                 }
             }
         }

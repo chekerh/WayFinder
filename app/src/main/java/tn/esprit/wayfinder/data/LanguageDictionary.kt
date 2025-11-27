@@ -60,6 +60,8 @@ object LanguageDictionary {
         "Aucune destination disponible" to "No destinations available",
         "Discussions de la communauté" to "Community discussions",
         "Partagez vos expériences et découvrez les conseils des voyageurs" to "Share your experiences and discover travelers' tips",
+        "Créez vos Reels WayFinder" to "Create your WayFinder Reels",
+        "Transformez vos voyages en Reels captivants et publiez-les automatiquement sur Instagram" to "Transform your travels into captivating Reels and publish them automatically on Instagram",
         "Affichage hors ligne (cache)" to "Offline display (cache)",
         "Réessayer" to "Retry",
         
