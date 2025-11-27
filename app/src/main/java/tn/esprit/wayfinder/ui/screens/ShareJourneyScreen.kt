@@ -553,6 +553,7 @@ fun ShareJourneyScreen(navController: NavController) {
                             }
                         }
                     }
+                    }
                 }
             }
             
@@ -752,6 +753,7 @@ fun ShareJourneyScreen(navController: NavController) {
                     ) {
                         Text(StringTranslator.translate(context, "Partager mon voyage"), fontWeight = FontWeight.Bold)
                     }
+                }
                 }
             }
         }
