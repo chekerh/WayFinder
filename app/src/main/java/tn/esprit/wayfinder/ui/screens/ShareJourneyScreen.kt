@@ -15,12 +15,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -201,154 +200,157 @@ fun ShareJourneyScreen(navController: NavController) {
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Info Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF4A90E2)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+            item {
+                // Info Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4A90E2)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = "💡 ${StringTranslator.translate(context, "Astuce")}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Sélectionnez vos meilleures photos de voyage pour les partager avec la communauté."),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "🎬 ${StringTranslator.translate(context, "Une vidéo AI sera automatiquement générée avec vos photos et de la musique !")}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "💡 ${StringTranslator.translate(context, "Astuce")}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = StringTranslator.translate(context, "Sélectionnez vos meilleures photos de voyage pour les partager avec la communauté."),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "🎬 ${StringTranslator.translate(context, "Une vidéo AI sera automatiquement générée avec vos photos et de la musique !")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
-            
-            // Image Selection Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+
+            item {
+                // Image Selection Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Photos du voyage"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    if (selectedImages.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFF5F5F5))
-                                .clickable {
-                                    imagePickerLauncher.launch("image/*")
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Photos du voyage"),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (selectedImages.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF5F5F5))
+                                    .clickable {
+                                        imagePickerLauncher.launch("image/*")
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Add Images",
-                                    modifier = Modifier.size(48.dp),
-                                    tint = Color(0xFF4A90E2)
-                                )
-                                Text(
-                                    text = StringTranslator.translate(context, "Ajouter des photos"),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = Color(0xFF4A90E2)
-                                )
-                                Text(
-                                    text = StringTranslator.translate(context, "Jusqu'à 20 photos"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.height(300.dp)
-                        ) {
-                            items(selectedImages) { uri ->
-                                Box(
-                                    modifier = Modifier
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(8.dp))
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = "Selected Image",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add Images",
+                                        modifier = Modifier.size(48.dp),
+                                        tint = Color(0xFF4A90E2)
                                     )
-                                    IconButton(
-                                        onClick = {
-                                            selectedImages = selectedImages - uri
-                                        },
-                                        modifier = Modifier.align(Alignment.TopEnd)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .background(
-                                                    Color.Black.copy(alpha = 0.6f),
-                                                    RoundedCornerShape(12.dp)
-                                                )
-                                                .padding(4.dp)
-                                        )
-                                    }
+                                    Text(
+                                        text = StringTranslator.translate(context, "Ajouter des photos"),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color(0xFF4A90E2)
+                                    )
+                                    Text(
+                                        text = StringTranslator.translate(context, "Jusqu'à 20 photos"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
                                 }
                             }
-                            
-                            if (selectedImages.size < 20) {
-                                item {
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(3),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.height(300.dp)
+                            ) {
+                                items(selectedImages) { uri ->
                                     Box(
                                         modifier = Modifier
                                             .aspectRatio(1f)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFFF5F5F5))
-                                            .clickable {
-                                                imagePickerLauncher.launch("image/*")
-                                            },
-                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add More",
-                                            tint = Color(0xFF4A90E2),
-                                            modifier = Modifier.size(32.dp)
+                                        AsyncImage(
+                                            model = uri,
+                                            contentDescription = "Selected Image",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
                                         )
+                                        IconButton(
+                                            onClick = {
+                                                selectedImages = selectedImages - uri
+                                            },
+                                            modifier = Modifier.align(Alignment.TopEnd)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Remove",
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .background(
+                                                        Color.Black.copy(alpha = 0.6f),
+                                                        RoundedCornerShape(12.dp)
+                                                    )
+                                                    .padding(4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (selectedImages.size < 20) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xFFF5F5F5))
+                                                .clickable {
+                                                    imagePickerLauncher.launch("image/*")
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Add More",
+                                                tint = Color(0xFF4A90E2),
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -356,14 +358,15 @@ fun ShareJourneyScreen(navController: NavController) {
                     }
                 }
             }
-            
-            // Destination Section (Select from confirmed bookings' destinations)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+
+            item {
+                // Destination Section (Select from confirmed bookings' destinations)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = StringTranslator.translate(context, "Destination du voyage"),
                         style = MaterialTheme.typography.titleMedium,
@@ -553,60 +556,65 @@ fun ShareJourneyScreen(navController: NavController) {
                 }
             }
             
-            // Description Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+            item {
+                // Description Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Description (optionnel)"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(StringTranslator.translate(context, "Décrivez votre voyage...")) },
-                        maxLines = 4,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
-            }
-            
-            // Tags Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Tags (optionnel)"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = tags,
-                        onValueChange = { tags = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(StringTranslator.translate(context, "Ex: plage, montagne, culture (séparés par des virgules)")) },
-                        shape = RoundedCornerShape(8.dp)
-                    )
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Description (optionnel)"),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(StringTranslator.translate(context, "Décrivez votre voyage...")) },
+                            maxLines = 4,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
                 }
             }
 
-            // Upload Button with Progress
-            val currentUploadState = uploadState
-            when (currentUploadState) {
+            item {
+                // Tags Section
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Tags (optionnel)"),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = tags,
+                            onValueChange = { tags = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text(StringTranslator.translate(context, "Ex: plage, montagne, culture (séparés par des virgules)")) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
+
+            item {
+                // Upload Button with Progress
+                val currentUploadState = uploadState
+                when (currentUploadState) {
                 is JourneyUploadUiState.Compressing -> {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
