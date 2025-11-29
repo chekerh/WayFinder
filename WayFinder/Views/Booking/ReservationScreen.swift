@@ -6,6 +6,7 @@ struct ReservationScreen: View {
     @StateObject private var bookingViewModel = BookingViewModel()
     let destinationId: String
     let destination: FlightDestination?
+    var onBackToHome: (() -> Void)? = nil
     
     @State private var cardNumber = ""
     @State private var cardHolderName = ""
@@ -28,7 +29,10 @@ struct ReservationScreen: View {
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
                                 .frame(width: 44, height: 44)
-                                .background(Color.white.opacity(0.9))
+                                .background(
+                                    ThemeColors.surface(colorScheme)
+                                        .opacity(colorScheme == .dark ? 0.9 : 0.95)
+                                )
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
@@ -50,7 +54,7 @@ struct ReservationScreen: View {
     }
     
     private var backgroundView: some View {
-        Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+        ThemeColors.background(colorScheme)
             .ignoresSafeArea()
     }
     
@@ -69,7 +73,7 @@ struct ReservationScreen: View {
                             
                             if let departureDate = destination.departureDate,
                                let arrivalDate = destination.arrivalDate {
-                                Text("Départ : \(formatDate(departureDate)) | Retour : \(formatDate(arrivalDate))")
+                                Text(String(format: String(localized: "reservation_departure_return"), formatDate(departureDate), formatDate(arrivalDate)))
                                     .font(.body)
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                             }
@@ -85,7 +89,7 @@ struct ReservationScreen: View {
                         .padding(20)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white)
+                                .fill(cardBackground)
                         )
                         .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     }
@@ -95,7 +99,7 @@ struct ReservationScreen: View {
                         HStack(spacing: 8) {
                             Image(systemName: "creditcard.fill")
                                 .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                            Text("Informations de paiement")
+                            Text("reservation_payment_info")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         }
@@ -105,7 +109,7 @@ struct ReservationScreen: View {
                         HStack {
                             Image(systemName: "creditcard")
                                 .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                            TextField("Numéro de carte", text: $cardNumber)
+                            TextField(String(localized: "reservation_card_number"), text: $cardNumber)
                                 .keyboardType(.numberPad)
                                 .onChange(of: cardNumber) { oldValue, newValue in
                                     // Format card number (add spaces every 4 digits)
@@ -120,7 +124,11 @@ struct ReservationScreen: View {
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.1))
+                                .fill(fieldBackground)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(fieldBorder, lineWidth: 1)
+                                )
                         )
                         
                         // Card Holder Name with icon
@@ -132,7 +140,11 @@ struct ReservationScreen: View {
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.gray.opacity(0.1))
+                                .fill(fieldBackground)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(fieldBorder, lineWidth: 1)
+                                )
                         )
                         
                         // Expiry and CVV side by side
@@ -155,7 +167,11 @@ struct ReservationScreen: View {
                             .padding(12)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.gray.opacity(0.1))
+                                    .fill(fieldBackground)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(fieldBorder, lineWidth: 1)
+                                    )
                             )
                             
                             HStack {
@@ -172,26 +188,30 @@ struct ReservationScreen: View {
                             .padding(12)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.gray.opacity(0.1))
+                                    .fill(fieldBackground)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(fieldBorder, lineWidth: 1)
+                                    )
                             )
                         }
                     }
                     .padding(20)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
+                            .fill(cardBackground)
                     )
                     .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     
                     // Summary Card
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Résumé")
+                        Text("reservation_summary")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
                         VStack(spacing: 12) {
                             HStack {
-                                Text("Prix du vol")
+                                Text("reservation_flight_price")
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 Spacer()
                                 if let price = destination?.price, price > 0 {
@@ -199,13 +219,13 @@ struct ReservationScreen: View {
                                         .fontWeight(.medium)
                                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
                                 } else {
-                                    Text("N/A")
+                                    Text("generic_not_available")
                                         .fontWeight(.medium)
                                 }
                             }
                             
                             HStack {
-                                Text("Taxes")
+                                Text("reservation_taxes")
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 Spacer()
                                 let taxes = 30.0
@@ -215,7 +235,7 @@ struct ReservationScreen: View {
                             }
                             
                             HStack {
-                                Text("Bagages & services")
+                                Text("reservation_baggage_services")
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 Spacer()
                                 let baggage = 30.0
@@ -228,7 +248,7 @@ struct ReservationScreen: View {
                         Divider()
                         
                         HStack {
-                            Text("Total")
+                            Text("reservation_total")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             Spacer()
@@ -241,7 +261,7 @@ struct ReservationScreen: View {
                     .padding(20)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
+                            .fill(cardBackground)
                     )
                     .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     
@@ -274,7 +294,7 @@ struct ReservationScreen: View {
                             }
                         }
                     } label: {
-                        Text("Confirmer la réservation")
+                        Text("reservation_confirm")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -306,6 +326,18 @@ struct ReservationScreen: View {
         .padding(.bottom, 24)
     }
     
+    private var cardBackground: Color {
+        ThemeColors.surface(colorScheme)
+    }
+    
+    private var fieldBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.95)
+    }
+    
+    private var fieldBorder: Color {
+        ThemeColors.border(colorScheme)
+    }
+    
     private func formatDate(_ dateString: String) -> String {
         if let tIndex = dateString.firstIndex(of: "T") {
             return String(dateString[..<tIndex])
@@ -318,7 +350,25 @@ struct ReservationScreen: View {
         if let confirmationNumber = confirmationNumber {
             ConfirmationScreen(
                 confirmationNumber: confirmationNumber,
-                destination: destination
+                destination: destination,
+                onBackToHome: {
+                    // Fermer ConfirmationScreen d'abord
+                    navigateToConfirmation = false
+                    // Puis fermer ReservationScreen
+                    // Le callback parent (FlightDetailScreen) fermera FlightDetailScreen pour revenir à Home
+                    Task { @MainActor in
+                        // Attendre que ConfirmationScreen soit fermé
+                        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 secondes
+                        // Si onBackToHome est fourni depuis FlightDetailScreen, l'utiliser
+                        // Cela fermera FlightDetailScreen et reviendra à Home
+                        if let onBackToHome = onBackToHome {
+                            onBackToHome()
+                        } else {
+                            // Sinon, fermer seulement ReservationScreen
+                            dismiss()
+                        }
+                    }
+                }
             )
         } else {
             EmptyView()

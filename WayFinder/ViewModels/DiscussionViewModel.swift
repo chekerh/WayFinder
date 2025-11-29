@@ -144,7 +144,9 @@ final class DiscussionViewModel: ObservableObject {
         do {
             let updated = try await service.likeComment(id: id)
             if let index = comments.firstIndex(where: { $0.id == id }) {
-                comments[index] = updated
+                let existing = comments[index]
+                let merged = updated.preservingOwner(from: existing)
+                comments[index] = merged
                 print("✅ [DiscussionViewModel] Comment liked - new count: \(updated.likesCount)")
             }
         } catch {

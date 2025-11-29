@@ -146,96 +146,86 @@ struct ProfileView: View {
             return nil
         }()
         
-        return ZStack {
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(ThemeColors.accentGradient(scheme))
-                .shadow(color: Color.black.opacity(scheme == .dark ? 0.3 : 0.12), radius: 20, x: 0, y: 10)
-            
-            VStack(spacing: 16) {
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                ZStack(alignment: .bottomTrailing) {
-                        // Image de profil ou placeholder
-                        if let imageData = imageData, let uiImage = UIImage(data: imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
-                        } else if let url = imageUrl {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 120, height: 120)
-                                        .clipShape(Circle())
-                                case .failure, .empty:
-                                    Circle()
-                                        .fill(ThemeColors.surface(scheme))
-                                        .overlay(
-                                            Image(systemName: "person.fill")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .foregroundColor(ThemeColors.accent())
-                                                .padding(24)
-                                        )
-                                        .frame(width: 120, height: 120)
-                                @unknown default:
-                                    Circle()
-                                        .fill(ThemeColors.surface(scheme))
-                                        .overlay(
-                                            Image(systemName: "person.fill")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .foregroundColor(ThemeColors.accent())
-                                                .padding(24)
-                                        )
-                                        .frame(width: 120, height: 120)
-                                }
-                            }
-                        } else {
+        return VStack(spacing: 18) {
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                ZStack {
                     Circle()
                         .fill(ThemeColors.surface(scheme))
+                        .frame(width: 132, height: 132)
+                        .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 18, x: 0, y: 8)
                         .overlay(
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundColor(ThemeColors.accent())
-                                .padding(24)
+                            Circle()
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(scheme == .dark ? 0.4 : 0.9),
+                                            ThemeColors.accent()
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 3
+                                )
                         )
-                        .frame(width: 120, height: 120)
-                        }
                     
-                        // Bouton d'édition
-                    Circle()
-                        .fill(Color(red: 0.98, green: 0.82, blue: 0.18))
-                        .frame(width: 36, height: 36)
-                            .overlay(
-                                Group {
-                                    if isUploading {
-                                        ProgressView()
-                                            .tint(.white)
-                                            .scaleEffect(0.7)
-                                    } else {
-                                        Image(systemName: "camera.fill")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                            )
-                        .offset(x: 6, y: 6)
+                    if let imageData = imageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 120, height: 120)
+                            .clipShape(Circle())
+                    } else if let url = imageUrl {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            case .failure, .empty:
+                                profilePlaceholder(for: scheme)
+                            @unknown default:
+                                profilePlaceholder(for: scheme)
+                            }
+                        }
+                    } else {
+                        profilePlaceholder(for: scheme)
+                    }
+                    
+                    if isUploading {
+                        Circle()
+                            .fill(Color.black.opacity(0.35))
+                            .frame(width: 120, height: 120)
+                        ProgressView()
+                            .tint(.white)
                     }
                 }
-                .disabled(viewModel.isUploadingImage)
-                
-                Text(viewModel.displayName)
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.white)
             }
-            .padding(.vertical, 32)
+            .buttonStyle(.plain)
+            .disabled(viewModel.isUploadingImage)
+            
+            VStack(spacing: 4) {
+                Text(viewModel.displayName)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(ThemeColors.primaryText(scheme))
+                
+                if let email = viewModel.profile?.email, !email.isEmpty {
+                    Text(email)
+                        .font(.subheadline)
+                        .foregroundColor(ThemeColors.secondaryText(scheme))
+                }
+            }
+            
         }
+        .padding(.vertical, 28)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(ThemeColors.surface(scheme))
+                .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 24, x: 0, y: 12)
+        )
         .onChange(of: selectedPhoto) { _, newValue in
             Task {
                 guard let newValue = newValue else { return }
@@ -279,6 +269,20 @@ struct ProfileView: View {
     
     private var currentCachedImageUrl: String? {
         cachedProfileImageUrlRaw.isEmpty ? nil : cachedProfileImageUrlRaw
+    }
+    
+    @ViewBuilder
+    private func profilePlaceholder(for scheme: ColorScheme) -> some View {
+        Circle()
+            .fill(ThemeColors.surface(scheme))
+            .overlay(
+                Image(systemName: "person.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(ThemeColors.accent())
+                    .padding(26)
+            )
+            .frame(width: 120, height: 120)
     }
     
     private func buildImageURL(from urlString: String) -> URL? {

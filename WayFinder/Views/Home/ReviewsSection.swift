@@ -9,55 +9,85 @@ struct ReviewsSection: View {
     @State private var selectedReview: Review?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Avis")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                Spacer()
-                Button("Ajouter un avis") {
-                    selectedReview = nil
-                    showReviewDialog = true
-                }
-                .font(.subheadline)
-                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-            }
-            
-            if viewModel.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 100)
-            } else if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .padding(.vertical, 16)
-            } else {
-                if let stats = viewModel.reviewStats {
-                    ReviewStatsDisplay(stats: stats)
+        // White card with gray border (like Available amenities)
+        VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("reviews_title")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    Spacer()
+                    Button(String(localized: "reviews_add_review")) {
+                        selectedReview = nil
+                        showReviewDialog = true
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
                 }
                 
-                if viewModel.reviews.isEmpty {
-                    Text("Aucun avis pour le moment. Soyez le premier à laisser un avis!")
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                if viewModel.isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                } else if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
                         .padding(.vertical, 16)
                 } else {
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            ForEach(viewModel.reviews) { review in
-                                ReviewCard(review: review)
+                    if let stats = viewModel.reviewStats {
+                        ReviewStatsDisplay(stats: stats)
+                    }
+                    
+                    if viewModel.reviews.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "star.circle")
+                                .font(.system(size: 48))
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                            
+                                Text("reviews_first_review")
+                                .font(.system(size: 16))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                .multilineTextAlignment(.center)
+                                .padding(.top, 8)
+                                .padding(.bottom, 8)
+                            
+                            Button(action: {
+                                selectedReview = nil
+                                showReviewDialog = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                        Text("reviews_add_review")
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 12)
+                                .background(Color(red: 0.102, green: 0.451, blue: 0.910)) // #1A73E8
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                         }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 12) {
+                                ForEach(viewModel.reviews) { review in
+                                    ReviewCard(review: review)
+                                }
+                            }
+                        }
+                        .frame(height: 400)
                     }
-                    .frame(height: 400)
                 }
-            }
         }
-        .padding(20)
+        .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
+                .fill(ThemeColors.surface(colorScheme))
         )
-        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)  // Light gray border
+        )
         .task {
             await loadReviews()
         }
@@ -115,7 +145,7 @@ struct ReviewStatsDisplay: View {
                 
                 Spacer()
                 
-                Text("\(stats.totalReviews) avis")
+                Text(String(format: String(localized: "reviews_count"), stats.totalReviews))
                     .font(.caption)
                     .foregroundStyle(ThemeColors.secondaryText(.light))
             }
@@ -175,7 +205,7 @@ struct ReviewCard: View {
                     .frame(width: 32, height: 32)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Utilisateur")
+                    Text("reviews_user")
                         .font(.system(size: 14, weight: .bold))
                     
                     StarRating(rating: review.rating)
@@ -248,7 +278,7 @@ struct ReviewDialog: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                Text("Note")
+                Text("reviews_rating")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -265,7 +295,7 @@ struct ReviewDialog: View {
                 }
                 .frame(maxWidth: .infinity)
                 
-                TextField("Commentaire (optionnel)", text: $comment, axis: .vertical)
+                TextField(String(localized: "discussions_comment_optional"), text: $comment, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(4...10)
                 
@@ -289,7 +319,7 @@ struct ReviewDialog: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "generic_cancel")) {
                         onDismiss()
                     }
                 }

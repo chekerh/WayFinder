@@ -6,11 +6,13 @@ enum BookingStatus: String, Decodable {
     case cancelled = "cancelled"
     
     var displayName: String {
+        let key: String
         switch self {
-        case .pending: return "En attente"
-        case .confirmed: return "Confirmé"
-        case .cancelled: return "Annulé"
+        case .pending: key = "booking_status_pending"
+        case .confirmed: key = "booking_status_confirmed"
+        case .cancelled: key = "booking_status_cancelled"
         }
+        return Bundle.main.localizedString(forKey: key, value: nil, table: nil)
     }
 }
 

@@ -8,7 +8,7 @@ struct BookingHistoryView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+            ThemeColors.background(colorScheme)
                 .ignoresSafeArea()
             
             if viewModel.isLoading {
@@ -48,10 +48,10 @@ struct BookingHistoryView: View {
                     Image(systemName: "airplane.departure")
                         .font(.system(size: 48))
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    Text("Aucune réservation")
+                    Text("booking_history_title")
                         .font(.headline)
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("Vos réservations apparaîtront ici")
+                    Text("booking_history_empty")
                         .font(.subheadline)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
@@ -73,7 +73,7 @@ struct BookingHistoryView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        Text("Historique des réservations")
+                        Text("booking_history_title")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
@@ -85,7 +85,7 @@ struct BookingHistoryView: View {
                     
                     // Sous-titre
                     HStack {
-                        Text("Voici vos dernières réservations")
+                        Text("booking_history_subtitle")
                             .font(.subheadline)
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         Spacer()
@@ -95,9 +95,10 @@ struct BookingHistoryView: View {
                     
                     // Liste des réservations
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: 12) {
                             ForEach(viewModel.bookings) { booking in
                                 BookingCard(booking: booking, viewModel: viewModel)
+                                    .id(booking.id) // Ensure unique IDs for proper rendering order
                             }
                         }
                         .padding(.horizontal, 20)
@@ -125,6 +126,8 @@ private struct BookingCard: View {
     @State private var isReactivating = false
     @State private var showReactivateError = false
     @State private var reactivateErrorMessage: String?
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
     
     private var statusColor: Color {
         switch booking.status {
@@ -139,49 +142,65 @@ private struct BookingCard: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // Destination avec pays en gras et grand (ex: "Paris, France")
-                        Text(DestinationHelper.getFullDestinationName(from: booking.destination))
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                        
-                        // Numéro de confirmation en plus petit
-                        Text(booking.confirmationNumber)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                        
-                        // Date et heure
-                        Text(formatDate(booking.createdAt))
-                            .font(.system(size: 13))
-                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                        
-                        // Montant avec devise
-                        if let price = booking.price {
-                            Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                                .padding(.top, 4)
+            HStack(spacing: 12) {
+                NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Destination avec pays en gras et grand (ex: "Paris, France")
+                            Text(DestinationHelper.getFullDestinationName(from: booking.destination))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            
+                            // Numéro de confirmation en plus petit
+                            Text(booking.confirmationNumber)
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                            
+                            // Date et heure
+                            Text(formatDate(booking.createdAt))
+                                .font(.system(size: 13))
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                            
+                            // Montant avec devise
+                            if let price = booking.price {
+                                Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                    .padding(.top, 4)
+                            }
                         }
+                        
+                        Spacer()
+                        
+                        // Badge de statut
+                        Text(booking.status.displayName)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(statusColor)
+                            )
                     }
-                    
-                    Spacer()
-                    
-                    // Badge de statut
-                    Text(booking.status.displayName)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(statusColor)
-                        )
+                    .padding(16)
                 }
-                .padding(16)
+                .buttonStyle(.plain)
+                
+                // Bouton de suppression
+                Button(action: {
+                    showDeleteConfirmation = true
+                }) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.red)
+                        .frame(width: 44, height: 44)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isDeleting)
             }
-            .buttonStyle(.plain)
             
             // Bouton Réserver à nouveau pour les réservations annulées
             if booking.status == .cancelled {
@@ -217,15 +236,41 @@ private struct BookingCard: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+                .fill(ThemeColors.surface(colorScheme))
         )
+        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
         .alert("Erreur", isPresented: $showReactivateError) {
             Button("OK", role: .cancel) { }
         } message: {
             if let errorMessage = reactivateErrorMessage {
                 Text(errorMessage)
             }
+        }
+        .alert("Supprimer la réservation", isPresented: $showDeleteConfirmation) {
+            Button("Annuler", role: .cancel) {
+                showDeleteConfirmation = false
+            }
+            Button("Supprimer", role: .destructive) {
+                Task {
+                    await deleteBooking()
+                }
+            }
+        } message: {
+            Text("Êtes-vous sûr de vouloir supprimer définitivement cette réservation ? Cette action est irréversible.")
+        }
+    }
+    
+    private func deleteBooking() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        
+        do {
+            try await viewModel.deleteBooking(id: booking.id)
+            print("✅ [BookingCard] Booking deleted: \(booking.confirmationNumber)")
+        } catch {
+            print("❌ [BookingCard] Error deleting booking: \(error.localizedDescription)")
+            reactivateErrorMessage = error.localizedDescription
+            showReactivateError = true
         }
     }
     

@@ -21,15 +21,17 @@ struct HomeScreen: View {
     @State private var showNotifications = false
     @State private var navigateToPostId: String? = nil // Pour naviguer vers un post spécifique
     @State private var showDiscussionView = false // Pour afficher DiscussionView au lieu de ChatView
+    @State private var navigateToOnboarding = false // Pour naviguer vers l'onboarding
     let initialName: String?
     
     init(initialName: String? = nil) {
         self.initialName = initialName
+        print("🏠 [HomeScreen] Initialized with initialName: \(initialName ?? "nil")")
     }
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+            ThemeColors.background(colorScheme)
                 .ignoresSafeArea()
             
             Group {
@@ -38,17 +40,48 @@ struct HomeScreen: View {
                     NavigationStack {
                         VStack(spacing: 0) {
                         TopBar(
-                            name: initialName ?? viewModel.greetingName,
+                            name: {
+                                // Utiliser initialName en priorité, sinon greetingName du viewModel
+                                let name = initialName ?? viewModel.greetingName
+                                if let initialName = initialName {
+                                    print("🏠 [HomeScreen] Using initialName: \(initialName)")
+                                } else {
+                                    print("🏠 [HomeScreen] Using viewModel.greetingName: \(viewModel.greetingName)")
+                                }
+                                return name
+                            }(),
                             profileImageUrl: viewModel.profileImageUrl,
                             onNotificationsTap: { showNotifications = true },
                             onProfileTap: { selectedTab = .profile }
                         )
                         .background(
-                            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+                            ThemeColors.background(colorScheme)
                         )
+                        .navigationDestination(isPresented: $navigateToOnboarding) {
+                            SurveyScreen()
+                        }
+                        .task {
+                            // Charger le profil utilisateur pour vérifier l'état d'onboarding
+                            await viewModel.loadUserProfileIfNeeded()
+                        }
                         
                         ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 0) {
+                                // Onboarding Reminder Card (like Android) - affichée en haut si onboarding non complété
+                                if !viewModel.onboardingCompleted {
+                                    OnboardingReminderCard(
+                                        onStart: {
+                                            navigateToOnboarding = true
+                                        },
+                                        onContinue: {
+                                            viewModel.showOnboardingAlert = false
+                                        },
+                                        colorScheme: colorScheme
+                                    )
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 8)
+                                }
                                 // Section "Personnalisé par Gemini"
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("home_personalized_title")
@@ -123,7 +156,6 @@ struct HomeScreen: View {
                                                 destinations: displayDestinations,
                                                 favoritesViewModel: favoritesViewModel
                                             )
-                                            .padding(.horizontal, 24)
                                         }
                                     case .error(let message):
                                         VStack(spacing: 16) {
@@ -195,9 +227,7 @@ struct HomeScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if selectedTab != .explore {
-                FloatingTabBar(selection: $selectedTab)
-            }
+            FloatingTabBar(selection: $selectedTab)
         }
         .onAppear {
             // Recharger l'image à chaque fois que l'écran apparaît
@@ -261,15 +291,26 @@ struct HomeScreen: View {
         }
     }
     
+    private func localizedRegionName(for key: String) -> String {
+        switch key {
+        case "Preferences": return String(localized: "region_preferences")
+        case "Europe": return String(localized: "region_europe")
+        case "Asie": return String(localized: "region_asia")
+        case "Amerique": return String(localized: "region_america")
+        case "Australie": return String(localized: "region_australia")
+        default: return key
+        }
+    }
+    
     private func filterDestinations(_ destinations: [FlightDestination], by region: String?) -> [FlightDestination] {
-        guard let region = region, region != "Préférences" else {
+        guard let region = region, region != "Preferences" else {
             return destinations
         }
         
         let regionCountries: [String: [String]] = [
             "Europe": ["France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"],
-            "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel"],
-            "Amerique": ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
+            "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "United Arab Emirates", "Saudi Arabia", "Turkey", "Israel"],
+            "Amerique": ["United States", "USA", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
             "Australie": ["Australia", "New Zealand", "Fiji"]
         ]
         
@@ -279,7 +320,10 @@ struct HomeScreen: View {
         
         return destinations.filter { destination in
             countries.contains { country in
-                destination.country.localizedCaseInsensitiveContains(country)
+                // Use contains (like Android) instead of localizedCaseInsensitiveContains
+                // This allows partial matching (e.g., "United Arab Emirates" matches "UAE")
+                destination.country.localizedCaseInsensitiveContains(country) || 
+                country.localizedCaseInsensitiveContains(destination.country)
             }
         }
     }
@@ -293,6 +337,22 @@ struct TopBar: View {
     let onNotificationsTap: () -> Void
     let onProfileTap: () -> Void
     
+    // Helper function for greeting based on time of day (like Android)
+    private func getGreeting() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let key: String
+        switch hour {
+        case 0..<12:
+            key = "greeting_morning"
+        case 12..<18:
+            key = "greeting_afternoon"
+        default:
+            key = "greeting_evening"
+        }
+        // Use Bundle.main which is modified by LanguageManager
+        return Bundle.main.localizedString(forKey: key, value: nil, table: nil)
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
             // Profile image or placeholder - circular
@@ -301,7 +361,7 @@ struct TopBar: View {
             }
             .buttonStyle(.plain)
             
-            Text("Salut, \(name)")
+            Text("\(getGreeting()), \(name)! 👋")
                 .font(.headline)
                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                 .lineLimit(1)
@@ -327,24 +387,29 @@ struct RegionSection: View {
     @Binding var selectedRegion: String?
     let onRegionSelected: (String) -> Void
     
-    private let regions: [(name: String, imageName: String?)] = [
-        ("Préférences", nil),
-        ("Europe", "europe"),
-        ("Asie", "asia"),
-        ("Amerique", "australia"), // Using australia as placeholder
-        ("Australie", "australia")
-    ]
+    // Internal keys for filtering (must match regionCountries keys)
+    private let regionKeys = ["Preferences", "Europe", "Asie", "Amerique", "Australie"]
+    
+    private var regions: [(key: String, name: String, imageName: String?)] {
+        [
+            ("Preferences", String(localized: "region_preferences"), nil),
+            ("Europe", String(localized: "region_europe"), "europe"),
+            ("Asie", String(localized: "region_asia"), "asia"),
+            ("Amerique", String(localized: "region_america"), "america"),
+            ("Australie", String(localized: "region_australia"), "australia")
+        ]
+    }
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                ForEach(regions, id: \.name) { region in
+                ForEach(regions, id: \.key) { region in
                     RegionChip(
                         name: region.name,
                         imageName: region.imageName,
-                        isSelected: selectedRegion == region.name,
+                        isSelected: selectedRegion == region.key,
                         onTap: {
-                            onRegionSelected(region.name)
+                            onRegionSelected(region.key)
                         }
                     )
                 }
@@ -363,7 +428,7 @@ struct RegionChip: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                if name == "Préférences" {
+                if name == String(localized: "region_preferences") {
                     Image(systemName: "star.fill")
                         .font(.system(size: 24))
                         .foregroundColor(isSelected ? .white : Color(red: 1.0, green: 0.757, blue: 0.027)) // #FFC107
@@ -377,13 +442,13 @@ struct RegionChip: View {
                 
                 Text(name)
                     .font(.system(size: 16, weight: isSelected ? .bold : .medium))
-                    .foregroundColor(isSelected ? .white : .black)
+                    .foregroundColor(isSelected ? .white : ThemeColors.primaryText(colorScheme))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color(red: 0.098, green: 0.463, blue: 0.824) : Color.white)
+                    .fill(isSelected ? ThemeColors.accent() : ThemeColors.surface(colorScheme))
             )
         }
         .buttonStyle(.plain)
@@ -404,232 +469,155 @@ struct DestinationsSection: View {
     let destinations: [FlightDestination]
     @ObservedObject var favoritesViewModel: FavoriteViewModel
     
-    @State private var currentIndex: Int = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging: Bool = false
-    @State private var dragStartLocation: CGPoint = .zero
+    @State private var scrollOffset: CGFloat = 0
     
     private var cardWidth: CGFloat {
-        // Responsive card width based on screen size
-        let screenWidth = UIScreen.main.bounds.width
-        if screenWidth > 768 {
-            // iPad
-            return min(320, screenWidth * 0.4)
-        } else {
-            // iPhone
-            return min(290, screenWidth * 0.75)
-        }
+        return 290
     }
     private let cardHeight: CGFloat = 340
-    private let cardSpacing: CGFloat = 20 // Horizontal spacing between cards (no overlap)
-    private let cardScale: CGFloat = 0.88 // Scale for non-focused cards
+    private let cardSpacing: CGFloat = -60 // Reduced overlap for more padding between cards
+    private let horizontalPadding: CGFloat = 80 // Padding to show adjacent cards
+    
+    private var totalCardWidth: CGFloat {
+        return cardWidth + cardSpacing
+    }
     
     var body: some View {
-        GeometryReader { geometry in
-            let screenWidth = geometry.size.width
-            let centerX = screenWidth / 2
-            
-            ZStack {
-                // Render all cards - z-index controls the layering
-                ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
-                    NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
-                        ZStack {
-                            DestinationCard(
-                                destination: destination,
-                                favoritesViewModel: favoritesViewModel,
-                                index: index,
-                                currentIndex: currentIndex,
-                                totalCount: destinations.count,
-                                dragOffset: dragOffset,
-                                isDragging: isDragging
-                            )
-                            .frame(width: cardWidth, height: cardHeight)
-                            .offset(
-                                x: calculateHorizontalOffset(for: index, centerX: centerX),
-                                y: calculateVerticalOffset(for: index)
-                            )
-                            .scaleEffect(calculateScale(for: index))
-                            .opacity(calculateOpacity(for: index))
-                            .blur(radius: calculateBlur(for: index))
-                            .zIndex(calculateZIndex(for: index))
-                            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: currentIndex)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: dragOffset)
-                            
-                            // Favorite button overlay - more visible on focused card
-                            VStack {
-                                HStack {
-                                    Spacer()
-                                    FavoriteButtonOverlay(
-                                        destination: destination,
-                                        favoritesViewModel: favoritesViewModel,
-                                        isFocused: index == currentIndex
-                                    )
-                                    .padding(.trailing, 16)
-                                    .padding(.top, 16)
+        if destinations.isEmpty {
+            Text("home_no_destinations")
+                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                .frame(maxWidth: .infinity)
+                .frame(height: cardHeight)
+        } else {
+            GeometryReader { geometry in
+                let screenWidth = geometry.size.width
+                let centerX = screenWidth / 2
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: cardSpacing) {
+                        ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
+                            GeometryReader { cardGeometry in
+                                let cardFrame = cardGeometry.frame(in: .named("scroll"))
+                                let cardCenter = cardFrame.midX
+                                let distanceFromCenter = abs(cardCenter - centerX)
+                                let pageOffset = min(1.0, distanceFromCenter / totalCardWidth)
+                                
+                                // Determine if card is to the left or right of center
+                                let isRightOfCenter = cardCenter > centerX + 10 // Add 10pt threshold to avoid exact center edge cases
+                                let isLeftOfCenter = cardCenter < centerX - 10
+                                let isAtOrNearCenter = !isRightOfCenter && !isLeftOfCenter
+                                
+                                // Calculate z-index ensuring right cards are ALWAYS behind
+                                // Priority: Center/Near Center > Left > Right
+                                let zIndexValue: Double = {
+                                    if isAtOrNearCenter {
+                                        // Center card: highest z-index
+                                        return 1000000.0 - Double(distanceFromCenter) * 100
+                                    } else if isLeftOfCenter {
+                                        // Left cards: medium-high z-index (always above right cards)
+                                        return 500000.0 - Double(distanceFromCenter) * 100 + Double(destinations.count - index) * 1000
+                                    } else {
+                                        // Right cards: lowest z-index (ALWAYS behind, regardless of distance)
+                                        return 1000.0 - Double(distanceFromCenter) * 10 + Double(destinations.count - index) * 100
+                                    }
+                                }()
+                                
+                                // Calculate transparency effect based on distance
+                                let transparency = max(0.3, 1.0 - pageOffset * 0.7)
+                                
+                                NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
+                                    ZStack(alignment: .topTrailing) {
+                                        DestinationCard(
+                                            destination: destination,
+                                            favoritesViewModel: favoritesViewModel,
+                                            index: index,
+                                            currentIndex: 0,
+                                            totalCount: destinations.count,
+                                            pageOffset: pageOffset
+                                        )
+                                        .frame(width: cardWidth, height: cardHeight)
+                                        .blur(radius: pageOffset > 0.25 ? 1.5 * pageOffset : 0)
+                                        .overlay(
+                                            // Dynamic glass effect overlay for cards not in center
+                                            Group {
+                                                if pageOffset > 0.15 {
+                                                    RoundedRectangle(cornerRadius: 28)
+                                                        .fill(
+                                                            LinearGradient(
+                                                                colors: [
+                                                                    Color.white.opacity(0.15 * min(pageOffset * 1.5, 1.0)),
+                                                                    Color.white.opacity(0.08 * min(pageOffset * 1.5, 1.0)),
+                                                                    Color.white.opacity(0.05 * min(pageOffset * 1.5, 1.0))
+                                                                ],
+                                                                startPoint: .topLeading,
+                                                                endPoint: .bottomTrailing
+                                                            )
+                                                        )
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 28)
+                                                                .stroke(
+                                                                    LinearGradient(
+                                                                        colors: [
+                                                                            Color.white.opacity(0.3 * min(pageOffset * 1.2, 1.0)),
+                                                                            Color.white.opacity(0.15 * min(pageOffset * 1.2, 1.0))
+                                                                        ],
+                                                                        startPoint: .topLeading,
+                                                                        endPoint: .bottomTrailing
+                                                                    ),
+                                                                    lineWidth: 1.5
+                                                                )
+                                                        )
+                                                        .shadow(
+                                                            color: Color.white.opacity(0.1 * min(pageOffset, 0.8)),
+                                                            radius: 8 * min(pageOffset, 1.0),
+                                                            x: 0,
+                                                            y: 2
+                                                        )
+                                                }
+                                            }
+                                        )
+                                        
+                                        FavoriteButtonOverlay(
+                                            destination: destination,
+                                            favoritesViewModel: favoritesViewModel,
+                                            isFocused: pageOffset < 0.1
+                                        )
+                                        .padding(.trailing, 16)
+                                        .padding(.top, 16)
+                                    }
+                                    .padding(.vertical, pageOffset > 0.15 ? 12 * pageOffset : 0)
+                                    .padding(.horizontal, pageOffset > 0.15 ? 6 * pageOffset : 0)
                                 }
-                                Spacer()
+                                .buttonStyle(.plain)
+                                .scaleEffect(
+                                    x: 0.88 + (1.0 - 0.88) * (1.0 - pageOffset),
+                                    y: 0.88 + (1.0 - 0.88) * (1.0 - pageOffset)
+                                )
+                                .opacity(transparency)
+                                .zIndex(zIndexValue)
+                                .animation(
+                                    .spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0),
+                                    value: pageOffset
+                                )
                             }
-                            .frame(width: cardWidth, height: cardHeight)
-                            .offset(
-                                x: calculateHorizontalOffset(for: index, centerX: centerX),
-                                y: calculateVerticalOffset(for: index)
-                            )
-                            .zIndex(calculateZIndex(for: index) + 1)
-                            .opacity(calculateOpacity(for: index))
-                            .scaleEffect(calculateScale(for: index))
-                            .blur(radius: calculateBlur(for: index))
+                            .frame(width: cardWidth)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, horizontalPadding)
+                    .background(
+                        GeometryReader { scrollGeometry in
+                            Color.clear
+                                .preference(key: ScrollOffsetPreferenceKey.self, value: scrollGeometry.frame(in: .named("scroll")).minX)
+                        }
+                    )
+                }
+                .coordinateSpace(name: "scroll")
+                .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                    scrollOffset = -value
                 }
             }
-            .frame(height: calculateTotalHeight())
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 15)
-                    .onChanged { value in
-                        // Only start dragging if movement is significant
-                        if abs(value.translation.width) > 10 {
-                            if !isDragging {
-                                dragStartLocation = value.startLocation
-                            }
-                            isDragging = true
-                            dragOffset = value.translation.width
-                        }
-                    }
-                    .onEnded { value in
-                        isDragging = false
-                        let threshold: CGFloat = 50
-                        let velocity = value.predictedEndTranslation.width - value.translation.width
-                        
-                        // Only process scroll if there was significant movement
-                        if abs(value.translation.width) > 10 {
-                            // Check velocity for faster scrolling
-                            if abs(velocity) > 200 {
-                                if velocity > 0 && currentIndex > 0 {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        currentIndex -= 1
-                                    }
-                                } else if velocity < 0 && currentIndex < destinations.count - 1 {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        currentIndex += 1
-                                    }
-                                }
-                            } else if abs(value.translation.width) > threshold {
-                                if value.translation.width > threshold && currentIndex > 0 {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        currentIndex -= 1
-                                    }
-                                } else if value.translation.width < -threshold && currentIndex < destinations.count - 1 {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        currentIndex += 1
-                                    }
-                                }
-                            }
-                        }
-                        
-                        dragOffset = 0
-                    }
-            )
+            .frame(height: cardHeight)
         }
-        .frame(height: calculateTotalHeight())
-    }
-    
-    private func calculateHorizontalOffset(for index: Int, centerX: CGFloat) -> CGFloat {
-        let distance = index - currentIndex
-        
-        if distance == 0 {
-            // Selected card is centered horizontally
-            let dragAdjustment = isDragging ? dragOffset : 0
-            return centerX - cardWidth / 2 + dragAdjustment
-        } else {
-            // Other cards are positioned to the left and right WITHOUT overlap
-            let scaledCardWidth = cardWidth * cardScale
-            
-            // Calculate center position of each card
-            var cardCenter: CGFloat = centerX
-            
-            if distance < 0 {
-                // Cards to the left: move left by (selected card half + spacing + scaled card half) for first card
-                // Then add (scaled card width + spacing) for each additional card
-                let firstCardOffset = -(cardWidth / 2 + cardSpacing + scaledCardWidth / 2)
-                let additionalOffset = CGFloat(abs(distance) - 1) * (scaledCardWidth + cardSpacing)
-                cardCenter = centerX + firstCardOffset - additionalOffset
-            } else {
-                // Cards to the right: move right by (selected card half + spacing + scaled card half) for first card
-                // Then add (scaled card width + spacing) for each additional card
-                let firstCardOffset = cardWidth / 2 + cardSpacing + scaledCardWidth / 2
-                let additionalOffset = CGFloat(distance - 1) * (scaledCardWidth + cardSpacing)
-                cardCenter = centerX + firstCardOffset + additionalOffset
-            }
-            
-            // Return left edge of the card (center - half width)
-            return cardCenter - scaledCardWidth / 2
-        }
-    }
-    
-    private func calculateVerticalOffset(for index: Int) -> CGFloat {
-        // All cards aligned horizontally - no vertical offset
-        return 0
-    }
-    
-    private func calculateScale(for index: Int) -> CGFloat {
-        let distance = abs(index - currentIndex)
-        
-        if distance == 0 {
-            // Selected card - full size
-            return 1.0
-        } else if distance == 1 {
-            // Adjacent cards - slightly smaller
-            return cardScale
-        } else {
-            // Cards further away - progressively smaller
-            return max(0.75, cardScale - CGFloat(distance - 1) * 0.05)
-        }
-    }
-    
-    private func calculateOpacity(for index: Int) -> Double {
-        let distance = abs(index - currentIndex)
-        if distance == 0 {
-            // Selected card: full opacity
-            return 1.0
-        } else if distance == 1 {
-            // Adjacent cards: slightly reduced opacity but still visible
-            return 0.9
-        } else {
-            // Cards further away: more reduced opacity
-            return max(0.7, 0.9 - Double(distance - 1) * 0.1)
-        }
-    }
-    
-    private func calculateBlur(for index: Int) -> CGFloat {
-        let distance = abs(index - currentIndex)
-        if distance == 0 {
-            // Selected card: no blur - crystal clear
-            return 0
-        } else if distance == 1 {
-            // Adjacent cards: subtle blur for focus effect
-            return 2.0
-        } else {
-            // Cards further away: more pronounced blur
-            return min(4.5, 2.0 + CGFloat(distance - 1) * 1.0)
-        }
-    }
-    
-    private func calculateZIndex(for index: Int) -> Double {
-        let distance = abs(index - currentIndex)
-        // Selected card has highest z-index (appears on top)
-        // Other cards have lower z-index
-        if distance == 0 {
-            return Double(1000) // Highest z-index for selected card
-        } else {
-            return Double(1000) - Double(distance) // Lower z-index for others
-        }
-    }
-    
-    private func calculateTotalHeight() -> CGFloat {
-        // All cards aligned horizontally - just need card height
-        return cardHeight
     }
 }
 
@@ -640,20 +628,10 @@ struct DestinationCard: View {
     let index: Int
     let currentIndex: Int
     let totalCount: Int
-    let dragOffset: CGFloat
-    let isDragging: Bool
-    
-    private var cardWidth: CGFloat {
-        min(290, UIScreen.main.bounds.width * 0.75)
-    }
-    private let cardHeight: CGFloat = 340
+    let pageOffset: CGFloat
     
     private var isCurrentCard: Bool {
-        index == currentIndex
-    }
-    
-    private var distance: Int {
-        abs(index - currentIndex)
+        pageOffset < 0.1
     }
     
     var body: some View {
@@ -742,8 +720,8 @@ struct DestinationCard: View {
             }
             .frame(width: width, height: height)
             .shadow(
-                color: isCurrentCard 
-                    ? Color.black.opacity(0.35) 
+                color: isCurrentCard
+                    ? Color.black.opacity(0.35)
                     : Color.black.opacity(0.15),
                 radius: isCurrentCard ? 20 : 10,
                 x: 0,
@@ -876,7 +854,7 @@ struct DiscussionCard: View {
             .padding(20)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white)
+                    .fill(ThemeColors.surface(colorScheme))
             )
             .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
         }
@@ -907,14 +885,14 @@ struct AllFlightsScreen: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+            ThemeColors.background(colorScheme)
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Comparateur avec Gemini")
+                        Text("home_comparator_title")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         Spacer()
@@ -926,18 +904,18 @@ struct AllFlightsScreen: View {
                         Menu {
                             Button(action: { selectedRegion = nil }) {
                                 HStack {
-                                    Text("Toutes les régions")
+                                    Text("home_all_regions")
                                     if selectedRegion == nil {
                                         Image(systemName: "checkmark")
                                     }
                                 }
                             }
                             Divider()
-                            ForEach(["Europe", "Asie", "Amerique", "Australie"], id: \.self) { region in
-                                Button(action: { selectedRegion = region }) {
+                            ForEach(["Europe", "Asie", "Amerique", "Australie"], id: \.self) { regionKey in
+                                Button(action: { selectedRegion = regionKey }) {
                                     HStack {
-                                        Text(region)
-                                        if selectedRegion == region {
+                                        Text(localizedRegionName(for: regionKey))
+                                        if selectedRegion == regionKey {
                                             Image(systemName: "checkmark")
                                         }
                                     }
@@ -947,7 +925,7 @@ struct AllFlightsScreen: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "location.fill")
                                     .font(.system(size: 14))
-                                Text(selectedRegion ?? "Toutes")
+                                Text(selectedRegion != nil ? localizedRegionName(for: selectedRegion!) : String(localized: "region_all"))
                                     .font(.system(size: 14, weight: .medium))
                             }
                             .foregroundColor(selectedRegion != nil ? Color(red: 0.098, green: 0.463, blue: 0.824) : ThemeColors.secondaryText(colorScheme))
@@ -955,7 +933,7 @@ struct AllFlightsScreen: View {
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.white)
+                                    .fill(ThemeColors.surface(colorScheme))
                             )
                         }
                         
@@ -983,7 +961,7 @@ struct AllFlightsScreen: View {
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.white)
+                                    .fill(ThemeColors.surface(colorScheme))
                             )
                         }
                         
@@ -994,7 +972,7 @@ struct AllFlightsScreen: View {
                 .padding(.top, 16)
                 .padding(.bottom, 12)
                 .background(
-                    Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+                    ThemeColors.background(colorScheme)
                 )
                 
                 // Liste des destinations
@@ -1010,7 +988,7 @@ struct AllFlightsScreen: View {
                         HStack(spacing: 8) {
                             Image(systemName: "wifi.slash")
                                 .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
-                            Text("Résultats hors ligne (cache)")
+                            Text("home_offline_cache")
                                 .font(.caption)
                                 .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
                         }
@@ -1023,10 +1001,10 @@ struct AllFlightsScreen: View {
                             Image(systemName: "airplane.departure")
                                 .font(.system(size: 48))
                                 .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                            Text("Aucune destination disponible")
+                            Text("home_no_destinations")
                                 .font(.headline)
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            Text("Essayez de changer les filtres")
+                            Text("home_try_change_filters")
                                 .font(.subheadline)
                                 .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         }
@@ -1051,7 +1029,7 @@ struct AllFlightsScreen: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
                             .foregroundColor(.orange)
-                        Text("Erreur")
+                        Text("home_error")
                             .font(.headline)
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         Text(message)
@@ -1065,7 +1043,7 @@ struct AllFlightsScreen: View {
                                 await catalogViewModel.loadRecommendedFlights(showAll: true)
                             }
                         }) {
-                            Text("Réessayer")
+                            Text("generic_retry")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
@@ -1091,15 +1069,26 @@ struct AllFlightsScreen: View {
         }
     }
     
+    private func localizedRegionName(for key: String) -> String {
+        switch key {
+        case "Preferences": return String(localized: "region_preferences")
+        case "Europe": return String(localized: "region_europe")
+        case "Asie": return String(localized: "region_asia")
+        case "Amerique": return String(localized: "region_america")
+        case "Australie": return String(localized: "region_australia")
+        default: return key
+        }
+    }
+    
     private func filterDestinations(_ destinations: [FlightDestination], by region: String?) -> [FlightDestination] {
-        guard let region = region, region != "Préférences" else {
+        guard let region = region, region != "Preferences" else {
             return destinations
         }
         
         let regionCountries: [String: [String]] = [
             "Europe": ["France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"],
-            "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel"],
-            "Amerique": ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
+            "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "United Arab Emirates", "Saudi Arabia", "Turkey", "Israel"],
+            "Amerique": ["United States", "USA", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
             "Australie": ["Australia", "New Zealand", "Fiji"]
         ]
         
@@ -1109,7 +1098,10 @@ struct AllFlightsScreen: View {
         
         return destinations.filter { destination in
             countries.contains { country in
-                destination.country.localizedCaseInsensitiveContains(country)
+                // Use contains (like Android) instead of localizedCaseInsensitiveContains
+                // This allows partial matching (e.g., "United Arab Emirates" matches "UAE")
+                destination.country.localizedCaseInsensitiveContains(country) || 
+                country.localizedCaseInsensitiveContains(destination.country)
             }
         }
     }
@@ -1218,7 +1210,7 @@ struct ComparisonCard: View {
                                 .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         }
                     } else {
-                        Text("N/A")
+                        Text("generic_not_available")
                             .font(.system(size: 14))
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }
@@ -1313,6 +1305,53 @@ extension HomeScreen {
                 }
             }
         }
+    }
+}
+
+// MARK: - Onboarding Reminder Card (like Android)
+struct OnboardingReminderCard: View {
+    let onStart: () -> Void
+    let onContinue: () -> Void
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("home_onboarding_title")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            
+            Text("home_onboarding_message")
+                .font(.system(size: 14))
+                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+            
+            HStack(spacing: 12) {
+                Button(action: onStart) {
+                    Text("home_onboarding_fill_form")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(ThemeColors.accent())
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onContinue) {
+                    Text("home_onboarding_continue")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(ThemeColors.surface(colorScheme))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 10, x: 0, y: 6)
+        )
     }
 }
 

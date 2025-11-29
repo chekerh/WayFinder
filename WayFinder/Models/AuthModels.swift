@@ -38,6 +38,9 @@ struct UserProfile: Decodable {
     let lastName: String?
     let avatarUrl: String?
     let profileImageUrl: String?
+    let preferences: [String]?
+    let onboardingCompleted: Bool?
+    let onboardingSkipped: Bool?
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -47,6 +50,9 @@ struct UserProfile: Decodable {
         case lastName = "last_name"
         case avatarUrl
         case profileImageUrl = "profile_image_url"
+        case preferences
+        case onboardingCompleted = "onboarding_completed"
+        case onboardingSkipped = "onboarding_skipped"
     }
     
     init(from decoder: Decoder) throws {
@@ -68,6 +74,9 @@ struct UserProfile: Decodable {
         lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
         avatarUrl = try container.decodeIfPresent(String.self, forKey: .avatarUrl)
         profileImageUrl = try container.decodeIfPresent(String.self, forKey: .profileImageUrl)
+        preferences = try container.decodeIfPresent([String].self, forKey: .preferences)
+        onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted)
+        onboardingSkipped = try container.decodeIfPresent(Bool.self, forKey: .onboardingSkipped)
     }
 }
 

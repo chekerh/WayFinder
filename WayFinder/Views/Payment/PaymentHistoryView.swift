@@ -49,7 +49,7 @@ struct PaymentHistoryView: View {
                     Text("Aucun paiement")
                         .font(.headline)
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("Votre historique de paiements apparaîtra ici")
+                    Text("payment_history_empty")
                         .font(.subheadline)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
@@ -58,7 +58,7 @@ struct PaymentHistoryView: View {
                 VStack(spacing: 0) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Historique des paiements")
+                        Text("payment_history_title")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         

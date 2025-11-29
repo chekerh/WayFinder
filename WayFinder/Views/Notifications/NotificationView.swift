@@ -5,6 +5,7 @@ struct NotificationView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @State private var navigateToPostId: String? = nil
+    @State private var showDeleteAllConfirmation = false
     
     var body: some View {
         ZStack {
@@ -78,7 +79,26 @@ struct NotificationView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
+                    
+                    // Delete All Notifications Button
+                    Button(action: {
+                        showDeleteAllConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Supprimer toutes les notifications")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.red)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
                     
                     // Liste des notifications
                     ScrollView {
@@ -114,6 +134,19 @@ struct NotificationView: View {
         }
         .refreshable {
             await viewModel.loadNotifications()
+        }
+        .alert("Supprimer toutes les notifications", isPresented: $showDeleteAllConfirmation) {
+            Button("Annuler", role: .cancel) {
+                showDeleteAllConfirmation = false
+            }
+            Button("Confirmer", role: .destructive) {
+                Task {
+                    await viewModel.deleteAllNotifications()
+                    showDeleteAllConfirmation = false
+                }
+            }
+        } message: {
+            Text("Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible.")
         }
     }
     

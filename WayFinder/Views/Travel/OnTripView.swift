@@ -64,9 +64,9 @@ struct OnTripView: View {
     private var activitiesGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 16)],
                   spacing: 18) {
-            ActivityCard(imageName: "Restaurant", title: "Restaurant", iconName: "fork.knife.circle")
-            ActivityCard(imageName: "cafe", title: "Café", iconName: "cup.and.saucer.fill")
-            ActivityCard(imageName: "cinema", title: "Cinéma", iconName: "film.fill")
+            ActivityCard(imageName: "Restaurant", title: String(localized: "activity_restaurant"), iconName: "fork.knife.circle")
+            ActivityCard(imageName: "cafe", title: String(localized: "activity_cafe"), iconName: "cup.and.saucer.fill")
+            ActivityCard(imageName: "cinema", title: String(localized: "activity_cinema"), iconName: "film.fill")
             ActivityCard(imageName: "Outdoors", title: "Outdoors", iconName: "leaf.fill")
             ActivityCard(imageName: "date", title: "Date", iconName: "heart.circle.fill")
             ActivityCard(imageName: "Paddle", title: "Paddle", iconName: "figure.rower")

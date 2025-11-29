@@ -55,10 +55,10 @@ struct FavoritesView: View {
                     Image(systemName: "heart.slash")
                         .font(.system(size: 48))
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    Text("Aucun favori")
+                    Text("favorites_title")
                         .font(.headline)
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("Vos favoris apparaîtront ici")
+                    Text("favorites_empty")
                         .font(.subheadline)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
@@ -67,11 +67,11 @@ struct FavoritesView: View {
                 VStack(spacing: 0) {
                     // Header
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Favoris")
+                        Text("favorites_title")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
-                        Text("\(viewModel.favorites.count) favori\(viewModel.favorites.count > 1 ? "s" : "")")
+                        Text(String(format: String(localized: "favorites_count"), viewModel.favorites.count))
                             .font(.subheadline)
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }

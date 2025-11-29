@@ -255,7 +255,7 @@ struct ShareTripView: View {
     
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Description (optionnel)")
+            Text("share_trip_description_optional")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(ThemeColors.primaryText(colorScheme))
             
@@ -276,7 +276,7 @@ struct ShareTripView: View {
     
     private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Tags (optionnel)")
+            Text("share_trip_tags_optional")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(ThemeColors.primaryText(colorScheme))
             

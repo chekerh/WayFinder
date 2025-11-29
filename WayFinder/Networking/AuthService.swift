@@ -5,18 +5,18 @@ final class AuthService {
     static let shared = AuthService()
     private init() {}
 
-    func login(email: String, password: String) async throws -> UserProfile {
+    func loginWithResponse(email: String, password: String) async throws -> LoginResponse {
+        // Send identifier (email or username) as-is, just like Android does
+        // Backend accepts both email and username in the 'username' field
         let identifier = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        let username: String
-        if let atIndex = identifier.firstIndex(of: "@") {
-            username = String(identifier[..<atIndex]).lowercased()
-        } else {
-            username = identifier.lowercased()
+        guard !identifier.isEmpty else {
+            throw NSError(domain: "AuthService", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Identifiant requis"])
         }
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(LoginRequest(username: username, password: password))
+        let data = try encoder.encode(LoginRequest(username: identifier, password: password))
 
         let builder = DefaultRequest(
             method: "POST",
@@ -25,43 +25,123 @@ final class AuthService {
             body: data
         )
 
+        print("🔐 [AuthService] Sending login request...")
         let response = try await APIService.shared.request(builder, decodeTo: LoginResponse.self)
+        print("✅ [AuthService] Login response received")
+        print("✅ [AuthService] Access token: \(response.accessToken.prefix(20))...")
+        print("✅ [AuthService] User: \(response.user?.username ?? "nil")")
+        print("✅ [AuthService] Onboarding completed: \(response.onboardingCompleted ?? false)")
+        
         TokenStorage.save(token: response.accessToken)
+        print("✅ [AuthService] Token saved to storage")
 
         // Register FCM token after login
         await registerFcmTokenIfAvailable()
 
-        if let user = response.user {
-            // Sauvegarder le profil avec l'email pour la persistance
-            UserStorage.saveProfile(user)
+        // Backend always returns user in login response (like Android)
+        guard let user = response.user else {
+            print("⚠️ [AuthService] No user in response, fetching profile...")
+            let profile = try await UserService.shared.fetchProfile()
+            UserStorage.saveProfile(profile)
             
-            // Restaurer l'image après reconnexion via ProfileImageService
-            if let email = user.email {
+            if let email = profile.email {
                 ProfileImageService.shared.restoreAfterLogin(email: email)
-                if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
                     ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
                 }
-                print("✅ [AuthService] Profile saved and image restored for email: \(email)")
-            } else {
-                print("✅ [AuthService] Profile saved")
             }
             
-            return user
+            // Return response with fetched profile (struct is immutable, so we need to work with what we have)
+            // The response already has the token and onboarding status, just missing user
+            // Since we can't modify the struct, we'll return the original response
+            // and the caller should handle the user separately
+            print("⚠️ [AuthService] Returning response without user (user fetched separately)")
+            return response
         }
-
-        let profile = try await UserService.shared.fetchProfile()
-        // Sauvegarder le profil récupéré avec l'email
-        UserStorage.saveProfile(profile)
+        
+        // Sauvegarder le profil avec l'email pour la persistance
+        UserStorage.saveProfile(user)
+        print("✅ [AuthService] User profile saved")
         
         // Restaurer l'image après reconnexion via ProfileImageService
-        if let email = profile.email {
+        if let email = user.email {
             ProfileImageService.shared.restoreAfterLogin(email: email)
-            if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+            if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
                 ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
             }
+            print("✅ [AuthService] Profile image restored for email: \(email)")
+        } else {
+            print("✅ [AuthService] Profile saved (no email)")
         }
         
-        return profile
+        return response
+    }
+    
+    func login(email: String, password: String) async throws -> UserProfile {
+        // Send identifier (email or username) as-is, just like Android does
+        // Backend accepts both email and username in the 'username' field
+        let identifier = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !identifier.isEmpty else {
+            throw NSError(domain: "AuthService", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "Identifiant requis"])
+        }
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let data = try encoder.encode(LoginRequest(username: identifier, password: password))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/login",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        print("🔐 [AuthService] Sending login request...")
+        let response = try await APIService.shared.request(builder, decodeTo: LoginResponse.self)
+        print("✅ [AuthService] Login response received")
+        print("✅ [AuthService] Access token: \(response.accessToken.prefix(20))...")
+        print("✅ [AuthService] User: \(response.user?.username ?? "nil")")
+        print("✅ [AuthService] Onboarding completed: \(response.onboardingCompleted ?? false)")
+        
+        TokenStorage.save(token: response.accessToken)
+        print("✅ [AuthService] Token saved to storage")
+
+        // Register FCM token after login
+        await registerFcmTokenIfAvailable()
+
+        // Backend always returns user in login response (like Android)
+        guard let user = response.user else {
+            print("⚠️ [AuthService] No user in response, fetching profile...")
+            let profile = try await UserService.shared.fetchProfile()
+            UserStorage.saveProfile(profile)
+            
+            if let email = profile.email {
+                ProfileImageService.shared.restoreAfterLogin(email: email)
+                if let imageUrl = profile.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                    ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                }
+            }
+            
+            return profile
+        }
+        
+        // Sauvegarder le profil avec l'email pour la persistance
+        UserStorage.saveProfile(user)
+        print("✅ [AuthService] User profile saved")
+        
+        // Restaurer l'image après reconnexion via ProfileImageService
+        if let email = user.email {
+            ProfileImageService.shared.restoreAfterLogin(email: email)
+            if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+            }
+            print("✅ [AuthService] Profile image restored for email: \(email)")
+        } else {
+            print("✅ [AuthService] Profile saved (no email)")
+        }
+        
+        return user
     }
 
     /// Connexion avec Google Sign In

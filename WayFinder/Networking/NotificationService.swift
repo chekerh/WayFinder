@@ -57,6 +57,15 @@ final class NotificationService {
         let _: EmptyResponse = try await APIService.shared.request(builder, decodeTo: EmptyResponse.self)
     }
     
+    /// Supprime toutes les notifications
+    func deleteAllNotifications() async throws {
+        let builder = DefaultRequest(
+            method: "DELETE",
+            path: "notifications"
+        )
+        let _: EmptyResponse = try await APIService.shared.request(builder, decodeTo: EmptyResponse.self)
+    }
+    
     /// Crée une notification (principalement pour les tests/admin)
     func createNotification(
         type: NotificationType,

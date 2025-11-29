@@ -112,16 +112,73 @@ struct DiscussionComment: Decodable, Identifiable {
         case updatedAt
     }
     
+    init(
+        id: String,
+        user: DiscussionUser?,
+        postId: String,
+        content: String,
+        likesCount: Int,
+        likedBy: [String],
+        createdAt: Date?,
+        updatedAt: Date?
+    ) {
+        self.id = id
+        self.user = user
+        self.postId = postId
+        self.content = content
+        self.likesCount = likesCount
+        self.likedBy = likedBy
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .id)
-        user = try? container.decode(DiscussionUser.self, forKey: .user)
-        postId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .postId)
-        content = try container.decode(String.self, forKey: .content)
-        likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount) ?? 0
-        likedBy = DiscussionDecodingHelper.decodeObjectIdArray(from: container, forKey: .likedBy)
-        createdAt = nil
-        updatedAt = nil
+        let id = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .id)
+        
+        let resolvedUser: DiscussionUser?
+        // Décoder user_id - peut être un objet (populated) ou juste un ID
+        do {
+            // Essayer de décoder comme un objet DiscussionUser (populated)
+            resolvedUser = try container.decode(DiscussionUser.self, forKey: .user)
+        } catch is DecodingError {
+            // Si le décodage échoue, essayer de décoder comme un ID simple
+            do {
+                let userId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .user)
+                resolvedUser = DiscussionUser(id: userId, username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
+                print("⚠️ [DiscussionComment] user_id is just an ID, not populated: \(userId)")
+            } catch {
+                // Si même l'ID ne peut pas être décodé, laisser user à nil
+                print("❌ [DiscussionComment] Error decoding user_id: \(error)")
+                resolvedUser = nil
+            }
+        } catch {
+            // Pour toute autre erreur, essayer de décoder comme ID
+            do {
+                let userId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .user)
+                resolvedUser = DiscussionUser(id: userId, username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
+                print("⚠️ [DiscussionComment] user_id is just an ID, not populated: \(userId)")
+            } catch {
+                print("❌ [DiscussionComment] Error decoding user_id: \(error)")
+                resolvedUser = nil
+            }
+        }
+        
+        let postId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .postId)
+        let content = try container.decode(String.self, forKey: .content)
+        let likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount) ?? 0
+        let likedBy = DiscussionDecodingHelper.decodeObjectIdArray(from: container, forKey: .likedBy)
+        
+        self.init(
+            id: id,
+            user: resolvedUser,
+            postId: postId,
+            content: content,
+            likesCount: likesCount,
+            likedBy: likedBy,
+            createdAt: nil,
+            updatedAt: nil
+        )
     }
 }
 
@@ -170,6 +227,50 @@ struct DiscussionUser: Decodable, Identifiable {
             return firstName
         }
         return username ?? "Voyageur"
+    }
+}
+
+// MARK: - Helpers
+extension DiscussionComment {
+    /// Retourne une copie du commentaire en préservant les informations du propriétaire existant.
+    func preservingOwner(from existing: DiscussionComment) -> DiscussionComment {
+        let bestUser: DiscussionUser?
+        if let user = user {
+            if user.hasDisplayInfo || existing.user == nil {
+                bestUser = user
+            } else {
+                bestUser = existing.user
+            }
+        } else {
+            bestUser = existing.user
+        }
+        
+        return DiscussionComment(
+            id: id,
+            user: bestUser,
+            postId: postId,
+            content: content,
+            likesCount: likesCount,
+            likedBy: likedBy,
+            createdAt: createdAt ?? existing.createdAt,
+            updatedAt: updatedAt ?? existing.updatedAt
+        )
+    }
+}
+
+extension DiscussionUser {
+    /// Indique si le profil contient suffisamment d'informations pour être affiché.
+    var hasDisplayInfo: Bool {
+        if let firstName = firstName, !firstName.isEmpty {
+            return true
+        }
+        if let lastName = lastName, !lastName.isEmpty {
+            return true
+        }
+        if let username = username, !username.isEmpty {
+            return true
+        }
+        return false
     }
 }
 

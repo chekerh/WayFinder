@@ -85,16 +85,26 @@ final class BookingViewModel: ObservableObject {
         return response
     }
     
-    /// Supprime une réservation
+    /// Supprime définitivement une réservation (hors annulation)
     func deleteBooking(id: String) async throws {
-        print("🔄 [BookingViewModel] Deleting booking: \(id)")
-        try await service.cancelBooking(id: id)
-        print("✅ [BookingViewModel] Booking deleted successfully")
+        print("🔄 [BookingViewModel] Permanently deleting booking: \(id)")
+        try await service.deleteBooking(id: id)
+        print("✅ [BookingViewModel] Booking permanently deleted successfully")
         
         // Retirer la réservation de la liste localement
         bookings.removeAll { $0.id == id }
         
         // Recharger l'historique pour s'assurer de la synchronisation
+        await loadHistory()
+    }
+    
+    /// Annule une réservation (change le statut à cancelled)
+    func cancelBooking(id: String) async throws {
+        print("🔄 [BookingViewModel] Cancelling booking: \(id)")
+        try await service.cancelBooking(id: id)
+        print("✅ [BookingViewModel] Booking cancelled successfully")
+        
+        // Recharger l'historique pour mettre à jour le statut
         await loadHistory()
     }
     

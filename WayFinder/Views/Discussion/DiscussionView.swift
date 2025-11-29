@@ -48,10 +48,10 @@ struct DiscussionView: View {
                     Image(systemName: "bubble.left.and.bubble.right")
                         .font(.system(size: 48))
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    Text("Aucun post")
+                    Text("discussions_title")
                         .font(.headline)
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("Les discussions apparaîtront ici")
+                    Text("discussions_empty")
                         .font(.subheadline)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
@@ -61,7 +61,7 @@ struct DiscussionView: View {
                     VStack(spacing: 0) {
                         // Header
                         HStack {
-                            Text("Discussions")
+                            Text("discussions_title")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             
@@ -239,7 +239,7 @@ struct PostCard: View {
                         Image(systemName: "bubble.right")
                             .foregroundColor(ThemeColors.secondaryText(colorScheme))
                             .font(.system(size: 14))
-                        Text("\(post.commentsCount) commentaires")
+                        Text(String(format: String(localized: "discussions_comments_count"), post.commentsCount))
                             .font(.caption)
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }
@@ -252,7 +252,7 @@ struct PostCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white)
+                .fill(ThemeColors.surface(colorScheme))
         )
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
@@ -328,7 +328,7 @@ struct PostCommentsView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Commentaires")
+                Text("discussions_comments")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.primary)
                 
@@ -345,19 +345,19 @@ struct PostCommentsView: View {
             .padding(.horizontal, 16)
             .padding(.top, 16)
             .padding(.bottom, 12)
-            .background(Color.white)
+            .background(ThemeColors.surface(colorScheme))
             
             // Liste des commentaires (scrollable)
             if commentsViewModel.comments.isEmpty {
                 VStack(spacing: 16) {
                     Spacer()
-                    Text("Aucun commentaire pour le moment")
+                    Text("discussions_no_comments")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color.white)
+                .background(ThemeColors.surface(colorScheme))
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
@@ -365,6 +365,7 @@ struct PostCommentsView: View {
                             SwipeableCommentRow(
                                 comment: comment,
                                 currentUserId: currentUserId,
+                                viewModel: commentsViewModel,
                                 onDelete: {
                                     Task {
                                         await commentsViewModel.deleteComment(id: comment.id)
@@ -374,19 +375,21 @@ struct PostCommentsView: View {
                                 },
                                 onLike: {
                                     Task {
+                                        // Mise à jour optimiste : mettre à jour l'état local immédiatement
+                                        // Le ViewModel mettra à jour le commentaire après la réponse du serveur
                                         await commentsViewModel.likeComment(id: comment.id)
-                                        // Recharger pour obtenir le compteur à jour
-                                        await commentsViewModel.loadComments(postId: postId)
+                                        // Ne PAS recharger tous les commentaires - la mise à jour locale est suffisante
                                     }
                                 }
                             )
-                            .id(comment.id) // Forcer la mise à jour quand le commentaire change
+                            // Ne pas utiliser .id() pour éviter la recréation de la vue
+                            // Utiliser l'état local pour une mise à jour fluide
                             .padding(.horizontal, 16)
                         }
                     }
                     .padding(.vertical, 12)
                 }
-                .background(Color.white)
+                .background(ThemeColors.surface(colorScheme))
             }
             
             // Champ de saisie style Instagram (toujours en bas, blanc jusqu'à la fin)
@@ -398,7 +401,7 @@ struct PostCommentsView: View {
                     
                     // Champ de texte
                     HStack {
-                        TextField("Ajoutez un commentaire...", text: $commentText)
+                        TextField(String(localized: "discussions_add_comment"), text: $commentText)
                             .font(.system(size: 14))
                         
                         if !commentText.isEmpty {
@@ -425,17 +428,17 @@ struct PostCommentsView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.gray.opacity(0.1))
+                            .fill(commentFieldBackground)
                     )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, 12)
-                .background(Color.white)
+                .background(ThemeColors.surface(colorScheme))
                 .safeAreaPadding(.bottom)
             }
         }
-        .background(Color.white)
+        .background(ThemeColors.background(colorScheme))
         .ignoresSafeArea(edges: .bottom)
         .task {
             await loadData()
@@ -471,39 +474,75 @@ struct PostCommentsView: View {
             await viewModel.loadPosts()
         }
     }
+    private var commentFieldBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.gray.opacity(0.1)
+    }
 }
 
 // MARK: - SwipeableCommentRow (avec swipe pour supprimer)
 struct SwipeableCommentRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let comment: DiscussionComment
     let currentUserId: String?
+    @ObservedObject var viewModel: DiscussionViewModel
     let onDelete: () -> Void
     let onLike: () -> Void
     
     @State private var offset: CGFloat = 0
     @State private var isLiked: Bool = false
     @State private var likesCount: Int
+    @State private var isLiking: Bool = false
+    
+    // Stocker les valeurs statiques pour éviter le rafraîchissement
+    private let userName: String
+    private let userImageUrl: String?
+    private let commentContent: String
+    private let commentUserId: String?
     
     // Vérifier si l'utilisateur connecté est le propriétaire du commentaire
     private var canDelete: Bool {
         guard let currentUserId = currentUserId,
-              let commentUserId = comment.user?.id else {
+              let commentUserId = commentUserId else {
             return false
         }
         return currentUserId == commentUserId
     }
     
-    init(comment: DiscussionComment, currentUserId: String?, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
+    init(comment: DiscussionComment, currentUserId: String?, viewModel: DiscussionViewModel, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
         self.comment = comment
         self.currentUserId = currentUserId
+        self.viewModel = viewModel
         self.onDelete = onDelete
         self.onLike = onLike
+        
+        // Stocker les valeurs statiques pour éviter le rafraîchissement
+        // Utiliser la même logique que DiscussionUser.displayName
+        if let user = comment.user {
+            // Utiliser displayName qui gère déjà tous les cas (firstName, lastName, username, ou "Voyageur")
+            self.userName = user.displayName
+            self.userImageUrl = user.profileImageUrl
+            self.commentUserId = user.id
+            
+            // Debug: vérifier que le nom est bien extrait
+            print("🔍 [SwipeableCommentRow] User found - ID: \(user.id), displayName: \(user.displayName), firstName: \(user.firstName ?? "nil"), lastName: \(user.lastName ?? "nil"), username: \(user.username ?? "nil")")
+        } else {
+            // Si user est nil, utiliser "Voyageur" comme dans DiscussionUser.displayName
+            self.userName = "Voyageur"
+            self.userImageUrl = nil
+            self.commentUserId = nil
+            print("⚠️ [SwipeableCommentRow] User is nil for comment \(comment.id)")
+        }
+        self.commentContent = comment.content
+        
         _likesCount = State(initialValue: comment.likesCount)
+        // Initialiser isLiked basé sur le commentaire (si l'API le supporte)
+        // Pour l'instant, on suppose que l'utilisateur n'a pas liké au départ
+        _isLiked = State(initialValue: false)
     }
     
-    // Mettre à jour le compteur quand le commentaire change
-    private var currentLikesCount: Int {
-        comment.likesCount
+    // Obtenir le commentaire mis à jour depuis le ViewModel
+    private var updatedComment: DiscussionComment? {
+        viewModel.comments.first(where: { $0.id == comment.id })
     }
     
     private var formattedDate: String {
@@ -549,8 +588,8 @@ struct SwipeableCommentRow: View {
             
             // Contenu du commentaire
             HStack(alignment: .top, spacing: 12) {
-                // Avatar
-                if let user = comment.user, let imageUrl = user.profileImageUrl, let url = buildImageURL(from: imageUrl) {
+                // Avatar - utiliser les valeurs stockées pour éviter le rafraîchissement
+                if let imageUrl = userImageUrl, let url = buildImageURL(from: imageUrl) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let image):
@@ -581,16 +620,14 @@ struct SwipeableCommentRow: View {
                         )
                 }
                 
-                // Contenu du commentaire
+                // Contenu du commentaire - utiliser les valeurs stockées
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        if let user = comment.user {
-                            Text(user.displayName)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.primary)
-                        }
+                        Text(userName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
                         
-                        Text(comment.content)
+                        Text(commentContent)
                             .font(.system(size: 14))
                             .foregroundColor(.primary)
                     }
@@ -608,12 +645,12 @@ struct SwipeableCommentRow: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.secondary)
                         
-                        if currentLikesCount > 0 {
+                        if likesCount > 0 {
                             HStack(spacing: 4) {
                                 Image(systemName: "heart.fill")
                                     .foregroundColor(.red)
                                     .font(.system(size: 10))
-                                Text("\(currentLikesCount)")
+                                Text("\(likesCount)")
                                     .font(.system(size: 12))
                                     .foregroundColor(.secondary)
                             }
@@ -625,23 +662,57 @@ struct SwipeableCommentRow: View {
                 
                 // Bouton like du commentaire
                 Button(action: {
-                    withAnimation {
+                    guard !isLiking else { return }
+                    
+                    // Mise à jour optimiste : mettre à jour l'UI immédiatement
+                    let wasLiked = isLiked
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
                         isLiked.toggle()
+                        if wasLiked {
+                            likesCount = max(0, likesCount - 1)
+                        } else {
+                            likesCount += 1
+                        }
                     }
+                    
+                    // Appeler l'API en arrière-plan
+                    isLiking = true
                     onLike()
+                    
+                    // Synchroniser avec le ViewModel après la mise à jour
+                    Task {
+                        // Attendre un court délai pour que le ViewModel mette à jour
+                        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
+                        
+                        await MainActor.run {
+                            // Synchroniser avec le commentaire mis à jour du ViewModel
+                            if let updated = updatedComment {
+                                withAnimation {
+                                    likesCount = updated.likesCount
+                                }
+                            }
+                            isLiking = false
+                        }
+                    }
                 }) {
                     Image(systemName: isLiked ? "heart.fill" : "heart")
                         .foregroundColor(isLiked ? .red : .secondary)
                         .font(.system(size: 14))
+                        .scaleEffect(isLiking ? 1.2 : 1.0)
                 }
-                .onChange(of: comment.likesCount) { oldValue, newValue in
-                    // Mettre à jour le compteur quand le commentaire change
-                    likesCount = newValue
+                .disabled(isLiking)
+                .onChange(of: updatedComment?.likesCount) { oldValue, newValue in
+                    // Synchroniser le compteur quand le ViewModel met à jour le commentaire
+                    if let newValue = newValue, newValue != likesCount {
+                        withAnimation {
+                            likesCount = newValue
+                        }
+                    }
                 }
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(Color(.systemBackground))
+            .background(ThemeColors.surface(colorScheme))
             .contentShape(Rectangle())
             .offset(x: offset)
             .gesture(
@@ -743,7 +814,7 @@ struct PostDetailView: View {
                             .padding(20)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white)
+                                    .fill(ThemeColors.surface(colorScheme))
                             )
                             .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                             
@@ -752,13 +823,13 @@ struct PostDetailView: View {
                             
                             // Commentaires section
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Commentaires (\(viewModel.comments.count))")
+                                Text(String(format: String(localized: "discussions_comments_count"), viewModel.comments.count))
                                     .font(.headline)
                                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                                     .padding(.horizontal, 20)
                                 
                                 if viewModel.comments.isEmpty {
-                                    Text("Aucun commentaire pour le moment")
+                                    Text("discussions_no_comments")
                                         .font(.subheadline)
                                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                         .padding(.horizontal, 20)
@@ -779,7 +850,7 @@ struct PostDetailView: View {
                     VStack(spacing: 0) {
                         Divider()
                         HStack(spacing: 12) {
-                            TextField("Écrire un commentaire...", text: $commentText, axis: .vertical)
+                            TextField(String(localized: "discussions_write_comment"), text: $commentText, axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
                                 .lineLimit(1...4)
                             
@@ -796,7 +867,7 @@ struct PostDetailView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.white)
+                        .background(ThemeColors.surface(colorScheme))
                     }
                 }
             } else {
@@ -1076,7 +1147,7 @@ struct CreatePostView: View {
                                 Image(systemName: "mappin.circle.fill")
                                     .font(.system(size: 15))
                                     .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.7))
-                                Text("Destination (optionnel)")
+                                Text("share_trip_destination_optional")
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             }

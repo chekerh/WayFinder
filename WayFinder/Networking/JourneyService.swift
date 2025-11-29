@@ -243,6 +243,50 @@ final class JourneyService {
         return try await APIService.shared.request(builder, decodeTo: JourneyLikeResponse.self)
     }
     
+    func getJourney(by id: String) async throws -> Journey {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "journey/\(id)"
+        )
+        return try await APIService.shared.request(builder, decodeTo: Journey.self)
+    }
+    
+    func getJourneyComments(journeyId: String, limit: Int? = nil, skip: Int? = nil) async throws -> [JourneyComment] {
+        var queryItems: [URLQueryItem] = []
+        if let limit = limit {
+            queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
+        }
+        if let skip = skip {
+            queryItems.append(URLQueryItem(name: "skip", value: "\(skip)"))
+        }
+        
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "journey/\(journeyId)/comments",
+            queryItems: queryItems.isEmpty ? nil : queryItems
+        )
+        return try await APIService.shared.request(builder, decodeTo: [JourneyComment].self)
+    }
+    
+    func addJourneyComment(journeyId: String, content: String, parentCommentId: String? = nil) async throws -> JourneyComment {
+        let request = CreateJourneyCommentRequest(content: content, parentCommentId: parentCommentId)
+        let body = try JSONEncoder().encode(request)
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "journey/\(journeyId)/comments",
+            body: body
+        )
+        return try await APIService.shared.request(builder, decodeTo: JourneyComment.self)
+    }
+    
+    func deleteJourneyComment(commentId: String) async throws {
+        let builder = DefaultRequest(
+            method: "DELETE",
+            path: "journey/comments/\(commentId)"
+        )
+        try await APIService.shared.requestVoid(builder)
+    }
+    
     func deleteJourney(journeyId: String) async throws {
         guard let token = TokenStorage.fetch() else {
             throw APIError.custom("Token manquant")

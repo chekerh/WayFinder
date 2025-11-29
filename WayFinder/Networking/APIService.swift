@@ -57,10 +57,36 @@ final class APIService {
 
         let (data, response): (Data, URLResponse)
         do {
+            print("⏳ [API] Starting network request (timeout: \(session.configuration.timeoutIntervalForRequest)s)...")
             (data, response) = try await session.data(for: request)
+            print("✅ [API] Network request completed, received \(data.count) bytes")
         } catch {
             print("❌ [API] Network error: \(error.localizedDescription)")
-            throw APIError.networkError(error)
+            let errorTypeName = String(describing: Swift.type(of: error))
+            print("❌ [API] Error type: \(errorTypeName)")
+            if let urlError = error as? URLError {
+                print("❌ [API] URLError code: \(urlError.code.rawValue) (\(urlError.code))")
+                print("❌ [API] URLError description: \(urlError.localizedDescription)")
+                switch urlError.code {
+                case .timedOut:
+                    print("❌ [API] Request timed out after \(session.configuration.timeoutIntervalForRequest)s")
+                    throw APIError.timeout
+                case .notConnectedToInternet:
+                    print("❌ [API] No internet connection")
+                    throw APIError.custom("Pas de connexion Internet")
+                case .cannotConnectToHost:
+                    print("❌ [API] Cannot connect to host: \(url.host ?? "unknown")")
+                    throw APIError.custom("Impossible de se connecter au serveur. Le serveur peut être en cours de démarrage.")
+                case .networkConnectionLost:
+                    print("❌ [API] Network connection lost")
+                    throw APIError.custom("Connexion réseau perdue. Veuillez réessayer.")
+                default:
+                    print("❌ [API] Other network error: \(urlError)")
+                    throw APIError.networkError(error)
+                }
+            } else {
+                throw APIError.networkError(error)
+            }
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {

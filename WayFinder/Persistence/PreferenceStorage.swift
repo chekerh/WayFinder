@@ -23,17 +23,21 @@ enum UserStorage {
     static let userImageUrlPrefix = "com.wayfinder.user.profileImageUrl."
     
     static func saveProfile(_ profile: UserProfile) {
-        saveProfile(displayName: profile.displayNameValue, profileImageUrl: profile.resolvedProfileImageUrl, email: profile.email)
+        let displayName = profile.displayNameValue
+        print("💾 [UserStorage] Saving profile - displayName: \(displayName), firstName: \(profile.firstName ?? "nil"), username: \(profile.username ?? "nil"), email: \(profile.email ?? "nil")")
+        saveProfile(displayName: displayName, profileImageUrl: profile.resolvedProfileImageUrl, email: profile.email)
     }
     
     static func saveProfile(displayName: String?, profileImageUrl: String?, email: String? = nil) {
         let defaults = UserDefaults.standard
         
         // Sauvegarder le nom
-        if let name = displayName {
+        if let name = displayName, !name.isEmpty {
             defaults.set(name, forKey: displayNameKey)
+            print("💾 [UserStorage] Saved display name: \(name)")
         } else {
             defaults.removeObject(forKey: displayNameKey)
+            print("⚠️ [UserStorage] No display name to save")
         }
         
         // Sauvegarder l'email si fourni

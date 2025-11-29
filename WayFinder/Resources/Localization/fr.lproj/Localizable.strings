@@ -112,6 +112,7 @@
 "profile_logout_confirm_title" = "Confirmer la déconnexion";
 "profile_logout_confirm_message" = "Souhaites-tu vraiment te déconnecter ?";
 "profile_logout_cancel" = "Annuler";
+"profile_change_photo_hint" = "Touchez pour mettre à jour votre photo de profil";
 "survey_option_trip_beach" = "Vacances à la plage 🏖️";
 "survey_option_trip_mountain" = "Aventure en montagne 🏔️";
 "survey_option_trip_cultural" = "Voyage culturel 🏛️";
@@ -147,6 +148,158 @@
 "survey_option_animal_dolphin" = "Dauphin 🐬";
 "survey_option_animal_koala" = "Koala 🐨";
 "survey_option_epoch_sixties" = "Les années 60 🎉";
-"survey_option_epoch_victorian" = "L’ère victorienne 👑";
+"survey_option_epoch_victorian" = "L'ère victorienne 👑";
 "survey_option_epoch_future" = "Le futur du XXIIe siècle 🚀";
+
+// Greetings
+"greeting_morning" = "Bonjour";
+"greeting_afternoon" = "Bon après-midi";
+"greeting_evening" = "Bonsoir";
+
+// Home Screen
+"home_all_regions" = "Toutes les régions";
+"home_try_change_filters" = "Essayez de changer les filtres";
+"home_error" = "Erreur";
+"home_onboarding_title" = "Complétez votre questionnaire pour des suggestions personnalisées ✨";
+"home_onboarding_message" = "Remplissez l'onboarding pour que Wayfinder adapte les packs de vols à vos préférences. Vous pouvez aussi discuter sans ces données.";
+"home_onboarding_fill_form" = "Remplir le formulaire";
+"home_onboarding_continue" = "Continuer sans";
+
+// Flight Detail Screen
+"flight_amenities_title" = "Équipements disponibles";
+"flight_info_title" = "Informations du vol";
+"flight_departure" = "Départ";
+"flight_arrival" = "Arrivée";
+"flight_airline" = "Compagnie aérienne";
+"flight_duration" = "Durée";
+"flight_compare_prices" = "Comparer les prix";
+"flight_book" = "Réserver";
+
+// Reservation Screen
+"reservation_departure_return" = "Départ : %@ | Retour : %@";
+"reservation_payment_info" = "Informations de paiement";
+"reservation_card_number" = "Numéro de carte";
+"reservation_summary" = "Résumé";
+"reservation_flight_price" = "Prix du vol";
+"reservation_taxes" = "Taxes";
+"reservation_baggage_services" = "Bagages & services";
+"reservation_total" = "Total";
+"reservation_confirm" = "Confirmer la réservation";
+
+// Confirmation Screen
+"confirmation_title" = "Confirmation";
+"confirmation_success_title" = "Réservation confirmée!";
+"confirmation_success_message" = "Votre réservation a été confirmée avec succès. Vous recevrez un email de confirmation sous peu.";
+"confirmation_details_title" = "Détails de la réservation";
+"confirmation_number_label" = "Numéro de confirmation";
+"confirmation_status" = "Statut";
+"confirmation_status_confirmed" = "Confirmé";
+"confirmation_view_reservations" = "Voir mes réservations";
+"confirmation_back_home" = "Retour à l'accueil";
+
+// Edit Profile
+"edit_profile_first_name" = "Prénom";
+"edit_profile_last_name" = "Nom";
+"edit_profile_save" = "Enregistrer";
+"edit_profile_current_password" = "Mot de passe actuel";
+"edit_profile_new_password" = "Nouveau mot de passe";
+"edit_profile_confirm_password" = "Confirmer le nouveau mot de passe";
+"edit_profile_change_password" = "Changer le mot de passe";
+"edit_profile_new_email" = "Nouvelle adresse e-mail";
+"edit_profile_change_email" = "Changer l'adresse e-mail";
+
+// Travel Preferences
+"travel_preferences_title" = "Sélectionnez vos préférences de voyage";
+"travel_preferences_save" = "Enregistrer";
+
+// Reviews
+"reviews_title" = "Avis";
+"reviews_first_review" = "Soyez le premier à ajouter un avis !";
+"reviews_add_review" = "Ajouter un avis";
+"reviews_count" = "%d avis";
+"reviews_user" = "Utilisateur";
+"reviews_rating" = "Note";
+
+// Edit Profile Placeholders and Titles
+"edit_profile_first_name_placeholder" = "Entrez votre prénom";
+"edit_profile_last_name_placeholder" = "Entrez votre nom";
+"edit_profile_current_password_placeholder" = "Entrez votre mot de passe actuel";
+"edit_profile_new_password_placeholder" = "Entrez votre nouveau mot de passe";
+"edit_profile_confirm_password_placeholder" = "Confirmez votre nouveau mot de passe";
+"edit_profile_new_email_placeholder" = "Entrez votre nouvelle adresse e-mail";
+"edit_profile_edit_name_title" = "Modifier le nom";
+"edit_profile_change_password_title" = "Changer le mot de passe";
+"edit_profile_change_email_title" = "Modifier l'adresse e-mail";
+"edit_profile_travel_preferences_title" = "Préférences de voyage";
+"edit_profile_cancel" = "Annuler";
+
+// Login
+"login_with_code" = "Se connecter avec un code";
+
+// Generic
+"generic_retry" = "Réessayer";
+"generic_cancel" = "Annuler";
+"generic_not_available" = "N/A";
+
+// Booking History
+"booking_history_title" = "Historique des réservations";
+"booking_history_subtitle" = "Voici vos dernières réservations";
+"booking_history_empty" = "Vos réservations apparaîtront ici";
+"booking_status_confirmed" = "Confirmé";
+"booking_status_pending" = "En attente";
+"booking_status_cancelled" = "Annulé";
+
+// Favorites
+"favorites_title" = "Favoris";
+"favorites_empty" = "Vos favoris apparaîtront ici";
+"favorites_count" = "%d favoris";
+
+// Discussions
+"discussions_title" = "Discussions";
+"discussions_empty" = "Les discussions apparaîtront ici";
+"discussions_comments" = "Commentaires";
+"discussions_comments_count" = "%d commentaires";
+"discussions_no_comments" = "Aucun commentaire pour le moment";
+"discussions_add_comment" = "Ajoutez un commentaire...";
+"discussions_write_comment" = "Écrire un commentaire...";
+"discussions_comment_optional" = "Commentaire (optionnel)";
+
+// Payment History
+"payment_history_title" = "Historique des paiements";
+"payment_history_empty" = "Votre historique de paiements apparaîtra ici";
+
+// Share Trip
+"share_trip_description_optional" = "Description (optionnel)";
+"share_trip_tags_optional" = "Tags (optionnel)";
+"share_trip_destination_optional" = "Destination (optionnel)";
+
+// Social Media
+"social_google" = "Google";
+"social_apple" = "Apple";
+
+// Country Descriptions
+"description_paris" = "Paris, la capitale de la France, est réputée pour sa culture, son art, sa gastronomie et ses monuments emblématiques comme la Tour Eiffel, le Louvre et Notre-Dame. Ville romantique par excellence, elle attire des millions de visiteurs chaque année.";
+"description_rome" = "Rome, la capitale de l'Italie, est une ville riche en histoire avec ses monuments antiques, ses églises baroques et sa cuisine délicieuse. Découvrez le Colisée, le Forum romain et la Cité du Vatican.";
+"description_spain" = "L'Espagne offre une riche diversité culturelle, des plages magnifiques, une architecture unique et une cuisine savoureuse. Découvrez l'art, la danse flamenco et l'histoire fascinante de ce pays méditerranéen.";
+"description_default" = "%@ est une destination magnifique offrant une expérience de voyage unique avec ses paysages, sa culture et ses attractions touristiques. Explorez cette ville fascinante et découvrez tout ce qu'elle a à offrir.";
+
+// Amenities
+"amenity_sunny" = "ensoleillé";
+"amenity_restaurant" = "Resto";
+"amenity_wifi" = "Wi-Fi gratuit";
+"amenity_cafe" = "Café";
+"amenity_business" = "Affaires";
+
+// Regions
+"region_preferences" = "Préférences";
+"region_europe" = "Europe";
+"region_asia" = "Asie";
+"region_america" = "Amerique";
+"region_australia" = "Australie";
+"region_all" = "Toutes";
+
+// Activities
+"activity_restaurant" = "Restaurant";
+"activity_cafe" = "Café";
+"activity_cinema" = "Cinéma";
 

@@ -110,6 +110,7 @@
 "profile_logout_confirm_title" = "Sign out?";
 "profile_logout_confirm_message" = "Are you sure you want to log out of WayFinder?";
 "profile_logout_cancel" = "Cancel";
+"profile_change_photo_hint" = "Tap to update your profile photo";
 "survey_option_trip_beach" = "Beach vacation 🏖️";
 "survey_option_trip_mountain" = "Mountain adventure 🏔️";
 "survey_option_trip_cultural" = "Cultural escape 🏛️";
@@ -147,4 +148,156 @@
 "survey_option_epoch_sixties" = "The sixties 🎉";
 "survey_option_epoch_victorian" = "The Victorian era 👑";
 "survey_option_epoch_future" = "The 22nd century future 🚀";
+
+// Greetings
+"greeting_morning" = "Good morning";
+"greeting_afternoon" = "Good afternoon";
+"greeting_evening" = "Good evening";
+
+// Home Screen
+"home_all_regions" = "All regions";
+"home_try_change_filters" = "Try changing the filters";
+"home_error" = "Error";
+"home_onboarding_title" = "Complete your questionnaire for personalized suggestions ✨";
+"home_onboarding_message" = "Fill out the onboarding so Wayfinder can adapt flight packages to your preferences. You can also chat without this data.";
+"home_onboarding_fill_form" = "Fill out the form";
+"home_onboarding_continue" = "Continue without";
+
+// Flight Detail Screen
+"flight_amenities_title" = "Available amenities";
+"flight_info_title" = "Flight information";
+"flight_departure" = "Departure";
+"flight_arrival" = "Arrival";
+"flight_airline" = "Airline";
+"flight_duration" = "Duration";
+"flight_compare_prices" = "Compare prices";
+"flight_book" = "Book";
+
+// Reservation Screen
+"reservation_departure_return" = "Departure: %@ | Return: %@";
+"reservation_payment_info" = "Payment information";
+"reservation_card_number" = "Card number";
+"reservation_summary" = "Summary";
+"reservation_flight_price" = "Flight price";
+"reservation_taxes" = "Taxes";
+"reservation_baggage_services" = "Baggage & services";
+"reservation_total" = "Total";
+"reservation_confirm" = "Confirm reservation";
+
+// Confirmation Screen
+"confirmation_title" = "Confirmation";
+"confirmation_success_title" = "Reservation confirmed!";
+"confirmation_success_message" = "Your reservation has been confirmed successfully. You will receive a confirmation email shortly.";
+"confirmation_details_title" = "Reservation details";
+"confirmation_number_label" = "Confirmation number";
+"confirmation_status" = "Status";
+"confirmation_status_confirmed" = "Confirmed";
+"confirmation_view_reservations" = "View my reservations";
+"confirmation_back_home" = "Back to home";
+
+// Edit Profile
+"edit_profile_first_name" = "First name";
+"edit_profile_last_name" = "Last name";
+"edit_profile_save" = "Save";
+"edit_profile_current_password" = "Current password";
+"edit_profile_new_password" = "New password";
+"edit_profile_confirm_password" = "Confirm new password";
+"edit_profile_change_password" = "Change password";
+"edit_profile_new_email" = "New email address";
+"edit_profile_change_email" = "Change email address";
+
+// Travel Preferences
+"travel_preferences_title" = "Select your travel preferences";
+"travel_preferences_save" = "Save";
+
+// Reviews
+"reviews_title" = "Reviews";
+"reviews_first_review" = "Be the first to add a review!";
+"reviews_add_review" = "Add a review";
+"reviews_count" = "%d reviews";
+"reviews_user" = "User";
+"reviews_rating" = "Rating";
+
+// Edit Profile Placeholders and Titles
+"edit_profile_first_name_placeholder" = "Enter your first name";
+"edit_profile_last_name_placeholder" = "Enter your last name";
+"edit_profile_current_password_placeholder" = "Enter your current password";
+"edit_profile_new_password_placeholder" = "Enter your new password";
+"edit_profile_confirm_password_placeholder" = "Confirm your new password";
+"edit_profile_new_email_placeholder" = "Enter your new email address";
+"edit_profile_edit_name_title" = "Edit name";
+"edit_profile_change_password_title" = "Change password";
+"edit_profile_change_email_title" = "Change email address";
+"edit_profile_travel_preferences_title" = "Travel preferences";
+"edit_profile_cancel" = "Cancel";
+
+// Login
+"login_with_code" = "Sign in with a code";
+
+// Generic
+"generic_retry" = "Retry";
+"generic_cancel" = "Cancel";
+"generic_not_available" = "N/A";
+
+// Booking History
+"booking_history_title" = "Reservation History";
+"booking_history_subtitle" = "Here are your latest reservations";
+"booking_history_empty" = "Your reservations will appear here";
+"booking_status_confirmed" = "Confirmed";
+"booking_status_pending" = "Pending";
+"booking_status_cancelled" = "Cancelled";
+
+// Favorites
+"favorites_title" = "Favorites";
+"favorites_empty" = "Your favorites will appear here";
+"favorites_count" = "%d favorites";
+
+// Discussions
+"discussions_title" = "Discussions";
+"discussions_empty" = "Discussions will appear here";
+"discussions_comments" = "Comments";
+"discussions_comments_count" = "%d comments";
+"discussions_no_comments" = "No comments at the moment";
+"discussions_add_comment" = "Add a comment...";
+"discussions_write_comment" = "Write a comment...";
+"discussions_comment_optional" = "Comment (optional)";
+
+// Payment History
+"payment_history_title" = "Payment History";
+"payment_history_empty" = "Your payment history will appear here";
+
+// Share Trip
+"share_trip_description_optional" = "Description (optional)";
+"share_trip_tags_optional" = "Tags (optional)";
+"share_trip_destination_optional" = "Destination (optional)";
+
+// Social Media
+"social_google" = "Google";
+"social_apple" = "Apple";
+
+// Country Descriptions
+"description_paris" = "Paris, the capital of France, is renowned for its culture, art, gastronomy, and iconic monuments such as the Eiffel Tower, the Louvre, and Notre-Dame. The city of romance par excellence, it attracts millions of visitors every year.";
+"description_rome" = "Rome, the capital of Italy, is a city rich in history with its ancient monuments, baroque churches, and delicious cuisine. Discover the Colosseum, the Roman Forum, and the Vatican City.";
+"description_spain" = "Spain offers rich cultural diversity, magnificent beaches, unique architecture, and delicious cuisine. Discover the art, flamenco dance, and fascinating history of this Mediterranean country.";
+"description_default" = "%@ is a magnificent destination offering a unique travel experience with its landscapes, culture, and tourist attractions. Explore this fascinating city and discover everything it has to offer.";
+
+// Amenities
+"amenity_sunny" = "Sunny";
+"amenity_restaurant" = "Restaurant";
+"amenity_wifi" = "Free Wi-Fi";
+"amenity_cafe" = "Cafe";
+"amenity_business" = "Business";
+
+// Regions
+"region_preferences" = "Preferences";
+"region_europe" = "Europe";
+"region_asia" = "Asia";
+"region_america" = "America";
+"region_australia" = "Australia";
+"region_all" = "All";
+
+// Activities
+"activity_restaurant" = "Restaurant";
+"activity_cafe" = "Cafe";
+"activity_cinema" = "Cinema";
 

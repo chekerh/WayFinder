@@ -14,10 +14,10 @@ struct Journey: Decodable, Identifiable {
     let captionText: String?
     let description: String?
     let tags: [String]
-    let likesCount: Int
-    let commentsCount: Int
+    var likesCount: Int
+    var commentsCount: Int
     let isPublic: Bool
-    let isLiked: Bool
+    var isLiked: Bool
     let createdAt: String?
     let updatedAt: String?
     let user: UserPreview?
@@ -77,6 +77,15 @@ struct Journey: Decodable, Identifiable {
         createdAt = try? container.decode(String.self, forKey: .createdAt)
         updatedAt = try? container.decode(String.self, forKey: .updatedAt)
         user = try? container.decode(UserPreview.self, forKey: .user)
+    }
+}
+
+extension Journey: Equatable {
+    static func == (lhs: Journey, rhs: Journey) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.likesCount == rhs.likesCount &&
+        lhs.commentsCount == rhs.commentsCount &&
+        lhs.isLiked == rhs.isLiked
     }
 }
 

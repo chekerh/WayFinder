@@ -113,9 +113,21 @@ final class JourneyViewModel: ObservableObject {
     
     func likeJourney(journeyId: String) async {
         do {
-            _ = try await service.likeJourney(journeyId: journeyId)
-            // Recharger pour mettre à jour le statut like
-            await loadJourneys()
+            let response = try await service.likeJourney(journeyId: journeyId)
+            guard let index = journeys.firstIndex(where: { $0.id == journeyId }) else { return }
+            var updatedJourney = journeys[index]
+            if response.liked {
+                if !updatedJourney.isLiked {
+                    updatedJourney.likesCount += 1
+                }
+                updatedJourney.isLiked = true
+            } else {
+                if updatedJourney.isLiked {
+                    updatedJourney.likesCount = max(0, updatedJourney.likesCount - 1)
+                }
+                updatedJourney.isLiked = false
+            }
+            journeys[index] = updatedJourney
         } catch {
             print("❌ [JourneyViewModel] Error liking journey: \(error.localizedDescription)")
         }
@@ -164,6 +176,11 @@ final class JourneyViewModel: ObservableObject {
         }
         
         return imageData
+    }
+    func updateJourney(_ updatedJourney: Journey) {
+        if let index = journeys.firstIndex(where: { $0.id == updatedJourney.id }) {
+            journeys[index] = updatedJourney
+        }
     }
 }
 

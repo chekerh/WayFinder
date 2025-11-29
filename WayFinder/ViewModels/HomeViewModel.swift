@@ -9,6 +9,9 @@ final class HomeViewModel: ObservableObject {
     @Published var selectedRegionId: String?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var onboardingCompleted: Bool = true
+    @Published var onboardingSkipped: Bool = false
+    @Published var showOnboardingAlert: Bool = false
     
     // Pays de la région sélectionnée chargés depuis l'API
     @Published var countries: [Country] = []
@@ -75,9 +78,12 @@ final class HomeViewModel: ObservableObject {
         // Initialiser les propriétés MainActor dans un Task
         Task { @MainActor in
             
-            // Charger le nom depuis UserStorage
-            if let storedName = UserStorage.fetchDisplayName() {
+            // Charger le nom depuis UserStorage immédiatement
+            if let storedName = UserStorage.fetchDisplayName(), !storedName.isEmpty {
                 self.greetingName = storedName
+                print("✅ [HomeViewModel] Loaded greeting name from storage: \(storedName)")
+            } else {
+                print("⚠️ [HomeViewModel] No stored name found, using default: Javier")
             }
             
             // Charger l'image depuis le service centralisé
@@ -220,7 +226,7 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    private func loadUserProfileIfNeeded() async {
+    func loadUserProfileIfNeeded() async {
         do {
             let profile = try await userService.fetchProfile()
             let newImageUrl = profile.resolvedProfileImageUrl
@@ -236,7 +242,20 @@ final class HomeViewModel: ObservableObject {
             // Toujours mettre à jour l'URL de l'image
             profileImageUrl = newImageUrl ?? profileImageService.profileImageUrl ?? UserStorage.fetchProfileImageUrl()
             
-            print("✅ [HomeViewModel] Profile loaded - Image URL: \(profileImageUrl ?? "nil")")
+            // Mettre à jour l'état d'onboarding
+            onboardingCompleted = profile.onboardingCompleted ?? true
+            onboardingSkipped = profile.onboardingSkipped ?? false
+            
+            // Afficher l'alerte si l'onboarding n'est pas complété (comme Android)
+            // Android affiche le badge si onboardingSkipped == true, mais on affiche le popup si onboardingCompleted == false
+            if !onboardingCompleted {
+                // Attendre un peu pour que l'écran soit complètement chargé avant d'afficher le popup
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
+                showOnboardingAlert = true
+                print("📢 [HomeViewModel] Showing onboarding alert (onboardingCompleted: \(onboardingCompleted))")
+            }
+            
+            print("✅ [HomeViewModel] Profile loaded - Image URL: \(profileImageUrl ?? "nil"), Onboarding completed: \(onboardingCompleted), Skipped: \(onboardingSkipped)")
             
             // Si aucun prénom depuis les recommandations, utiliser celui du profil
             if greetingName == "Javier" || greetingName.isEmpty {

@@ -12,16 +12,22 @@ import AuthenticationServices
 import GoogleSignIn
 #endif
 import UIKit
+
 struct LoginView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var languageManager: LanguageManager
+    @FocusState private var focusedField: Field?
     @State private var email = ""
     @State private var password = ""
-    @State private var isEmailFocused = false
-    @State private var isPasswordFocused = false
+    
+    enum Field {
+        case email, password
+    }
     @State private var emailError: String?
     @State private var passwordError: String?
     @State private var loginError: String?
     @State private var isLoggedIn = false // Etat pour déterminer si l'utilisateur est connecté
+    @State private var navigateToDestination: String? = nil // Destination de navigation après login
     @State private var activeLoginFlow: LoginFlow?
     @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var loggedInUserName: String?
@@ -39,29 +45,6 @@ struct LoginView: View {
                 GeometryReader { geometry in
                     ScrollView {
                         VStack(spacing: 0) {
-                            NavigationLink(value: "signUp") {
-                                EmptyView()
-                            }
-                            .hidden()
-                            .navigationDestination(item: Binding(
-                                get: { showSignUp ? "signUp" : nil },
-                                set: { showSignUp = $0 != nil }
-                            )) { _ in
-                                SignInView()
-                                    .navigationBarBackButtonHidden(true)
-                            }
-                            
-                            NavigationLink(value: "otpLogin") {
-                                EmptyView()
-                            }
-                            .hidden()
-                            .navigationDestination(item: Binding(
-                                get: { showOTPLogin ? "otpLogin" : nil },
-                                set: { showOTPLogin = $0 != nil }
-                            )) { _ in
-                                EmailOTPEntryView()
-                                    .navigationBarBackButtonHidden(true)
-                            }
                             
                             // Titre "Bienvenue sur Wayfindr" - en haut
                             Spacer().frame(height: geometry.safeAreaInsets.top > 0 ? 10 : 20)
@@ -88,15 +71,15 @@ struct LoginView: View {
                                         .cornerRadius(14)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(borderColor(for: emailError, isFocused: isEmailFocused), lineWidth: 1.5)
+                                                .stroke(borderColor(for: emailError, isFocused: focusedField == .email), lineWidth: 1.5)
                                         )
                                         .autocapitalization(.none)
                                         .keyboardType(.emailAddress)
                                         .textContentType(.emailAddress)
                                         .autocorrectionDisabled(true)
-                                        .onTapGesture {
-                                            isEmailFocused = true
-                                            isPasswordFocused = false
+                                        .focused($focusedField, equals: .email)
+                                        .onSubmit {
+                                            focusedField = .password
                                         }
                                         .onChange(of: email) { _, _ in
                                             emailError = nil
@@ -115,11 +98,12 @@ struct LoginView: View {
                                         .cornerRadius(14)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(borderColor(for: passwordError, isFocused: isPasswordFocused), lineWidth: 1.5)
+                                                .stroke(borderColor(for: passwordError, isFocused: focusedField == .password), lineWidth: 1.5)
                                         )
-                                        .onTapGesture {
-                                            isPasswordFocused = true
-                                            isEmailFocused = false
+                                        .focused($focusedField, equals: .password)
+                                        .onSubmit {
+                                            focusedField = nil
+                                            Task { await validateAndSubmit() }
                                         }
                                         .onChange(of: password) { _, _ in
                                             passwordError = nil
@@ -144,14 +128,7 @@ struct LoginView: View {
                                         .background(ThemeColors.accent())
                                         .cornerRadius(14)
                                 }
-                                .disabled(activeLoginFlow != nil || !canUseGoogleSignIn())
-                                .navigationDestination(item: Binding(
-                                    get: { isLoggedIn ? "home" : nil },
-                                    set: { isLoggedIn = $0 != nil }
-                                )) { _ in
-                                    HomeScreen(initialName: loggedInUserName)
-                                        .navigationBarBackButtonHidden(true)
-                                }
+                                .disabled(activeLoginFlow != nil)
                                 
                                 if let loginError {
                                     Text(loginError)
@@ -183,7 +160,7 @@ struct LoginView: View {
                                 Button(action: {
                                     showOTPLogin = true
                                 }) {
-                                    Text("Se connecter avec un code")
+                                    Text("login_with_code")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(ThemeColors.accent())
                                 }
@@ -214,7 +191,7 @@ struct LoginView: View {
                                                 .resizable()
                                                 .scaledToFit()
                                                 .frame(width: 20, height: 20)
-                                            Text("Google")
+                                            Text("social_google")
                                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
                                         }
                                         .padding(.vertical, 10)
@@ -236,7 +213,7 @@ struct LoginView: View {
                                                 .resizable()
                                                 .scaledToFit()
                                                 .frame(width: 18, height: 18)
-                                            Text("Apple")
+                                            Text("social_apple")
                                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
                                         }
                                         .padding(.vertical, 10)
@@ -265,6 +242,39 @@ struct LoginView: View {
                 } // Fin GeometryReader
             } // Fin ZStack
             .navigationBarHidden(true)
+            .navigationDestination(item: Binding(
+                get: { showSignUp ? "signUp" : nil },
+                set: { showSignUp = $0 != nil }
+            )) { _ in
+                SignInView()
+                    .environmentObject(languageManager)
+                    .navigationBarBackButtonHidden(true)
+            }
+            .navigationDestination(item: Binding(
+                get: { showOTPLogin ? "otpLogin" : nil },
+                set: { showOTPLogin = $0 != nil }
+            )) { _ in
+                EmailOTPEntryView()
+                    .environmentObject(languageManager)
+                    .navigationBarBackButtonHidden(true)
+            }
+            .navigationDestination(item: Binding(
+                get: { navigateToDestination },
+                set: { navigateToDestination = $0 }
+            )) { destination in
+                if destination == "home" {
+                    HomeScreen(initialName: loggedInUserName)
+                        .environmentObject(languageManager)
+                        .navigationBarBackButtonHidden(true)
+                } else if destination == "onboarding" {
+                    // TODO: Navigate to onboarding screen when implemented
+                    HomeScreen(initialName: loggedInUserName)
+                        .environmentObject(languageManager)
+                        .navigationBarBackButtonHidden(true)
+                } else {
+                    EmptyView()
+                }
+            }
             .onAppear {
                 // Pré-remplir l'email depuis UserStorage si disponible et si l'email est vide
                 if email.isEmpty, let storedEmail = UserDefaults.standard.string(forKey: UserStorage.userEmailKey) {
@@ -283,32 +293,67 @@ private extension LoginView {
         return isFocused ? ThemeColors.accent() : ThemeColors.border(colorScheme)
     }
     
+    func dismissKeyboard() {
+        focusedField = nil
+    }
+    
     @MainActor
     func validateAndSubmit() async {
         emailError = nil
         passwordError = nil
         loginError = nil
         
-        if !isValidEmail(email) {
+        // Only validate that fields are not empty (like Android)
+        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             emailError = String(localized: "validation_email_invalid")
+            return
         }
         
-        if !isValidPassword(password) {
-            passwordError = String(localized: "validation_password_invalid")
+        guard !password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            passwordError = String(localized: "signin_error_empty_fields")
+            return
         }
         
-        guard emailError == nil, passwordError == nil else { return }
+        // No password strength validation for login (only for registration)
         
         activeLoginFlow = .password
         defer { activeLoginFlow = nil }
         
         do {
-            let user = try await AuthService.shared.login(email: email, password: password)
-            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
-            completeLogin()
+            print("🔐 [LoginView] Attempting login with email: \(email)")
+            let loginResult = try await AuthService.shared.loginWithResponse(email: email, password: password)
+            
+            // Get user from response (backend always returns user)
+            guard let user = loginResult.user else {
+                print("❌ [LoginView] No user in login response")
+                loginError = "Erreur: Aucun utilisateur dans la réponse"
+                return
+            }
+            
+            print("✅ [LoginView] Login successful for user: \(user.username ?? "unknown")")
+            // Utiliser displayNameValue qui gère correctement firstName, username, email
+            loggedInUserName = user.displayNameValue
+            print("✅ [LoginView] Setting loggedInUserName: \(loggedInUserName)")
+            print("✅ [LoginView] User profile - firstName: \(user.firstName ?? "nil"), username: \(user.username ?? "nil"), email: \(user.email ?? "nil")")
+            print("✅ [LoginView] Onboarding status - completed: \(loginResult.onboardingCompleted ?? false), skipped: \(user.onboardingSkipped ?? false)")
+            
+            // Sauvegarder le profil utilisateur pour que HomeScreen puisse vérifier l'état d'onboarding
+            UserStorage.saveProfile(user)
+            
+            // Navigate to home (popup will show if onboarding not completed, like Android)
+            let destination = "home"
+            print("✅ [LoginView] Navigating to: \(destination) (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
+            
+            // Trigger navigation on main thread
+            await MainActor.run {
+                navigateToDestination = destination
+                isLoggedIn = true
+                print("✅ [LoginView] Navigation triggered, navigateToDestination: \(navigateToDestination ?? "nil"), isLoggedIn: \(isLoggedIn)")
+            }
         } catch {
             loginError = error.localizedDescription
-            print("Login error: \(error)")
+            print("❌ [LoginView] Login error: \(error)")
+            print("❌ [LoginView] Error description: \(error.localizedDescription)")
         }
     }
     
@@ -394,6 +439,7 @@ private extension LoginView {
     func completeLogin() {
         loginError = nil
         isLoggedIn = true
+        print("✅ [LoginView] completeLogin() - isLoggedIn set to: \(isLoggedIn)")
     }
     
     func findPresentingViewController(base: UIViewController? = UIApplication.shared.connectedScenes

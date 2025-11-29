@@ -254,5 +254,14 @@ final class BookingService {
         )
         let _: EmptyResponse = try await APIService.shared.request(builder, decodeTo: EmptyResponse.self)
     }
+    
+    /// Supprime définitivement une réservation (hors annulation)
+    func deleteBooking(id: String) async throws {
+        let builder = DefaultRequest(
+            method: "DELETE",
+            path: "booking/\(id)/permanent"
+        )
+        let _: EmptyResponse = try await APIService.shared.request(builder, decodeTo: EmptyResponse.self)
+    }
 }
 

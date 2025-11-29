@@ -25,7 +25,7 @@ struct BookingDetailScreen: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+            ThemeColors.background(colorScheme)
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {

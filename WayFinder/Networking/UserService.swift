@@ -173,6 +173,32 @@ final class UserService {
         return uploadResponse
     }
     
+    /// Met à jour les préférences de voyage
+    func updatePreferences(preferences: [String]) async throws -> UserProfile {
+        guard let token = TokenStorage.fetch() else {
+            throw APIError.custom("Token manquant")
+        }
+        
+        let request = UpdatePreferencesRequest(preferences: preferences)
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        let body = try encoder.encode(request)
+        
+        let builder = DefaultRequest(
+            method: "PUT",
+            path: "user/profile",
+            headers: [
+                "Authorization": "Bearer \(token)",
+                "Content-Type": "application/json"
+            ],
+            body: body
+        )
+        
+        let profile = try await APIService.shared.request(builder, decodeTo: UserProfile.self)
+        persistProfileUpdate(user: profile, imageUrl: profile.resolvedProfileImageUrl)
+        return profile
+    }
+    
     /// Enregistre le token FCM auprès du backend
     func registerFcmToken(token: String) async throws {
         guard let authToken = TokenStorage.fetch() else {
@@ -266,6 +292,10 @@ struct UpdatePasswordRequest: Encodable {
 
 struct UpdateEmailRequest: Encodable {
     let email: String
+}
+
+struct UpdatePreferencesRequest: Encodable {
+    let preferences: [String]
 }
 
 struct EmptyResponse: Decodable {

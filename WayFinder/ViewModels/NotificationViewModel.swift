@@ -29,8 +29,50 @@ final class NotificationViewModel: ObservableObject {
         print("🔄 [NotificationViewModel] Loading notifications")
         do {
             let previousIds = Set(notifications.map { $0.id })
-            notifications = try await service.getNotifications()
-            print("✅ [NotificationViewModel] Loaded \(notifications.count) notifications")
+            var loadedNotifications = try await service.getNotifications()
+            
+            // Dédupliquer les notifications d'annulation par bookingId
+            // Garder seulement la notification la plus récente pour chaque bookingId annulé
+            var cancellationNotificationsByBookingId: [String: Notification] = [:]
+            var deduplicatedNotifications: [Notification] = []
+            
+            for notification in loadedNotifications {
+                // Pour les notifications d'annulation, garder seulement la plus récente par bookingId
+                if notification.type == .bookingCancelled,
+                   let bookingId = notification.data?.bookingId {
+                    if let existing = cancellationNotificationsByBookingId[bookingId] {
+                        // Comparer les dates pour garder la plus récente
+                        let existingDate = existing.createdAt ?? Date.distantPast
+                        let currentDate = notification.createdAt ?? Date.distantPast
+                        if currentDate > existingDate {
+                            // Remplacer par la notification plus récente
+                            cancellationNotificationsByBookingId[bookingId] = notification
+                            print("⚠️ [NotificationViewModel] Replacing older cancellation notification for booking \(bookingId) with newer one")
+                        } else {
+                            // Ignorer cette notification car on a déjà une notification plus récente
+                            print("⚠️ [NotificationViewModel] Duplicate cancellation notification for booking \(bookingId), skipping (older than existing)")
+                        }
+                    } else {
+                        // Première notification d'annulation pour ce bookingId
+                        cancellationNotificationsByBookingId[bookingId] = notification
+                    }
+                } else {
+                    // Notification normale (pas d'annulation), l'ajouter directement
+                    deduplicatedNotifications.append(notification)
+                }
+            }
+            
+            // Ajouter les notifications d'annulation dédupliquées (une seule par bookingId)
+            for (_, notification) in cancellationNotificationsByBookingId {
+                deduplicatedNotifications.append(notification)
+            }
+            
+            if loadedNotifications.count != deduplicatedNotifications.count {
+                print("✅ [NotificationViewModel] Deduplicated \(loadedNotifications.count - deduplicatedNotifications.count) duplicate cancellation notifications")
+            }
+            
+            notifications = deduplicatedNotifications
+            print("✅ [NotificationViewModel] Loaded \(notifications.count) notifications (after deduplication)")
             
             // Check for new notifications and trigger popup display immediately
             let currentIds = Set(notifications.map { $0.id })
@@ -79,6 +121,18 @@ final class NotificationViewModel: ObservableObject {
             print("✅ [NotificationViewModel] Notification deleted")
         } catch {
             print("❌ [NotificationViewModel] Error deleting notification: \(error.localizedDescription)")
+        }
+    }
+    
+    func deleteAllNotifications() async {
+        print("🔄 [NotificationViewModel] Deleting all notifications")
+        do {
+            try await service.deleteAllNotifications()
+            notifications.removeAll()
+            print("✅ [NotificationViewModel] All notifications deleted")
+        } catch {
+            print("❌ [NotificationViewModel] Error deleting all notifications: \(error.localizedDescription)")
+            errorMessage = "Erreur lors de la suppression des notifications"
         }
     }
 }

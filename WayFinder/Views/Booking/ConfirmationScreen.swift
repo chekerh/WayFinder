@@ -13,17 +13,18 @@ struct ConfirmationScreen: View {
     @Environment(\.presentationMode) var presentationMode
     let confirmationNumber: String
     let destination: FlightDestination?
+    var onBackToHome: (() -> Void)? = nil
     
     var body: some View {
         ZStack {
-            Color(red: 0.918, green: 0.949, blue: 1.0) // #EAF2FF
+            ThemeColors.background(colorScheme)
                 .ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 32) {
                     // Header with title
                     HStack {
-                        Text("Confirmation")
+                        Text("confirmation_title")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         Spacer()
@@ -46,11 +47,11 @@ struct ConfirmationScreen: View {
                         
                         // Confirmation message
                         VStack(spacing: 12) {
-                            Text("Réservation confirmée!")
+                            Text("confirmation_success_title")
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(Color(red: 0.133, green: 0.694, blue: 0.298))
                             
-                            Text("Votre réservation a été confirmée avec succès. Vous recevrez un email de confirmation sous peu.")
+                            Text("confirmation_success_message")
                                 .font(.body)
                                 .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 .multilineTextAlignment(.center)
@@ -61,13 +62,13 @@ struct ConfirmationScreen: View {
                     
                     // Reservation Details Card
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Détails de la réservation")
+                        Text("confirmation_details_title")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
                         VStack(spacing: 16) {
                             HStack {
-                                Text("Numéro de confirmation")
+                                Text("confirmation_number_label")
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 Spacer()
                                 Text(confirmationNumber)
@@ -76,10 +77,10 @@ struct ConfirmationScreen: View {
                             }
                             
                             HStack {
-                                Text("Statut")
+                                Text("confirmation_status")
                                     .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                                 Spacer()
-                                Text("Confirmé")
+                                Text("confirmation_status_confirmed")
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(Color(red: 0.133, green: 0.694, blue: 0.298))
                             }
@@ -100,7 +101,7 @@ struct ConfirmationScreen: View {
                     VStack(spacing: 16) {
                         // View My Reservations Button (Blue)
                         NavigationLink(destination: BookingHistoryView()) {
-                            Text("Voir mes réservations")
+                            Text("confirmation_view_reservations")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -112,9 +113,15 @@ struct ConfirmationScreen: View {
                         
                         // Return to Home Button (White with blue border)
                         Button(action: {
-                            dismiss()
+                            // Appeler le callback pour fermer toutes les vues et revenir à Home
+                            if let onBackToHome = onBackToHome {
+                                onBackToHome()
+                            } else {
+                                // Fallback: fermer cette vue seulement
+                                dismiss()
+                            }
                         }) {
-                            Text("Retour à l'accueil")
+                            Text("confirmation_back_home")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
                                 .frame(maxWidth: .infinity)

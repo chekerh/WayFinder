@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import UIKit
 
 @MainActor
 struct JourneyFeedView: View {
@@ -10,6 +11,7 @@ struct JourneyFeedView: View {
     
     @State private var selectedJourney: Journey?
     @State private var showVideoPlayer = false
+    @State private var journeyForComments: Journey?
     @State private var showDeleteConfirmation = false
     @State private var journeyToDelete: Journey?
     
@@ -83,13 +85,15 @@ struct JourneyFeedView: View {
     
     private var journeysListView: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(journeyViewModel.journeys) { journey in
                     journeyCard(for: journey)
+                        .id(journey.id)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
+            .padding(.bottom, 140)
         }
     }
     
@@ -100,11 +104,10 @@ struct JourneyFeedView: View {
             onLikeClick: {
                 Task {
                     await journeyViewModel.likeJourney(journeyId: journey.id)
-                    await journeyViewModel.loadJourneys()
                 }
             },
             onCommentClick: {
-                // TODO: Navigate to detail
+                journeyForComments = journey
             },
             onImageClick: {
                 selectedJourney = journey
@@ -130,24 +133,24 @@ struct JourneyFeedView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                ThemeColors.background(colorScheme)
-                    .ignoresSafeArea()
-                
-                contentView
-            }
-            .navigationTitle("Voyages partagés")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(ThemeColors.primaryText(colorScheme))
-                    }
+        ZStack {
+            ThemeColors.background(colorScheme)
+                .ignoresSafeArea()
+            
+            contentView
+        }
+        .navigationTitle("Voyages partagés")
+        .navigationBarTitleDisplayMode(.large)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
                 }
             }
+        }
             .alert("Supprimer le voyage", isPresented: $showDeleteConfirmation) {
                 Button("Supprimer", role: .destructive) {
                     if let journey = journeyToDelete {
@@ -179,9 +182,18 @@ struct JourneyFeedView: View {
                 await journeyViewModel.loadJourneys()
                 await profileViewModel.loadProfile()
             }
-            .refreshable {
-                await journeyViewModel.loadJourneys()
-            }
+        .refreshable {
+            await journeyViewModel.loadJourneys()
+        }
+        .sheet(item: $journeyForComments) { journey in
+            JourneyCommentsSheet(
+                journey: journey,
+                onClose: { journeyForComments = nil },
+                onJourneyUpdated: { updatedJourney in
+                    journeyViewModel.updateJourney(updatedJourney)
+                }
+            )
+            .presentationDetents([.large])
         }
     }
     
@@ -202,6 +214,10 @@ private struct JourneyCard: View {
     let onVideoClick: () -> Void
     let onGenerateVideoClick: () -> Void
     let onDeleteClick: () -> Void
+    
+    private var imageHeight: CGFloat {
+        min(320, UIScreen.main.bounds.width * 0.65)
+    }
     
     private var isOwnJourney: Bool {
         currentUserId != nil && journey.userId == currentUserId
@@ -363,7 +379,7 @@ private struct JourneyCard: View {
                                 .fill(ThemeColors.surface(colorScheme))
                         }
                     }
-                    .frame(height: 300)
+                    .frame(height: imageHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .onTapGesture {
                         onImageClick()
@@ -435,11 +451,12 @@ private struct JourneyCard: View {
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(ThemeColors.surface(colorScheme))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 10, x: 0, y: 6)
         )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 10, x: 0, y: 6)
     }
 }
 

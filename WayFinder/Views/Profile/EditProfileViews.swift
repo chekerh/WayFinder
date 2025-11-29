@@ -22,20 +22,20 @@ struct EditNameView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Prénom")
+                        Text("edit_profile_first_name")
                             .font(.headline)
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
-                        TextField("Entrez votre prénom", text: $viewModel.firstName)
+                        TextField(String(localized: "edit_profile_first_name_placeholder"), text: $viewModel.firstName)
                             .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Nom")
+                        Text("edit_profile_last_name")
                             .font(.headline)
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                         
-                        TextField("Entrez votre nom", text: $viewModel.lastName)
+                        TextField(String(localized: "edit_profile_last_name_placeholder"), text: $viewModel.lastName)
                             .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                     }
                     
@@ -54,7 +54,7 @@ struct EditNameView: View {
                             }
                         }
                     }) {
-                        Text("Enregistrer")
+                        Text("edit_profile_save")
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -68,11 +68,11 @@ struct EditNameView: View {
                 .padding(20)
             }
         }
-        .navigationTitle("Modifier le nom")
+        .navigationTitle(String(localized: "edit_profile_edit_name_title"))
         .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "edit_profile_cancel")) {
                         dismiss()
                     }
                 }
@@ -103,25 +103,25 @@ struct ChangePasswordView: View {
                                 .font(.headline)
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             
-                            SecureField("Entrez votre mot de passe actuel", text: $viewModel.currentPassword)
+                            SecureField(String(localized: "edit_profile_current_password_placeholder"), text: $viewModel.currentPassword)
                                 .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Nouveau mot de passe")
+                            Text("edit_profile_new_password")
                                 .font(.headline)
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             
-                            SecureField("Entrez votre nouveau mot de passe", text: $viewModel.newPassword)
+                            SecureField(String(localized: "edit_profile_new_password_placeholder"), text: $viewModel.newPassword)
                                 .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Confirmer le nouveau mot de passe")
+                            Text("edit_profile_confirm_password")
                                 .font(.headline)
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             
-                            SecureField("Confirmez votre nouveau mot de passe", text: $viewModel.confirmPassword)
+                            SecureField(String(localized: "edit_profile_confirm_password_placeholder"), text: $viewModel.confirmPassword)
                                 .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                         }
                         
@@ -140,7 +140,7 @@ struct ChangePasswordView: View {
                                 }
                             }
                         }) {
-                            Text("Changer le mot de passe")
+                            Text("edit_profile_change_password")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -154,11 +154,11 @@ struct ChangePasswordView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Changer le mot de passe")
+            .navigationTitle(String(localized: "edit_profile_change_password_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "edit_profile_cancel")) {
                         dismiss()
                     }
                 }
@@ -182,11 +182,11 @@ struct ChangeEmailView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Nouvelle adresse e-mail")
+                            Text("edit_profile_new_email")
                                 .font(.headline)
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             
-                            TextField("Entrez votre nouvelle adresse e-mail", text: $viewModel.email)
+                            TextField(String(localized: "edit_profile_new_email_placeholder"), text: $viewModel.email)
                                 .textFieldStyle(CustomTextFieldStyle(colorScheme: colorScheme))
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
@@ -207,7 +207,7 @@ struct ChangeEmailView: View {
                                 }
                             }
                         }) {
-                            Text("Changer l'adresse e-mail")
+                            Text("edit_profile_change_email")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -221,11 +221,11 @@ struct ChangeEmailView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Modifier l'adresse e-mail")
+            .navigationTitle(String(localized: "edit_profile_change_email_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "edit_profile_cancel")) {
                         dismiss()
                     }
                 }
@@ -244,6 +244,7 @@ struct EditProfileView: View {
     @State private var showEditName = false
     @State private var showChangeEmail = false
     @State private var showChangePassword = false
+    @State private var showTravelPreferences = false
     
     var body: some View {
         ZStack {
@@ -287,6 +288,18 @@ struct EditProfileView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    
+                    // Préférences de voyage
+                    Button(action: {
+                        showTravelPreferences = true
+                    }) {
+                        ProfileEditOptionCard(
+                            icon: "slider.horizontal.3",
+                            title: String(localized: "profile_preferences"),
+                            colorScheme: colorScheme
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(20)
             }
@@ -304,6 +317,10 @@ struct EditProfileView: View {
         .sheet(isPresented: $showChangePassword) {
             ChangePasswordView()
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showTravelPreferences) {
+            EditTravelPreferencesView()
+                .presentationDetents([.large])
         }
     }
 }

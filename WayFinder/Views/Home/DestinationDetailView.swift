@@ -91,11 +91,11 @@ struct DestinationDetailView: View {
                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
 
                 HStack(spacing: 32) {
-                    EquipmentItem(icon: "sun.max.fill", label: "ensoleillé")
-                    EquipmentItem(icon: "fork.knife", label: "Resto")
-                    EquipmentItem(icon: "wifi", label: "Wi-Fi\ngratuit")
-                    EquipmentItem(icon: "cup.and.saucer.fill", label: "Café")
-                    EquipmentItem(icon: "briefcase.fill", label: "Affaires")
+                    EquipmentItem(icon: "sun.max.fill", label: String(localized: "amenity_sunny"))
+                    EquipmentItem(icon: "fork.knife", label: String(localized: "amenity_restaurant"))
+                    EquipmentItem(icon: "wifi", label: String(localized: "amenity_wifi"))
+                    EquipmentItem(icon: "cup.and.saucer.fill", label: String(localized: "amenity_cafe"))
+                    EquipmentItem(icon: "briefcase.fill", label: String(localized: "amenity_business"))
                 }
             }
 
