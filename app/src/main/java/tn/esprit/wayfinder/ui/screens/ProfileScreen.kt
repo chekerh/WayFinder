@@ -1,6 +1,7 @@
 package tn.esprit.wayfinder.ui.screens
 
 import android.app.Application
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,8 +47,10 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
@@ -257,9 +260,7 @@ fun ProfileScreen(navController: NavController) {
                         navController.navigate("booking_history")
                     },
                     onShareJourneyClick = {
-                        if (canShareState?.canShare == true) {
-                            navController.navigate("share_journey")
-                        }
+                        navController.navigate("share_journey")
                     },
                     canShareJourney = canShareState?.canShare ?: false,
                     canShareState = canShareState,
@@ -279,6 +280,15 @@ fun ProfileScreen(navController: NavController) {
                     },
                     showLanguageDialog = showLanguageDialog,
                     onShowLanguageDialogChange = { show -> showLanguageDialog = show },
+                    isDarkModeEnabled = isDarkModeEnabled,
+                    themeManager = themeManager,
+                    onDarkModeToggle = {
+                        val newDarkModeState = !isDarkModeEnabled
+                        isDarkModeEnabled = newDarkModeState
+                        themeManager.setDarkModeEnabled(newDarkModeState)
+                        themeManager.setFollowSystemTheme(false)
+                        (context as? Activity)?.recreate()
+                    },
                     modifier = Modifier.padding(paddingValues)
                 )
             }
@@ -323,6 +333,9 @@ fun ProfileContent(
     onLanguageSelected: (String) -> Unit,
     showLanguageDialog: Boolean,
     onShowLanguageDialogChange: (Boolean) -> Unit,
+    isDarkModeEnabled: Boolean,
+    themeManager: ThemeManager,
+    onDarkModeToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val tokenManager = remember { TokenManager(context) }
@@ -412,11 +425,35 @@ fun ProfileContent(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
+            // Dark/Light Mode (First)
+            ProfileMenuItemWithToggle(
+                text = if (isDarkModeEnabled) 
+                    StringTranslator.translate(context, "Dark mode")
+                else 
+                    StringTranslator.translate(context, "Light mode"),
+                isDarkMode = isDarkModeEnabled,
+                onToggle = onDarkModeToggle
+            )
+            
             // Favoris
             ProfileMenuItem(
                 icon = Icons.Filled.Favorite,
                 text = StringTranslator.translate(context, "Favoris"),
                 onClick = { navController.navigate("favorites") }
+            )
+            
+            // Partager mon voyage
+            ProfileMenuItem(
+                icon = Icons.Filled.Share,
+                text = StringTranslator.translate(context, "Partager mon voyage"),
+                onClick = onShareJourneyClick
+            )
+            
+            // View Shared Journeys
+            ProfileMenuItem(
+                icon = Icons.Filled.History,
+                        text = StringTranslator.translate(context, "Voir les voyages partagés"),
+                onClick = { navController.navigate("journey_feed") }
             )
             
             // Language
@@ -438,13 +475,6 @@ fun ProfileContent(
                 icon = Icons.Filled.Schedule,
                     text = StringTranslator.translate(context, "Historique des réservations"),
                 onClick = { navController.navigate("booking_history") }
-            )
-            
-            // View Shared Journeys
-            ProfileMenuItem(
-                icon = Icons.Filled.Share,
-                        text = StringTranslator.translate(context, "Voir les voyages partagés"),
-                onClick = { navController.navigate("journey_feed") }
             )
         }
         
@@ -553,6 +583,183 @@ fun ProfileMenuItem(
                             rotationZ = 180f
                         }
                 )
+    }
+}
+
+@Composable
+fun ProfileMenuItemWithToggle(
+    text: String,
+    isDarkMode: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            // Sun icon for light mode, moon icon for dark mode
+            Icon(
+                imageVector = if (isDarkMode) Icons.Filled.DarkMode else Icons.Filled.LightMode,
+                contentDescription = if (isDarkMode) "Dark mode" else "Light mode",
+                tint = if (isDarkMode) Color(0xFFC0C0C0) else Color(0xFFFFD700),
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        // Day/Night Toggle Switch - Horizontal like the photo
+        DayNightToggleSwitch(
+            isDarkMode = isDarkMode,
+            onToggle = onToggle,
+            modifier = Modifier
+                .width(56.dp)
+                .height(32.dp)
+        )
+    }
+}
+
+@Composable
+fun DayNightToggleSwitch(
+    isDarkMode: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = if (isDarkMode) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "toggle_animation"
+    )
+    
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onToggle)
+    ) {
+        Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val width = size.width
+            val height = size.height
+            
+            // Day side colors with gradients
+            val daySkyColor1 = Color(0xFF87CEEB) // Light blue sky
+            val daySkyColor2 = Color(0xFFB0E0E6) // Lighter blue
+            val daySkyColor3 = Color(0xFF87CEEB) // Back to light blue
+            val sunColor = Color(0xFFFFD700) // Yellow sun
+            val cloudColor = Color.White
+            
+            // Night side colors with gradients
+            val nightSkyColor1 = Color(0xFF2C2C2C) // Dark charcoal grey
+            val nightSkyColor2 = Color(0xFF3A3A3A) // Slightly lighter grey
+            val nightSkyColor3 = Color(0xFF2C2C2C) // Back to dark
+            val moonColor = Color(0xFFC0C0C0) // Light grey moon
+            val moonCratersColor = Color(0xFF808080) // Darker grey for craters
+            val starColor = Color.White
+            
+            // Calculate diagonal division point
+            val diagonalOffset = height * 0.4f
+            val divisionX = width * (0.7f - 0.4f * animatedProgress)
+            
+            // Draw day side
+            val dayPath = Path().apply {
+                if (animatedProgress < 0.5f) {
+                    moveTo(0f, height)
+                    lineTo(0f, 0f)
+                    lineTo(divisionX + diagonalOffset, 0f)
+                    lineTo(divisionX - diagonalOffset, height)
+                    close()
+                } else {
+                    moveTo(divisionX + diagonalOffset, 0f)
+                    lineTo(width, 0f)
+                    lineTo(width, height)
+                    lineTo(divisionX - diagonalOffset, height)
+                    close()
+                }
+            }
+            drawPath(
+                path = dayPath,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(daySkyColor1, daySkyColor2, daySkyColor3),
+                    startX = 0f,
+                    endX = width
+                )
+            )
+            
+            // Draw sun
+            val sunRadius = width * 0.12f
+            val sunX = if (animatedProgress < 0.5f) width * 0.2f else width * 0.8f
+            val sunY = height * 0.3f
+            drawCircle(
+                color = sunColor,
+                radius = sunRadius,
+                center = Offset(sunX, sunY)
+            )
+            
+            // Draw clouds
+            val cloudY = height * 0.75f
+            val cloudBaseX = if (animatedProgress < 0.5f) width * 0.15f else width * 0.75f
+            drawCircle(color = cloudColor, radius = width * 0.06f, center = Offset(cloudBaseX, cloudY))
+            drawCircle(color = cloudColor, radius = width * 0.08f, center = Offset(cloudBaseX + width * 0.07f, cloudY))
+            drawCircle(color = cloudColor, radius = width * 0.06f, center = Offset(cloudBaseX + width * 0.14f, cloudY))
+            
+            // Draw night side
+            val nightPath = Path().apply {
+                if (animatedProgress < 0.5f) {
+                    moveTo(divisionX + diagonalOffset, 0f)
+                    lineTo(width, 0f)
+                    lineTo(width, height)
+                    lineTo(divisionX - diagonalOffset, height)
+                    close()
+                } else {
+                    moveTo(0f, height)
+                    lineTo(0f, 0f)
+                    lineTo(divisionX + diagonalOffset, 0f)
+                    lineTo(divisionX - diagonalOffset, height)
+                    close()
+                }
+            }
+            drawPath(
+                path = nightPath,
+                brush = Brush.horizontalGradient(
+                    colors = listOf(nightSkyColor1, nightSkyColor2, nightSkyColor3),
+                    startX = 0f,
+                    endX = width
+                )
+            )
+            
+            // Draw moon
+            val moonRadius = width * 0.12f
+            val moonX = if (animatedProgress < 0.5f) width * 0.75f else width * 0.25f
+            val moonY = height * 0.3f
+            drawCircle(
+                color = moonColor,
+                radius = moonRadius,
+                center = Offset(moonX, moonY)
+            )
+            
+            // Draw moon craters
+            drawCircle(color = moonCratersColor, radius = width * 0.025f, center = Offset(moonX - width * 0.03f, moonY - width * 0.025f))
+            drawCircle(color = moonCratersColor, radius = width * 0.02f, center = Offset(moonX + width * 0.025f, moonY + width * 0.02f))
+            
+            // Draw stars
+            val starSize = width * 0.015f
+            val starBaseX = if (animatedProgress < 0.5f) width * 0.6f else width * 0.2f
+            drawCircle(color = starColor, radius = starSize, center = Offset(starBaseX, height * 0.55f))
+            drawCircle(color = starColor, radius = starSize, center = Offset(starBaseX + width * 0.1f, height * 0.65f))
+            drawCircle(color = starColor, radius = starSize, center = Offset(starBaseX + width * 0.2f, height * 0.6f))
+            drawCircle(color = starColor, radius = starSize, center = Offset(starBaseX + width * 0.05f, height * 0.75f))
+            drawCircle(color = starColor, radius = starSize, center = Offset(starBaseX + width * 0.15f, height * 0.7f))
+        }
     }
 }
 

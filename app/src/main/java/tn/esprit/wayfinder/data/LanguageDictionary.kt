@@ -24,6 +24,8 @@ object LanguageDictionary {
         "Voir les voyages partagés" to "View shared journeys",
         "Apparence" to "Appearance",
         "Mode sombre" to "Dark mode",
+        "Dark mode" to "Dark mode",
+        "Light mode" to "Light mode",
         "Suivre le thème système" to "Follow system theme",
         "Le thème suit les paramètres système" to "Theme follows system settings",
         "Le thème est défini manuellement" to "Theme is set manually",
