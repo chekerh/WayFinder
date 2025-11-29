@@ -2,7 +2,6 @@ package tn.esprit.wayfinder.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +30,12 @@ import androidx.navigation.NavController
 @Composable
 fun CustomBottomNavigationBar(navController: NavController? = null) {
     val currentRoute = navController?.currentBackStackEntry?.destination?.route
-    val isDark = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
+    // Detect dark mode by calculating luminance from RGB values
+    // Luminance formula: 0.2126 * R + 0.7152 * G + 0.0722 * B
+    val bgColor = colorScheme.background
+    val luminance = 0.2126f * bgColor.red + 0.7152f * bgColor.green + 0.0722f * bgColor.blue
+    val isDark = luminance < 0.5f
     var selectedIndex by remember { 
         mutableStateOf(
             when (currentRoute) {
@@ -57,7 +61,7 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
     
     // iOS-style background color (adaptive to theme)
     val backgroundColor = if (isDark) {
-        MaterialTheme.colorScheme.surface
+        Color(0xFF000000) // Black background in dark mode
     } else {
         Color(0xFFFFFFFF)
     }
@@ -142,7 +146,12 @@ fun NavBarIcon(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
+    // Detect dark mode by calculating luminance from RGB values
+    // Luminance formula: 0.2126 * R + 0.7152 * G + 0.0722 * B
+    val bgColor = colorScheme.background
+    val luminance = 0.2126f * bgColor.red + 0.7152f * bgColor.green + 0.0722f * bgColor.blue
+    val isDark = luminance < 0.5f
     
     // iOS-style bubble gradient (blue gradient)
     val bubbleGradient = Brush.radialGradient(
