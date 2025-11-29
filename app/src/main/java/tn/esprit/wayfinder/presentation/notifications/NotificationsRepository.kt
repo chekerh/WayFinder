@@ -28,5 +28,9 @@ class NotificationsRepository(private val apiService: ApiService) {
     suspend fun deleteNotification(id: String): Map<String, String> {
         return apiService.deleteNotification(id)
     }
+
+    suspend fun deleteAllNotifications(): Map<String, String> {
+        return apiService.deleteAllNotifications()
+    }
 }
 

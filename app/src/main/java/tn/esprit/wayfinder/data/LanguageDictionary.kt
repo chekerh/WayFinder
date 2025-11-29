@@ -355,6 +355,10 @@ object LanguageDictionary {
         // Notifications Screen
         "Notifications" to "Notifications",
         "Tout marquer comme lu" to "Mark all as read",
+        "Supprimer toutes les notifications" to "Delete all notifications",
+        "Supprimer toutes les notifications ?" to "Delete all notifications?",
+        "Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible." to "Are you sure you want to delete all notifications? This action is irreversible.",
+        "Confirmer" to "Confirm",
         "Aucune notification" to "No notifications",
         "Vous n'avez pas de notifications pour le moment" to "You have no notifications at the moment",
         "Supprimer" to "Delete",

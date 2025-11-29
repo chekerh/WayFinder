@@ -118,6 +118,18 @@ class NotificationsViewModel(
         }
     }
 
+    fun deleteAllNotifications(onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                notificationsRepository.deleteAllNotifications()
+                loadNotifications() // Refresh list
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to delete all notifications")
+            }
+        }
+    }
+
     fun refreshUnreadCount() {
         viewModelScope.launch {
             try {

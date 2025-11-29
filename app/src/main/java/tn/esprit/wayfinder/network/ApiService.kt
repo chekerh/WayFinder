@@ -276,6 +276,9 @@ interface ApiService {
     @DELETE("notifications/{id}")
     suspend fun deleteNotification(@Path("id") id: String): Map<String, String>
 
+    @DELETE("notifications")
+    suspend fun deleteAllNotifications(): Map<String, String>
+
     // --- SOCIAL --- //
     @POST("social/follow")
     suspend fun followUser(@Body request: FollowUserRequest): FollowResponse

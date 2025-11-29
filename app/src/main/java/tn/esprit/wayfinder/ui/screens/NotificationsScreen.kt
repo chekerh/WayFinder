@@ -44,6 +44,7 @@ fun NotificationsScreen(navController: NavController) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by notificationsViewModel.uiState.collectAsState()
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         notificationsViewModel.loadNotifications()
@@ -71,13 +72,26 @@ fun NotificationsScreen(navController: NavController) {
                 actions = {
                     when (val state = uiState) {
                         is NotificationsUiState.Success -> {
-                            if (state.notifications.any { !it.isRead }) {
-                                TextButton(
-                                    onClick = {
-                                        notificationsViewModel.markAllAsRead()
+                            if (state.notifications.isNotEmpty()) {
+                                // Mark all as read button
+                                if (state.notifications.any { !it.isRead }) {
+                                    TextButton(
+                                        onClick = {
+                                            notificationsViewModel.markAllAsRead()
+                                        }
+                                    ) {
+                                        Text(StringTranslator.translate(context, "Tout marquer comme lu"), fontSize = 12.sp)
                                     }
+                                }
+                                // Delete all button
+                                TextButton(
+                                    onClick = { showDeleteAllDialog = true }
                                 ) {
-                                    Text(StringTranslator.translate(context, "Tout marquer comme lu"), fontSize = 12.sp)
+                                    Text(
+                                        StringTranslator.translate(context, "Supprimer toutes les notifications"),
+                                        fontSize = 12.sp,
+                                        color = Color.Red
+                                    )
                                 }
                             }
                         }
@@ -197,6 +211,51 @@ fun NotificationsScreen(navController: NavController) {
             }
             else -> {}
         }
+    }
+    
+    // Delete All Confirmation Dialog
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            title = {
+                Text(
+                    text = StringTranslator.translate(context, "Supprimer toutes les notifications ?"),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = StringTranslator.translate(
+                        context,
+                        "Êtes-vous sûr de vouloir supprimer toutes les notifications ? Cette action est irréversible."
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        notificationsViewModel.deleteAllNotifications {
+                            showDeleteAllDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.Red
+                    )
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Confirmer"),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteAllDialog = false }
+                ) {
+                    Text(StringTranslator.translate(context, "Annuler"))
+                }
+            }
+        )
     }
 }
 
