@@ -26,9 +26,7 @@ struct OnboardingScreen: View {
                         EmptyView()
                     case .loading:
                         LoadingView(onSkip: {
-                            Task {
-                                await viewModel.skipOnboarding()
-                            }
+                            viewModel.skipOnboarding()
                         })
                     case .questionLoaded(let question, let progress):
                         QuestionView(
@@ -36,15 +34,11 @@ struct OnboardingScreen: View {
                             progress: progress,
                             selectedAnswers: $selectedAnswers,
                             onAnswer: { answer in
-                                Task {
-                                    await viewModel.submitAnswer(questionId: question.id, answer: answer)
-                                    selectedAnswers = []
-                                }
+                                viewModel.submitAnswer(questionId: question.id, answer: answer)
+                                selectedAnswers = []
                             },
                             onSkip: {
-                                Task {
-                                    await viewModel.skipOnboarding()
-                                }
+                                viewModel.skipOnboarding()
                             }
                         )
                     case .completed(let message):
@@ -53,9 +47,7 @@ struct OnboardingScreen: View {
                         }
                     case .error(let message):
                         ErrorView(message: message) {
-                            Task {
-                                await viewModel.startOnboarding()
-                            }
+                            viewModel.startOnboarding()
                         }
                     }
                 }
@@ -66,7 +58,7 @@ struct OnboardingScreen: View {
             }
             .task {
                 await viewModel.verifyProgress()
-                await viewModel.startOnboarding()
+                viewModel.startOnboarding()
             }
         }
     }
@@ -130,7 +122,7 @@ struct QuestionView: View {
                             OptionButton(
                                 option: option,
                                 isSelected: selectedAnswers.contains(option.value),
-                                questionType: question.type,
+                                questionType: question.questionType,
                                 onTap: {
                                     handleOptionTap(option.value)
                                 }
@@ -138,14 +130,14 @@ struct QuestionView: View {
                         }
                     }
                     .padding(.horizontal)
-                } else if question.type == .text {
+                } else if question.questionType == .text {
                     TextField("Your answer", text: Binding(
                         get: { selectedAnswers.first ?? "" },
                         set: { selectedAnswers = [$0] }
                     ))
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding(.horizontal)
-                } else if question.type == .number {
+                } else if question.questionType == .number {
                     TextField("Enter number", text: Binding(
                         get: { selectedAnswers.first ?? "" },
                         set: { selectedAnswers = [$0] }
@@ -189,7 +181,7 @@ struct QuestionView: View {
     
     private var canSubmit: Bool {
         if question.required {
-            if question.type == .multipleChoice {
+            if question.questionType == .multipleChoice {
                 let min = question.minSelections ?? 1
                 let max = question.maxSelections ?? Int.max
                 return selectedAnswers.count >= min && selectedAnswers.count <= max
@@ -201,7 +193,7 @@ struct QuestionView: View {
     }
     
     private func handleOptionTap(_ value: String) {
-        if question.type == .multipleChoice {
+        if question.questionType == .multipleChoice {
             if selectedAnswers.contains(value) {
                 selectedAnswers.removeAll { $0 == value }
             } else {
@@ -219,9 +211,9 @@ struct QuestionView: View {
         guard canSubmit else { return }
         
         let answer: AnswerValue
-        if question.type == .multipleChoice {
+        if question.questionType == .multipleChoice {
             answer = .array(selectedAnswers)
-        } else if question.type == .number, let first = selectedAnswers.first, let number = Double(first) {
+        } else if question.questionType == .number, let first = selectedAnswers.first, let number = Double(first) {
             answer = .number(number)
         } else if let first = selectedAnswers.first {
             answer = .string(first)
@@ -238,7 +230,7 @@ struct OptionButton: View {
     @Environment(\.colorScheme) private var colorScheme
     let option: QuestionOption
     let isSelected: Bool
-    let questionType: OnboardingQuestion.QuestionType
+    let questionType: QuestionType
     let onTap: () -> Void
     
     var body: some View {

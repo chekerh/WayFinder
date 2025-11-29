@@ -2,6 +2,14 @@ import Foundation
 
 // MARK: - Onboarding Question Models
 
+enum QuestionType: String, Codable {
+    case singleChoice = "single_choice"
+    case multipleChoice = "multiple_choice"
+    case text = "text"
+    case number = "number"
+    case date = "date"
+}
+
 struct OnboardingQuestion: Codable, Identifiable {
     let id: String
     let type: String
@@ -19,6 +27,11 @@ struct OnboardingQuestion: Codable, Identifiable {
         case required
         case minSelections = "min_selections"
         case maxSelections = "max_selections"
+    }
+    
+    // Computed property to convert String type to QuestionType enum
+    var questionType: QuestionType {
+        return QuestionType(rawValue: type) ?? .text
     }
 }
 
