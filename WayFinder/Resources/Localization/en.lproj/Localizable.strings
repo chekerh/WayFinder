@@ -106,6 +106,7 @@
 "profile_change_email" = "Change email address";
 "profile_settings" = "Settings";
 "profile_preferences" = "Preferences";
+"profile_retake_onboarding" = "Retake Onboarding";
 "profile_logout" = "Log out";
 "profile_logout_confirm_title" = "Sign out?";
 "profile_logout_confirm_message" = "Are you sure you want to log out of WayFinder?";

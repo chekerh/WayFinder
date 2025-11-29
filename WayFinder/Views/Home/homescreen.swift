@@ -22,6 +22,8 @@ struct HomeScreen: View {
     @State private var navigateToPostId: String? = nil // Pour naviguer vers un post spécifique
     @State private var showDiscussionView = false // Pour afficher DiscussionView au lieu de ChatView
     @State private var navigateToOnboarding = false // Pour naviguer vers l'onboarding
+    @State private var personalizedDestinations: [FlightDestination] = []
+    @State private var isLoadingPersonalized = false
     let initialName: String?
     
     init(initialName: String? = nil) {
@@ -98,9 +100,26 @@ struct HomeScreen: View {
                                 RegionSection(
                                     selectedRegion: $selectedRegion,
                                     onRegionSelected: { region in
-                                        selectedRegion = selectedRegion == region ? nil : region
-                                        Task {
-                                            await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                        // Toggle logic: if clicking the same region, deselect it
+                                        if selectedRegion == region {
+                                            selectedRegion = nil
+                                            // Load regular flights when deselecting
+                                            Task {
+                                                await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                            }
+                                        } else {
+                                            // Select the new region
+                                            selectedRegion = region
+                                            
+                                            Task {
+                                                if region == "Preferences" {
+                                                    // Fetch personalized recommendations based on onboarding preferences
+                                                    await loadPersonalizedRecommendations()
+                                                } else {
+                                                    // Load regular flights filtered by region
+                                                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                                }
+                                            }
                                         }
                                     }
                                 )
@@ -125,55 +144,83 @@ struct HomeScreen: View {
                                     .padding(.horizontal, 24)
                                     
                                     // Destinations carousel
-                                    switch catalogViewModel.uiState {
-                                    case .loading:
-                                        ProgressView()
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 340)
-                                    case .success(let destinations, let fromCache, _, _):
-                                        if fromCache {
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "wifi.slash")
-                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0)) // #EF6C00
-                                                Text("home_offline_cache")
-                                                    .font(.caption)
-                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
-                                            }
-                                            .padding(.horizontal, 24)
-                                            .padding(.bottom, 12)
-                                        }
-                                        
-                                        let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
-                                        let displayDestinations = Array(filteredDestinations.prefix(6))
-                                        
-                                        if displayDestinations.isEmpty {
-                                            Text("home_no_destinations")
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                    // Handle Preferences selection separately
+                                    if selectedRegion == "Preferences" {
+                                        if isLoadingPersonalized {
+                                            ProgressView()
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 340)
+                                        } else if personalizedDestinations.isEmpty {
+                                            VStack(spacing: 16) {
+                                                Text("No personalized recommendations available. Please complete the onboarding form to get personalized suggestions.")
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                    .multilineTextAlignment(.center)
+                                                    .padding(.horizontal)
+                                                Button("Complete Onboarding") {
+                                                    navigateToOnboarding = true
+                                                }
+                                                .buttonStyle(.borderedProminent)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 340)
                                         } else {
                                             DestinationsSection(
-                                                destinations: displayDestinations,
+                                                destinations: Array(personalizedDestinations.prefix(6)),
                                                 favoritesViewModel: favoritesViewModel
                                             )
                                         }
-                                    case .error(let message):
-                                        VStack(spacing: 16) {
-                                            Text(message)
-                                                .foregroundColor(.red)
-                                                .multilineTextAlignment(.center)
-                                                .padding(.horizontal)
-                                            Button(String(localized: "home_retry")) {
-                                                Task {
-                                                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                    } else {
+                                        // Show regular flights filtered by region
+                                        switch catalogViewModel.uiState {
+                                        case .loading:
+                                            ProgressView()
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 340)
+                                        case .success(let destinations, let fromCache, _, _):
+                                            if fromCache {
+                                                HStack(spacing: 8) {
+                                                    Image(systemName: "wifi.slash")
+                                                        .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0)) // #EF6C00
+                                                    Text("home_offline_cache")
+                                                        .font(.caption)
+                                                        .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
                                                 }
+                                                .padding(.horizontal, 24)
+                                                .padding(.bottom, 12)
                                             }
-                                            .buttonStyle(.borderedProminent)
+                                            
+                                            let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
+                                            let displayDestinations = Array(filteredDestinations.prefix(6))
+                                            
+                                            if displayDestinations.isEmpty {
+                                                Text("home_no_destinations")
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                    .frame(maxWidth: .infinity)
+                                                    .frame(height: 340)
+                                            } else {
+                                                DestinationsSection(
+                                                    destinations: displayDestinations,
+                                                    favoritesViewModel: favoritesViewModel
+                                                )
+                                            }
+                                        case .error(let message):
+                                            VStack(spacing: 16) {
+                                                Text(message)
+                                                    .foregroundColor(.red)
+                                                    .multilineTextAlignment(.center)
+                                                    .padding(.horizontal)
+                                                Button(String(localized: "home_retry")) {
+                                                    Task {
+                                                        await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                                    }
+                                                }
+                                                .buttonStyle(.borderedProminent)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 340)
+                                        case .idle:
+                                            EmptyView()
                                         }
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 340)
-                                    case .idle:
-                                        EmptyView()
                                     }
                                 }
                                 
@@ -267,10 +314,12 @@ struct HomeScreen: View {
                 await viewModel.loadCountries(for: "europe")
             }
         }
-        .onChange(of: selectedRegion) {
-            // Reload flights when region changes
-            Task {
-                await catalogViewModel.loadRecommendedFlights(showAll: false)
+        .onChange(of: selectedRegion) { oldValue, newValue in
+            // Reload flights when region changes (but not if Preferences is selected - handled separately)
+            if newValue != "Preferences" {
+                Task {
+                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+                }
             }
         }
         .sheet(isPresented: $showNotifications) {
@@ -299,6 +348,37 @@ struct HomeScreen: View {
         case "Amerique": return String(localized: "region_america")
         case "Australie": return String(localized: "region_australia")
         default: return key
+        }
+    }
+    
+    private func loadPersonalizedRecommendations() async {
+        isLoadingPersonalized = true
+        defer { isLoadingPersonalized = false }
+        
+        do {
+            let payload = try await RecommendationService.shared.getPersonalizedRecommendationsPayload(type: "destinations", limit: 10)
+            
+            // Convert PersonalizedDestination to FlightDestination
+            personalizedDestinations = (payload.destinations ?? []).map { personalizedDest in
+                FlightDestination(
+                    id: personalizedDest.id,
+                    name: personalizedDest.name,
+                    city: personalizedDest.name,
+                    country: "", // PersonalizedDestination doesn't have country
+                    imageUrl: personalizedDest.imageUrl,
+                    price: personalizedDest.estimatedCost?.flight,
+                    currency: personalizedDest.estimatedCost?.currency ?? "EUR",
+                    description: personalizedDest.reason ?? personalizedDest.highlights?.joined(separator: ", ") ?? "Personalized recommendation",
+                    departureDate: nil,
+                    arrivalDate: nil,
+                    airline: nil
+                )
+            }
+            
+            print("✅ [HomeScreen] Loaded \(personalizedDestinations.count) personalized destinations")
+        } catch {
+            print("❌ [HomeScreen] Error loading personalized recommendations: \(error.localizedDescription)")
+            personalizedDestinations = []
         }
     }
     

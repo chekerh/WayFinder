@@ -25,6 +25,25 @@ final class RecommendationService {
         return makeResponse(from: payload)
     }
     
+    /// Récupère les recommandations personnalisées et retourne le payload complet
+    func getPersonalizedRecommendationsPayload(
+        type: String = "all",
+        limit: Int = 10
+    ) async throws -> PersonalizedRecommendationsPayload {
+        let queryItems = [
+            URLQueryItem(name: "type", value: type),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "recommendations/personalized",
+            queryItems: queryItems
+        )
+        
+        return try await APIService.shared.request(builder, decodeTo: PersonalizedRecommendationsPayload.self)
+    }
+    
     /// Régénère les recommandations personnalisées
     func regenerateRecommendations() async throws -> RecommendationResponse {
         let builder = DefaultRequest(

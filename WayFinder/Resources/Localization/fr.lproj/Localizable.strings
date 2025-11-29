@@ -108,6 +108,7 @@
 "profile_change_email" = "Modifier l'adresse e-mail";
 "profile_settings" = "Réglages";
 "profile_preferences" = "Préférences";
+"profile_retake_onboarding" = "Refaire le questionnaire";
 "profile_logout" = "Déconnexion";
 "profile_logout_confirm_title" = "Confirmer la déconnexion";
 "profile_logout_confirm_message" = "Souhaites-tu vraiment te déconnecter ?";
