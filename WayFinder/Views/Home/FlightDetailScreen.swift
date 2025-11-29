@@ -46,19 +46,63 @@ struct FlightDetailScreen: View {
                     }
                     .padding()
                 } else if let destination = destination ?? loadedDestination ?? viewModel.destination {
-                    ZStack(alignment: .bottom) {
-                        // Scrollable content - full screen width and height
-                        ScrollView(showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 0) {
-                                // Top navigation bar with back button and Share/Favorite buttons - scrolls with content
+                    // Scrollable content - full screen width and height with safe area respect
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Header Image with navigation buttons overlay - Full screen at top
+                            ZStack(alignment: .top) {
+                                // Image - takes full width including safe areas
+                                if let imageUrl = destination.imageUrl, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            LinearGradient(
+                                                colors: [Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0), Color(red: 0x2E/255.0, green: 0x5C/255.0, blue: 0x8A/255.0)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            .frame(height: 380)
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(height: 380)
+                                                .clipped()
+                                        case .failure:
+                                            LinearGradient(
+                                                colors: [Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0), Color(red: 0x2E/255.0, green: 0x5C/255.0, blue: 0x8A/255.0)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            .frame(height: 380)
+                                        @unknown default:
+                                            LinearGradient(
+                                                colors: [Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0), Color(red: 0x2E/255.0, green: 0x5C/255.0, blue: 0x8A/255.0)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            .frame(height: 380)
+                                        }
+                                    }
+                                } else {
+                                    // Gradient fallback si pas d'image
+                                    LinearGradient(
+                                        colors: [Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0), Color(red: 0x2E/255.0, green: 0x5C/255.0, blue: 0x8A/255.0)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                    .frame(height: 380)
+                                }
+                                
+                                // Navigation buttons overlay on image (en haut comme Android) - respect safe area
                                 HStack {
                                     Button(action: { dismiss() }) {
                                         Image(systemName: "chevron.left")
                                             .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                                            .foregroundColor(.white)
                                             .frame(width: 48, height: 48)
-                                            .background(ThemeColors.surface(colorScheme).opacity(0.9))
-                                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                                            .background(Color.black.opacity(0.3))
+                                            .clipShape(Circle())
                                     }
                                     .buttonStyle(.plain)
                                     
@@ -70,10 +114,10 @@ struct FlightDetailScreen: View {
                                         }) {
                                             Image(systemName: "square.and.arrow.up")
                                                 .font(.system(size: 20, weight: .semibold))
-                                                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                                                .foregroundColor(.white)
                                                 .frame(width: 48, height: 48)
-                                                .background(ThemeColors.surface(colorScheme).opacity(0.9))
-                                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                                .background(Color.black.opacity(0.3))
+                                                .clipShape(Circle())
                                         }
                                         .buttonStyle(.plain)
                                         
@@ -82,269 +126,280 @@ struct FlightDetailScreen: View {
                                         }) {
                                             Image(systemName: "heart")
                                                 .font(.system(size: 20, weight: .semibold))
-                                                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                                                .foregroundColor(.white)
                                                 .frame(width: 48, height: 48)
-                                                .background(ThemeColors.surface(colorScheme).opacity(0.9))
-                                                .clipShape(RoundedRectangle(cornerRadius: 24))
+                                                .background(Color.black.opacity(0.3))
+                                                .clipShape(Circle())
                                         }
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.top, max(geometry.safeAreaInsets.top + 8, 8))
-                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, geometry.safeAreaInsets.top + 8)
+                                .padding(.leading, geometry.safeAreaInsets.leading + 16)
+                                .padding(.trailing, geometry.safeAreaInsets.trailing + 16)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 380)
+                            .ignoresSafeArea(edges: .horizontal)
                                 
-                                // Destination Title, Country, Price - starts below navigation buttons
-                                Text(destination.name)
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                    .padding(.top, 16)  // Spacing after navigation buttons
-                                
-                                if !destination.country.isEmpty {
-                                    Text(destination.country)
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                        .padding(.top, 4)
-                                }
-                                
-                                if let price = destination.price, price > 0 {
-                                    Text("\(Int(price)) \(destination.currency)")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                                        .padding(.top, 8)
-                                }
-                                
-                                Spacer()
-                                    .frame(height: 16)  // Spacing before description
-                                
-                                // Description du pays - TOUJOURS affichée (comme Android)
-                                // La description doit être visible entre le prix et les équipements
-                                Text(getDescriptionText(for: destination))
-                                    .font(.system(size: 16))
-                                    .foregroundColor(ThemeColors.secondaryText(colorScheme))  // Use foregroundColor instead of foregroundStyle for better visibility
-                                    .lineSpacing(8)  // lineHeight 24sp = 8pt line spacing (comme Android)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .multilineTextAlignment(.leading)
-                                    .padding(.vertical, 8)
-                                    .fixedSize(horizontal: false, vertical: true)  // Allow text to wrap
-                                
-                                // Spacing between description and amenities
-                                Spacer()
-                                    .frame(height: 24)
-                                
-                                // Équipements disponibles - avec bordure grise (full width)
+                                // Content Card with rounded top corners (overlaps image)
                                 VStack(alignment: .leading, spacing: 0) {
-                                    Text("flight_amenities_title")
-                                        .font(.system(size: 18, weight: .bold))
+                                    // Destination Title, Country, Price
+                                    Text(destination.name)
+                                        .font(.system(size: 28, weight: .bold))
                                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                        .padding(.top, 16)
+                                        .padding(.horizontal, 20)
+                                    
+                                    if !destination.country.isEmpty {
+                                        Text(destination.country)
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                            .padding(.top, 4)
+                                            .padding(.horizontal, 20)
+                                    }
+                                    
+                                    if let price = destination.price, price > 0 {
+                                        Text("\(Int(price)) \(destination.currency)")
+                                            .font(.system(size: 24, weight: .bold))
+                                            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                            .padding(.top, 8)
+                                            .padding(.horizontal, 20)
+                                    }
                                     
                                     Spacer()
-                                        .frame(height: 24)  // Increased spacing after title
+                                        .frame(height: 16)
                                     
-                                    HStack {
+                                    // Description du pays - TOUJOURS affichée (comme Android)
+                                    Text(getDescriptionText(for: destination))
+                                        .font(.system(size: 16))
+                                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                        .lineSpacing(8)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 20)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    
+                                    // Spacing between description and amenities
+                                    Spacer()
+                                        .frame(height: 24)
+                                    
+                                    // Équipements disponibles - avec bordure grise (full width)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text("flight_amenities_title")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                        
                                         Spacer()
-                                        FeatureItem(name: String(localized: "amenity_sunny"), icon: "sun.max.fill")
-                                        Spacer()
-                                        FeatureItem(name: String(localized: "amenity_restaurant"), icon: "fork.knife")
-                                        Spacer()
-                                        FeatureItem(name: String(localized: "amenity_wifi"), icon: "wifi")
-                                        Spacer()
-                                        FeatureItem(name: String(localized: "amenity_cafe"), icon: "cup.and.saucer.fill")
-                                        Spacer()
-                                        FeatureItem(name: String(localized: "amenity_business"), icon: "building.2.fill")
-                                        Spacer()
+                                            .frame(height: 24)
+                                        
+                                        HStack {
+                                            Spacer()
+                                            FeatureItem(name: String(localized: "amenity_sunny"), icon: "sun.max.fill")
+                                            Spacer()
+                                            FeatureItem(name: String(localized: "amenity_restaurant"), icon: "fork.knife")
+                                            Spacer()
+                                            FeatureItem(name: String(localized: "amenity_wifi"), icon: "wifi")
+                                            Spacer()
+                                            FeatureItem(name: String(localized: "amenity_cafe"), icon: "cup.and.saucer.fill")
+                                            Spacer()
+                                            FeatureItem(name: String(localized: "amenity_business"), icon: "building.2.fill")
+                                            Spacer()
+                                        }
                                     }
-                                }
-                                .padding(20)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(ThemeColors.surface(colorScheme))
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)  // Light gray border
-                                )
-                                
-                                // Spacing between amenities and flight info
-                                Spacer()
-                                    .frame(height: 24)
-                                
-                                // Flight Information - White card with gray border (full width)
-                                VStack(alignment: .leading, spacing: 16) {
-                                    Text("flight_info_title")
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                    .padding(20)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(ThemeColors.surface(colorScheme))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
                                     
-                                    // Departure and Arrival - Dates
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("flight_departure")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                            
-                                            if let departureDate = destination.departureDate {
-                                                Text(formatDate(departureDate, format: "date"))
-                                                    .font(.system(size: 18, weight: .semibold))
-                                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                            } else {
-                                                Text("generic_not_available")
-                                                    .font(.system(size: 18, weight: .semibold))
+                                    // Spacing between amenities and flight info
+                                    Spacer()
+                                        .frame(height: 24)
+                                    
+                                    // Flight Information - White card with gray border (full width)
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("flight_info_title")
+                                            .font(.system(size: 20, weight: .bold))
+                                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                        
+                                        // Departure and Arrival - Dates
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text("flight_departure")
+                                                    .font(.system(size: 14))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                
+                                                if let departureDate = destination.departureDate {
+                                                    Text(formatDate(departureDate, format: "date"))
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                                        .lineLimit(1)
+                                                        .minimumScaleFactor(0.8)
+                                                } else {
+                                                    Text("generic_not_available")
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                }
                                             }
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            
+                                            Image(systemName: "airplane")
+                                                .font(.system(size: 32))
+                                                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                                .frame(width: 40)
+                                            
+                                            VStack(alignment: .trailing, spacing: 4) {
+                                                Text("flight_arrival")
+                                                    .font(.system(size: 14))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                
+                                                if let arrivalDate = destination.arrivalDate {
+                                                    Text(formatDate(arrivalDate, format: "date"))
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                                        .lineLimit(1)
+                                                        .minimumScaleFactor(0.8)
+                                                } else {
+                                                    Text("generic_not_available")
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .trailing)
                                         }
                                         
-                                        Spacer()
-                                        
-                                        Image(systemName: "airplane")
-                                            .font(.system(size: 32))
-                                            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                                        
-                                        Spacer()
-                                        
-                                        VStack(alignment: .trailing, spacing: 4) {
-                                            Text("flight_arrival")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                        // Times (heures) - directly below dates
+                                        HStack {
+                                            if let departureDate = destination.departureDate {
+                                                Text(formatDate(departureDate, format: "time"))
+                                                    .font(.system(size: 16))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                            } else {
+                                                Spacer()
+                                            }
+                                            
+                                            Spacer()
+                                                .frame(width: 40)
                                             
                                             if let arrivalDate = destination.arrivalDate {
-                                                Text(formatDate(arrivalDate, format: "date"))
-                                                    .font(.system(size: 18, weight: .semibold))
-                                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                                Text(formatDate(arrivalDate, format: "time"))
+                                                    .font(.system(size: 16))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                    .frame(maxWidth: .infinity, alignment: .trailing)
                                             } else {
-                                                Text("generic_not_available")
-                                                    .font(.system(size: 18, weight: .semibold))
+                                                Spacer()
                                             }
                                         }
+                                        .padding(.top, 4)
+                                        
+                                        // Airline and Duration - directly below times
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text("flight_airline")
+                                                    .font(.system(size: 14))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                Text(destination.airline ?? "N/A")
+                                                    .font(.system(size: 16, weight: .medium))
+                                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                                    .lineLimit(1)
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            
+                                            VStack(alignment: .trailing, spacing: 4) {
+                                                Text("flight_duration")
+                                                    .font(.system(size: 14))
+                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                Text(calculateDuration(departureDate: destination.departureDate, arrivalDate: destination.arrivalDate))
+                                                    .font(.system(size: 16, weight: .medium))
+                                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                            }
+                                            .frame(maxWidth: .infinity, alignment: .trailing)
+                                        }
+                                        .padding(.top, 4)
                                     }
+                                    .padding(20)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(ThemeColors.surface(colorScheme))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
                                     
-                                    // Times (heures) - directly below dates
-                                    HStack {
-                                        if let departureDate = destination.departureDate {
-                                            Text(formatDate(departureDate, format: "time"))
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                        } else {
-                                            Spacer()
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Spacer()  // Space for airplane icon
-                                        
-                                        Spacer()
-                                        
-                                        if let arrivalDate = destination.arrivalDate {
-                                            Text(formatDate(arrivalDate, format: "time"))
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                        } else {
-                                            Spacer()
-                                        }
-                                    }
-                                    .padding(.top, 4)
+                                    // Spacing before reviews
+                                    Spacer()
+                                        .frame(height: 24)
                                     
-                                    // Airline and Duration - directly below times (reduced spacing)
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("flight_airline")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                            Text(destination.airline ?? "N/A")
-                                                .font(.system(size: 16, weight: .medium))
-                                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                    // Reviews Section
+                                    ReviewsSection(itemType: "flight", itemId: destination.id)
+                                        .padding(.horizontal, 20)
+                                    
+                                    // Spacing before button
+                                    Spacer()
+                                        .frame(height: 24)
+                                    
+                                    // Book button - inside ScrollView (scrolls with content)
+                                    NavigationLink(destination: ReservationScreen(
+                                        destinationId: destination.id,
+                                        destination: destination,
+                                        onBackToHome: {
+                                            // Fermer FlightDetailScreen pour revenir à Home
+                                            // Utiliser un petit délai pour s'assurer que ReservationScreen est fermé d'abord
+                                            Task { @MainActor in
+                                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
+                                                dismiss() // Ferme FlightDetailScreen et revient à HomeScreen
+                                            }
                                         }
-                                        
-                                        Spacer()
-                                        
-                                        VStack(alignment: .trailing, spacing: 4) {
-                                            Text("flight_duration")
-                                                .font(.system(size: 14))
-                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                            Text(calculateDuration(departureDate: destination.departureDate, arrivalDate: destination.arrivalDate))
-                                                .font(.system(size: 16, weight: .medium))
-                                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                        }
+                                    )) {
+                                        Text("flight_book")
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(.black)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 56)
+                                            .background(Color(red: 1.0, green: 0.757, blue: 0.027))
+                                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                                            .shadow(color: Color(red: 1.0, green: 0.757, blue: 0.027).opacity(0.3), radius: 8, x: 0, y: 4)
                                     }
-                                    .padding(.top, 4)  // Reduced from 8 to 4 to match design
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 20)
+                                    .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                                 }
-                                .padding(20)
-                                .frame(maxWidth: .infinity)
+                                .padding(.top, 0)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(ThemeColors.surface(colorScheme))
+                                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                        .fill(ThemeColors.background(colorScheme))
                                 )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)  // Light gray border
-                                )
-                                
-                                // Spacing before reviews
-                                Spacer()
-                                    .frame(height: 24)
-                                
-                                // Reviews Section
-                                ReviewsSection(itemType: "flight", itemId: destination.id)
-                                
-                                // Reduced bottom spacing for content before fixed buttons - no excessive space
-                                Spacer()
-                                    .frame(height: 24)  // Minimal space before buttons
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 0)
-                            .padding(.bottom, 24)
+                                .offset(y: -60) // Overlap image slightly
                         }
                         .background(ThemeColors.background(colorScheme))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.bottom, 140)  // Padding to prevent content from being hidden behind buttons
-                        
-                        // Fixed bottom button - always visible at the bottom (full width)
-                        VStack(spacing: 0) {
-                            Divider()
-                                .background(ThemeColors.secondaryText(colorScheme).opacity(0.2))
-                            
-                            NavigationLink(destination: ReservationScreen(
-                                destinationId: destination.id,
-                                destination: destination,
-                                onBackToHome: {
-                                    // Fermer FlightDetailScreen pour revenir à Home
-                                    // Utiliser un petit délai pour s'assurer que ReservationScreen est fermé d'abord
-                                    Task { @MainActor in
-                                        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
-                                        dismiss() // Ferme FlightDetailScreen et revient à HomeScreen
-                                    }
-                                }
-                            )) {
-                                Text("flight_book")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 56)
-                                    .background(Color(red: 1.0, green: 0.757, blue: 0.027))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: Color(red: 1.0, green: 0.757, blue: 0.027).opacity(0.3), radius: 8, x: 0, y: 4)
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 20)
-                            .padding(.bottom, max(geometry.safeAreaInsets.bottom + 20, 20))
-                            .background(ThemeColors.background(colorScheme))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .zIndex(999)  // Ensure button is on top
                     }
+                    .padding(.leading, geometry.safeAreaInsets.leading)
+                    .padding(.trailing, geometry.safeAreaInsets.trailing)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-        }
-        .navigationBarHidden(true)
-        .task {
-            if destination == nil && loadedDestination == nil {
-                await viewModel.loadDestination(id: destinationId)
-                loadedDestination = viewModel.destination
+            .navigationBarHidden(true)
+            .task {
+                if destination == nil && loadedDestination == nil {
+                    await viewModel.loadDestination(id: destinationId)
+                    loadedDestination = viewModel.destination
+                }
             }
-        }
-        .onAppear {
-            if let destination = destination {
-                loadedDestination = destination
+            .onAppear {
+                if let destination = destination {
+                    loadedDestination = destination
+                }
             }
         }
     }

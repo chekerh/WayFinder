@@ -8,6 +8,8 @@ struct ChatView: View {
     @State private var showModelSelector: Bool = false
     @State private var errorMessage: String?
     @FocusState private var isInputFocused: Bool
+    @State private var selectedDestination: FlightDestination? = nil
+    @State private var showFlightDetail = false
     var onBackToHome: (() -> Void)? = nil
     
     var body: some View {
@@ -28,7 +30,12 @@ struct ChatView: View {
                             }
                             
                             ForEach(viewModel.messages) { message in
-                                ChatMessageBubble(message: message)
+                                ChatMessageBubble(
+                                    message: message,
+                                    onFlightPackClick: { pack in
+                                        handleFlightPackClick(pack: pack)
+                                    }
+                                )
                                     .id(message.id)
                             }
                             
@@ -65,6 +72,14 @@ struct ChatView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showFlightDetail) {
+            if let destination = selectedDestination {
+                FlightDetailScreen(
+                    destinationId: destination.id,
+                    destination: destination
+                )
+            }
+        }
         .sheet(isPresented: $showModelSelector) {
             ModelSelectorView(
                 availableModels: viewModel.availableModels,
@@ -232,11 +247,98 @@ struct ChatView: View {
         messageText = ""
         isInputFocused = false
     }
+    
+    private func handleFlightPackClick(pack: FlightPack) {
+        let destination = pack.toFlightDestination()
+        selectedDestination = destination
+        showFlightDetail = true
+    }
+}
+
+// Extension pour convertir FlightPack en FlightDestination (comme Android)
+extension FlightPack {
+    func toFlightDestination() -> FlightDestination {
+        let priceValue = packPriceValue(price: price)
+        let currency = packCurrency(price: price) ?? "USD"
+        let generatedId = "\(origin)-\(destination)-\(airline ?? "")-\(price)".hash.description
+        let imageUrl = getDestinationImageUrl(destination: destination, city: destination)
+        
+        return FlightDestination(
+            id: generatedId,
+            name: destination.isEmpty ? title : destination,
+            city: destination,
+            country: "",
+            imageUrl: imageUrl,
+            price: priceValue,
+            currency: currency,
+            description: details ?? "Flight from \(origin) to \(destination) with \(airline ?? "various airlines").",
+            departureDate: nil,
+            arrivalDate: nil,
+            airline: airline
+        )
+    }
+    
+    // Fonction pour obtenir l'URL de l'image basée sur la destination
+    private func getDestinationImageUrl(destination: String, city: String) -> String? {
+        let destLower = destination.lowercased()
+        let cityLower = city.lowercased()
+        let titleLower = title.lowercased()
+        
+        // Mapping des destinations populaires vers des images Unsplash
+        if destLower.contains("cdg") || cityLower.contains("paris") || titleLower.contains("paris") {
+            return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80" // Paris
+        } else if destLower.contains("fco") || cityLower.contains("rome") || titleLower.contains("rome") {
+            return "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&q=80" // Rome
+        } else if destLower.contains("mad") || cityLower.contains("madrid") || titleLower.contains("madrid") {
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d2?w=800&q=80" // Madrid
+        } else if destLower.contains("bcn") || cityLower.contains("barcelona") || titleLower.contains("barcelona") {
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d2?w=800&q=80" // Barcelona
+        } else if destLower.contains("lhr") || cityLower.contains("london") || titleLower.contains("london") {
+            return "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80" // London
+        } else if destLower.contains("jfk") || cityLower.contains("new york") || titleLower.contains("new york") {
+            return "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80" // New York
+        } else if destLower.contains("dxb") || cityLower.contains("dubai") || titleLower.contains("dubai") {
+            return "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80" // Dubai
+        } else if destLower.contains("ber") || cityLower.contains("berlin") || titleLower.contains("berlin") {
+            return "https://images.unsplash.com/photo-1587330979470-1a0b5b0b5b5b?w=800&q=80" // Berlin
+        } else if destLower.contains("ams") || cityLower.contains("amsterdam") || titleLower.contains("amsterdam") {
+            return "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&q=80" // Amsterdam
+        } else if destLower.contains("vie") || cityLower.contains("vienna") || titleLower.contains("vienna") {
+            return "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&q=80" // Vienna
+        } else if destLower.contains("ath") || cityLower.contains("athens") || titleLower.contains("athens") {
+            return "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80" // Athens
+        } else if destLower.contains("ist") || cityLower.contains("istanbul") || titleLower.contains("istanbul") {
+            return "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80" // Istanbul
+        } else if destLower.contains("cai") || cityLower.contains("cairo") || titleLower.contains("cairo") {
+            return "https://images.unsplash.com/photo-1539650116574-75c0c6d73ab6?w=800&q=80" // Cairo
+        } else if destLower.contains("doh") || cityLower.contains("doha") || titleLower.contains("doha") {
+            return "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&q=80" // Doha
+        } else {
+            // Image par défaut pour les destinations non mappées
+            return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80" // Travel default
+        }
+    }
+    
+    private func packPriceValue(price: String) -> Double? {
+        guard !price.isEmpty else { return nil }
+        let digits = price.filter { $0.isNumber || $0 == "." }
+        if let value = Double(digits) {
+            return Double(Int(value))
+        }
+        return nil
+    }
+    
+    private func packCurrency(price: String) -> String? {
+        guard !price.isEmpty else { return nil }
+        let parts = price.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: " ")
+        return parts.last?.filter { $0.isLetter }
+    }
 }
 
 struct ChatMessageBubble: View {
     @Environment(\.colorScheme) private var colorScheme
     let message: ChatMessageUi
+    let onFlightPackClick: (FlightPack) -> Void
     
     var body: some View {
         HStack {
@@ -269,7 +371,10 @@ struct ChatMessageBubble: View {
                 // Flight packs
                 if let flightPacks = message.flightPacks {
                     ForEach(flightPacks.indices, id: \.self) { index in
-                        FlightPackCard(pack: flightPacks[index])
+                        FlightPackCard(
+                            pack: flightPacks[index],
+                            onFlightPackClick: onFlightPackClick
+                        )
                     }
                 }
             }
@@ -285,33 +390,130 @@ struct ChatMessageBubble: View {
 struct FlightPackCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let pack: FlightPack
+    let onFlightPackClick: (FlightPack) -> Void
+    
+    private var destinationImageUrl: String? {
+        let destLower = pack.destination.lowercased()
+        let cityLower = pack.destination.lowercased()
+        let titleLower = pack.title.lowercased()
+        
+        // Mapping des destinations populaires vers des images Unsplash
+        if destLower.contains("cdg") || cityLower.contains("paris") || titleLower.contains("paris") {
+            return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80" // Paris
+        } else if destLower.contains("fco") || cityLower.contains("rome") || titleLower.contains("rome") {
+            return "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&q=80" // Rome
+        } else if destLower.contains("mad") || cityLower.contains("madrid") || titleLower.contains("madrid") {
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d2?w=800&q=80" // Madrid
+        } else if destLower.contains("bcn") || cityLower.contains("barcelona") || titleLower.contains("barcelona") {
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d2?w=800&q=80" // Barcelona
+        } else if destLower.contains("lhr") || cityLower.contains("london") || titleLower.contains("london") {
+            return "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80" // London
+        } else if destLower.contains("jfk") || cityLower.contains("new york") || titleLower.contains("new york") {
+            return "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&q=80" // New York
+        } else if destLower.contains("dxb") || cityLower.contains("dubai") || titleLower.contains("dubai") {
+            return "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80" // Dubai
+        } else if destLower.contains("ber") || cityLower.contains("berlin") || titleLower.contains("berlin") {
+            return "https://images.unsplash.com/photo-1587330979470-1a0b5b0b5b5b?w=800&q=80" // Berlin
+        } else if destLower.contains("ams") || cityLower.contains("amsterdam") || titleLower.contains("amsterdam") {
+            return "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&q=80" // Amsterdam
+        } else if destLower.contains("vie") || cityLower.contains("vienna") || titleLower.contains("vienna") {
+            return "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&q=80" // Vienna
+        } else if destLower.contains("ath") || cityLower.contains("athens") || titleLower.contains("athens") {
+            return "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=800&q=80" // Athens
+        } else if destLower.contains("ist") || cityLower.contains("istanbul") || titleLower.contains("istanbul") {
+            return "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80" // Istanbul
+        } else if destLower.contains("cai") || cityLower.contains("cairo") || titleLower.contains("cairo") {
+            return "https://images.unsplash.com/photo-1539650116574-75c0c6d73ab6?w=800&q=80" // Cairo
+        } else if destLower.contains("doh") || cityLower.contains("doha") || titleLower.contains("doha") {
+            return "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&q=80" // Doha
+        } else {
+            // Image par défaut pour les destinations non mappées
+            return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80" // Travel default
+        }
+    }
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(pack.title)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+        Button(action: {
+            onFlightPackClick(pack)
+        }) {
+            HStack(spacing: 12) {
+                // Image de la destination
+                if let imageUrl = destinationImageUrl, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(ThemeColors.surface(colorScheme))
+                                .frame(width: 80, height: 80)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        case .failure:
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(ThemeColors.surface(colorScheme))
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                )
+                        @unknown default:
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(ThemeColors.surface(colorScheme))
+                                .frame(width: 80, height: 80)
+                        }
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(ThemeColors.surface(colorScheme))
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        )
+                }
                 
-                if let details = pack.details {
-                    Text(details)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(pack.title)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    
+                    if let details = pack.details {
+                        Text(details)
+                            .font(.system(size: 12))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                            .lineLimit(2)
+                    }
+                    
+                    Text("\(pack.origin) → \(pack.destination)")
                         .font(.system(size: 14))
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
+                    
+                    if let airline = pack.airline {
+                        Text(airline)
+                            .font(.system(size: 12))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(pack.price)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(ThemeColors.accent())
                 }
             }
-            
-            Spacer()
-            
-            Text(pack.price)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(ThemeColors.accent())
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(ThemeColors.surface(colorScheme))
+            )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(ThemeColors.surface(colorScheme))
-        )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
+        .buttonStyle(.plain)
     }
 }
 
