@@ -1,22 +1,15 @@
 import Foundation
 
-// MARK: - OnboardingQuestion
-struct OnboardingQuestion: Decodable, Identifiable {
+// MARK: - Onboarding Question Models
+
+struct OnboardingQuestion: Codable, Identifiable {
     let id: String
-    let type: QuestionType
+    let type: String
     let text: String
     let options: [QuestionOption]?
     let required: Bool
     let minSelections: Int?
     let maxSelections: Int?
-    
-    enum QuestionType: String, Decodable {
-        case singleChoice = "single_choice"
-        case multipleChoice = "multiple_choice"
-        case text = "text"
-        case number = "number"
-        case date = "date"
-    }
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -29,33 +22,23 @@ struct OnboardingQuestion: Decodable, Identifiable {
     }
 }
 
-// MARK: - QuestionOption
-struct QuestionOption: Decodable, Identifiable {
-    let id: String
+struct QuestionOption: Codable, Identifiable, Hashable {
     let value: String
     let label: String
     let min: Double?
     let max: Double?
     
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        value = try container.decode(String.self, forKey: .value)
-        label = try container.decode(String.self, forKey: .label)
-        min = try container.decodeIfPresent(Double.self, forKey: .min)
-        max = try container.decodeIfPresent(Double.self, forKey: .max)
-        id = value // Use value as id
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case value
-        case label
-        case min
-        case max
-    }
+    var id: String { value }
 }
 
-// MARK: - OnboardingResponse
-struct OnboardingResponse: Decodable {
+struct Progress: Codable {
+    let current: Int
+    let total: Int?
+}
+
+// MARK: - Onboarding Response Models
+
+struct OnboardingResponse: Codable {
     let sessionId: String
     let question: OnboardingQuestion?
     let progress: Progress?
@@ -73,14 +56,7 @@ struct OnboardingResponse: Decodable {
     }
 }
 
-// MARK: - Progress
-struct Progress: Decodable {
-    let current: Int
-    let total: Int?
-}
-
-// MARK: - OnboardingStatus
-struct OnboardingStatus: Decodable {
+struct OnboardingStatus: Codable {
     let onboardingCompleted: Bool
     let sessionId: String?
     let progress: OnboardingProgress
@@ -94,8 +70,7 @@ struct OnboardingStatus: Decodable {
     }
 }
 
-// MARK: - OnboardingProgress
-struct OnboardingProgress: Decodable {
+struct OnboardingProgress: Codable {
     let questionsAnswered: Int
     let currentQuestionId: String?
     
@@ -105,7 +80,8 @@ struct OnboardingProgress: Decodable {
     }
 }
 
-// MARK: - AnswerRequest
+// MARK: - Onboarding Request Models
+
 struct AnswerRequest: Encodable {
     let sessionId: String
     let questionId: String
@@ -122,7 +98,7 @@ struct AnswerRequest: Encodable {
         try container.encode(sessionId, forKey: .sessionId)
         try container.encode(questionId, forKey: .questionId)
         
-        // Encode answer based on type
+        // Encode answer based on its type
         switch answer {
         case .string(let value):
             try container.encode(value, forKey: .answer)
@@ -130,23 +106,23 @@ struct AnswerRequest: Encodable {
             try container.encode(value, forKey: .answer)
         case .array(let values):
             try container.encode(values, forKey: .answer)
+        case .object(let dict):
+            try container.encode(dict, forKey: .answer)
         }
     }
 }
 
-// MARK: - AnswerValue
 enum AnswerValue {
     case string(String)
     case number(Double)
     case array([String])
+    case object([String: String])
 }
 
-// MARK: - ResumeRequest
-struct ResumeRequest: Encodable {
+struct ResumeRequest: Codable {
     let sessionId: String?
     
     enum CodingKeys: String, CodingKey {
         case sessionId = "session_id"
     }
 }
-

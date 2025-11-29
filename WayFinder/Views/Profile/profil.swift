@@ -19,15 +19,28 @@ struct ProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var showSettings = false
+    @State private var showSurveyScreen = false
     
-    private let actions: [ProfileAction] = [
-        .init(icon: "slider.horizontal.3", titleKey: "profile_preferences"),
-        .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
-        .init(icon: "square.and.arrow.up", titleKey: "profile_share_trip", destination: .shareTrip),
-        .init(icon: "photo.on.rectangle.angled", titleKey: "profile_shared_journeys", destination: .sharedJourneys),
-        .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
-        .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
-    ]
+    private var actions: [ProfileAction] {
+        var actionsList: [ProfileAction] = [
+            .init(icon: "slider.horizontal.3", titleKey: "profile_preferences"),
+        ]
+        
+        // Add "Retake Onboarding" option if user has completed onboarding
+        if viewModel.profile?.onboardingCompleted == true {
+            actionsList.append(.init(icon: "arrow.triangle.2.circlepath", titleKey: "profile_retake_onboarding", destination: .retakeOnboarding))
+        }
+        
+        actionsList.append(contentsOf: [
+            .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
+            .init(icon: "square.and.arrow.up", titleKey: "profile_share_trip", destination: .shareTrip),
+            .init(icon: "photo.on.rectangle.angled", titleKey: "profile_shared_journeys", destination: .sharedJourneys),
+            .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
+            .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
+        ])
+        
+        return actionsList
+    }
     
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -43,6 +56,14 @@ struct ProfileView: View {
                             if destination == .settings {
                                 Button(action: {
                                     showSettings = true
+                                }) {
+                                    ProfileRowContent(action: action)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 24)
+                            } else if destination == .retakeOnboarding {
+                                Button(action: {
+                                    showSurveyScreen = true
                                 }) {
                                     ProfileRowContent(action: action)
                                 }
@@ -90,6 +111,17 @@ struct ProfileView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView()
                 .presentationDetents([.medium, .large])
+        }
+        .fullScreenCover(isPresented: $showSurveyScreen) {
+            NavigationStack {
+                SurveyScreenWithCompletionWrapper(onComplete: {
+                    showSurveyScreen = false
+                    // Reload profile to update onboarding status
+                    Task {
+                        await viewModel.loadProfile()
+                    }
+                })
+            }
         }
         .task {
             // Charger l'image persistée avant de charger le profil
@@ -305,6 +337,7 @@ private enum ProfileDestination {
     case settings
     case shareTrip
     case sharedJourneys
+    case retakeOnboarding
 }
 
 private struct ProfileAction: Identifiable {
@@ -377,6 +410,9 @@ private extension ProfileView {
             ShareTripView()
         case .sharedJourneys:
             JourneyFeedView()
+        case .retakeOnboarding:
+            // This will be handled by fullScreenCover, but we need this for the enum
+            EmptyView()
         }
     }
     
@@ -420,6 +456,28 @@ private extension ProfileView {
         }
         
         return jpegData ?? data
+    }
+}
+
+// Shared state to pass onComplete callback to SurveyScreen
+class SurveyCompletionHandler: ObservableObject {
+    static let shared = SurveyCompletionHandler()
+    var onComplete: (() -> Void)?
+    private init() {}
+}
+
+// Wrapper to allow passing onComplete closure to SurveyScreen
+struct SurveyScreenWithCompletionWrapper: View {
+    let onComplete: (() -> Void)?
+    
+    var body: some View {
+        SurveyScreen()
+            .onAppear {
+                SurveyCompletionHandler.shared.onComplete = onComplete
+            }
+            .onDisappear {
+                SurveyCompletionHandler.shared.onComplete = nil
+            }
     }
 }
 
