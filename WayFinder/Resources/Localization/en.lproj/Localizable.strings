@@ -295,6 +295,14 @@
 "region_america" = "America";
 "region_australia" = "Australia";
 "region_all" = "All";
+"sort_price" = "Price";
+"sort_name" = "Name";
+"sort_country" = "Country";
+"ready_for_adventure" = "Ready for your next adventure?";
+"region_asia" = "Asia";
+"region_america" = "America";
+"region_australia" = "Australia";
+"region_all" = "All";
 
 // Activities
 "activity_restaurant" = "Restaurant";
