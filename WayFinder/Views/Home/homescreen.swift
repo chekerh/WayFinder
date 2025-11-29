@@ -187,6 +187,13 @@ struct HomeScreen: View {
                                 Spacer()
                                     .frame(height: 16)
                                 
+                                // Instagram Reels Card
+                                InstagramReelsCard()
+                                    .padding(.horizontal, 24)
+                                
+                                Spacer()
+                                    .frame(height: 16)
+                                
                                 // Espace en bas pour le tab bar (comme Android paddingValues.calculateBottomPadding())
                                 Spacer()
                                     .frame(height: 74) // Hauteur du FloatingTabBar (64) + safe area (10)
@@ -634,6 +641,19 @@ struct DestinationCard: View {
         pageOffset < 0.1
     }
     
+    // Generate a consistent rating based on destination name (for demo purposes)
+    private var destinationRating: Double {
+        // Generate a consistent rating between 3.5 and 5.0 based on destination name
+        let hash = abs(destination.name.hashValue)
+        return 3.5 + Double(hash % 15) / 10.0 // Range: 3.5 to 5.0
+    }
+    
+    private func isPopularDestination(_ destination: FlightDestination) -> Bool {
+        // Popular destinations based on name or rating
+        let popularDestinations = ["Paris", "London", "Rome", "Barcelona", "Madrid", "Tokyo", "New York", "Dubai", "Singapore", "Bangkok"]
+        return popularDestinations.contains { destination.name.localizedCaseInsensitiveContains($0) } || destinationRating >= 4.5
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
@@ -703,17 +723,46 @@ struct DestinationCard: View {
                         .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                 
                 if let price = destination.price, price > 0 {
-                        HStack(spacing: 4) {
-                            Text("\(Int(price))")
-                                .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
-                            Text(destination.currency)
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
+                        HStack(spacing: 8) {
+                            HStack(spacing: 4) {
+                                Text("\(Int(price))")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text(destination.currency)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
+                            
+                            // Popular badge
+                            if isPopularDestination(destination) {
+                                Text("Popular")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(Color(red: 0.298, green: 0.686, blue: 0.314).opacity(0.9))
+                                    )
+                            }
                         }
                         .padding(.top, 10)
                         .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
+                
+                // Rating stars
+                HStack(spacing: 3) {
+                    ForEach(0..<5) { index in
+                        Image(systemName: index < Int(destinationRating) ? "star.fill" : "star")
+                            .font(.system(size: 14))
+                            .foregroundColor(index < Int(destinationRating) ? Color(red: 1.0, green: 0.843, blue: 0.0) : Color.white.opacity(0.4))
+                    }
+                    Text(String(format: "%.1f", destinationRating))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.95))
+                }
+                .padding(.top, 8)
+                .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(26)
@@ -837,10 +886,10 @@ struct DiscussionCard: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("home_community_discussions")
+                    Text(String(localized: "home_community_discussions"))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("home_community_subtitle")
+                    Text(String(localized: "home_community_subtitle"))
                             .font(.caption)
                         .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                 }
@@ -856,7 +905,51 @@ struct DiscussionCard: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(ThemeColors.surface(colorScheme))
             )
-            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.04), radius: 4, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - InstagramReelsCard
+struct InstagramReelsCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationLink(destination: JourneyFeedView()) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "home_reels_title"))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    Text(String(localized: "home_reels_subtitle"))
+                            .font(.caption)
+                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+            }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(ThemeColors.surface(colorScheme))
+            )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.04), radius: 4, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -869,6 +962,14 @@ struct AllFlightsScreen: View {
     @StateObject private var favoritesViewModel = FavoriteViewModel()
     @State private var sortOption: SortOption = .price
     @State private var selectedRegion: String?
+    @State private var showAdvancedFilters = false
+    
+    // Advanced filter states
+    @State private var minPrice: Double = 0
+    @State private var maxPrice: Double = 2000
+    @State private var selectedAirlines: Set<String> = []
+    @State private var maxDurationHours: Double = 24
+    @State private var travelClass: String? = nil
     
     let initialSelectedRegion: String?
     
@@ -966,6 +1067,20 @@ struct AllFlightsScreen: View {
                         }
                         
                         Spacer()
+                        
+                        // Bouton Filtres avancés
+                        Button(action: {
+                            showAdvancedFilters = true
+                        }) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(hasActiveFilters() ? Color(red: 0.098, green: 0.463, blue: 0.824) : ThemeColors.secondaryText(colorScheme))
+                                .padding(8)
+                                .background(
+                                    Circle()
+                                        .fill(ThemeColors.surface(colorScheme))
+                                )
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -982,7 +1097,8 @@ struct AllFlightsScreen: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .success(let destinations, let fromCache, _, _):
                     let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
-                    let sortedDestinations = sortDestinations(filteredDestinations, by: sortOption)
+                    let advancedFilteredDestinations = applyAdvancedFilters(filteredDestinations)
+                    let sortedDestinations = sortDestinations(advancedFilteredDestinations, by: sortOption)
                     
                     if fromCache {
                         HStack(spacing: 8) {
@@ -1067,6 +1183,51 @@ struct AllFlightsScreen: View {
                 await catalogViewModel.loadRecommendedFlights(showAll: true)
             }
         }
+        .sheet(isPresented: $showAdvancedFilters) {
+            if case .success(let destinations, _, _, _) = catalogViewModel.uiState {
+                AdvancedFiltersSheet(
+                    minPrice: $minPrice,
+                    maxPrice: $maxPrice,
+                    selectedAirlines: $selectedAirlines,
+                    maxDurationHours: $maxDurationHours,
+                    travelClass: $travelClass,
+                    availableAirlines: destinations.compactMap { $0.airline }.unique(),
+                    onReset: {
+                        minPrice = 0
+                        maxPrice = 2000
+                        selectedAirlines = []
+                        maxDurationHours = 24
+                        travelClass = nil
+                    }
+                )
+            }
+        }
+    }
+    
+    private func hasActiveFilters() -> Bool {
+        return minPrice > 0 || maxPrice < 2000 || !selectedAirlines.isEmpty || maxDurationHours < 24 || travelClass != nil
+    }
+    
+    private func applyAdvancedFilters(_ destinations: [FlightDestination]) -> [FlightDestination] {
+        return destinations.filter { destination in
+            // Price filter
+            let price = destination.price ?? 0
+            if price < minPrice || price > maxPrice {
+                return false
+            }
+            
+            // Airline filter
+            if !selectedAirlines.isEmpty, let airline = destination.airline {
+                if !selectedAirlines.contains(airline) {
+                    return false
+                }
+            }
+            
+            // Duration and travel class filters would go here if we had that data
+            // For now, we skip them as FlightDestination doesn't have these fields
+            
+            return true
+        }
     }
     
     private func localizedRegionName(for key: String) -> String {
@@ -1126,6 +1287,19 @@ struct ComparisonCard: View {
     @ObservedObject var favoritesViewModel: FavoriteViewModel
     
     @State private var isFavorite: Bool = false
+    
+    // Generate a consistent rating based on destination name (for demo purposes)
+    private var destinationRating: Double {
+        // Generate a consistent rating between 3.5 and 5.0 based on destination name
+        let hash = abs(destination.name.hashValue)
+        return 3.5 + Double(hash % 15) / 10.0 // Range: 3.5 to 5.0
+    }
+    
+    private func isPopularDestination(_ destination: FlightDestination) -> Bool {
+        // Popular destinations based on name or rating
+        let popularDestinations = ["Paris", "London", "Rome", "Barcelona", "Madrid", "Tokyo", "New York", "Dubai", "Singapore", "Bangkok"]
+        return popularDestinations.contains { destination.name.localizedCaseInsensitiveContains($0) } || destinationRating >= 4.5
+    }
     
     var body: some View {
         NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
@@ -1194,6 +1368,18 @@ struct ComparisonCard: View {
                                 .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         }
                     }
+                    
+                    // Rating stars
+                    HStack(spacing: 2) {
+                        ForEach(0..<5) { index in
+                            Image(systemName: index < Int(destinationRating) ? "star.fill" : "star")
+                                .font(.system(size: 12))
+                                .foregroundColor(index < Int(destinationRating) ? Color(red: 1.0, green: 0.843, blue: 0.0) : ThemeColors.secondaryText(colorScheme).opacity(0.3))
+                        }
+                        Text(String(format: "%.1f", destinationRating))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
                 }
                 
                 Spacer()
@@ -1201,13 +1387,30 @@ struct ComparisonCard: View {
                 // Prix et favori
                 VStack(alignment: .trailing, spacing: 8) {
                     if let price = destination.price, price > 0 {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(Int(price))")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            Text(destination.currency)
-                                .font(.system(size: 12))
-                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        VStack(alignment: .trailing, spacing: 4) {
+                            HStack(spacing: 6) {
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text("\(Int(price))")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                    Text(destination.currency)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                }
+                                
+                                // Popular badge
+                                if isPopularDestination(destination) {
+                                    Text("Popular")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(red: 0.298, green: 0.686, blue: 0.314))
+                                        )
+                                }
+                            }
                         }
                     } else {
                         Text("generic_not_available")
@@ -1305,6 +1508,267 @@ extension HomeScreen {
                 }
             }
         }
+    }
+}
+
+// MARK: - AdvancedFiltersSheet
+struct AdvancedFiltersSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    @Binding var minPrice: Double
+    @Binding var maxPrice: Double
+    @Binding var selectedAirlines: Set<String>
+    @Binding var maxDurationHours: Double
+    @Binding var travelClass: String?
+    let availableAirlines: [String]
+    let onReset: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    priceFilterSection
+                    Divider()
+                    airlineFilterSection
+                    Divider()
+                    durationFilterSection
+                    Divider()
+                    travelClassFilterSection
+                    applyButton
+                }
+                .padding(20)
+            }
+            .background(ThemeColors.background(colorScheme))
+            .navigationTitle(String(localized: "filter_advanced_filters"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: onReset) {
+                        Text("filter_reset")
+                            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Price Filter Section
+    private var priceFilterSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "eurosign.circle.fill")
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    .font(.system(size: 20))
+                Text("filter_price")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            }
+            
+            HStack(spacing: 12) {
+                priceBadge("\(Int(minPrice))")
+                Text("—")
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                priceBadge("\(Int(maxPrice))")
+            }
+            
+            priceSliders
+        }
+    }
+    
+    private func priceBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.1))
+            )
+    }
+    
+    private var priceSliders: some View {
+        VStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: "Min: %d EUR", Int(minPrice)))
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                Slider(value: $minPrice, in: 0...min(maxPrice, 1950), step: 50)
+                    .tint(Color(red: 0.098, green: 0.463, blue: 0.824))
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: "Max: %d EUR", Int(maxPrice)))
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                Slider(value: $maxPrice, in: max(minPrice, 50)...2000, step: 50)
+                    .tint(Color(red: 0.098, green: 0.463, blue: 0.824))
+            }
+            
+            HStack {
+                Text(String("0 EUR"))
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                Spacer()
+                Text(String("2000 EUR"))
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+            }
+        }
+    }
+    
+    // MARK: - Airline Filter Section
+    private var airlineFilterSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "airplane")
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    .font(.system(size: 20))
+                Text("filter_airline")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            }
+            
+            if availableAirlines.isEmpty {
+                Text("filter_no_airlines")
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+            } else {
+                ForEach(availableAirlines, id: \.self) { airline in
+                    airlineRow(airline)
+                }
+            }
+        }
+    }
+    
+    private func airlineRow(_ airline: String) -> some View {
+        Button(action: {
+            if selectedAirlines.contains(airline) {
+                selectedAirlines.remove(airline)
+            } else {
+                selectedAirlines.insert(airline)
+            }
+        }) {
+            HStack {
+                Image(systemName: selectedAirlines.contains(airline) ? "checkmark.square.fill" : "square")
+                    .foregroundColor(selectedAirlines.contains(airline) ? Color(red: 0.098, green: 0.463, blue: 0.824) : ThemeColors.secondaryText(colorScheme))
+                Text(airline)
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Duration Filter Section
+    private var durationFilterSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.fill")
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    .font(.system(size: 20))
+                Text("filter_max_duration")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            }
+            
+            Text(String(format: "%d %@", Int(maxDurationHours), String(localized: "filter_hours")))
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(red: 0.098, green: 0.463, blue: 0.824).opacity(0.1))
+                )
+            
+            Slider(value: $maxDurationHours, in: 1...48, step: 1)
+                .tint(Color(red: 0.098, green: 0.463, blue: 0.824))
+            
+            HStack {
+                Text("1h")
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                Spacer()
+                Text("48h")
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+            }
+        }
+    }
+    
+    // MARK: - Travel Class Filter Section
+    private var travelClassFilterSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "airplane.departure")
+                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    .font(.system(size: 20))
+                Text("filter_travel_class")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+            }
+            
+            travelClassGrid
+        }
+    }
+    
+    private var travelClassGrid: some View {
+        let travelClasses = ["filter_economy", "filter_premium_economy"]
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            ForEach(travelClasses, id: \.self) { className in
+                travelClassButton(className)
+            }
+        }
+    }
+    
+    private func travelClassButton(_ className: String) -> some View {
+        Button(action: {
+            travelClass = travelClass == className ? nil : className
+        }) {
+            Text(LocalizedStringKey(className))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(travelClass == className ? .white : ThemeColors.primaryText(colorScheme))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(travelClass == className ? Color(red: 0.098, green: 0.463, blue: 0.824) : ThemeColors.surface(colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(travelClass == className ? Color.clear : ThemeColors.secondaryText(colorScheme).opacity(0.3), lineWidth: 1)
+                )
+        }
+    }
+    
+    // MARK: - Apply Button
+    private var applyButton: some View {
+        Button(action: {
+            dismiss()
+        }) {
+            Text("filter_apply")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color(red: 0.098, green: 0.463, blue: 0.824))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(.top, 8)
+    }
+}
+
+// MARK: - Array Extension for unique elements
+extension Array where Element: Hashable {
+    func unique() -> [Element] {
+        Array(Set(self))
     }
 }
 

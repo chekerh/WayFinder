@@ -15,11 +15,15 @@ struct SignInView: View {
     @State private var lastName: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
+    @State private var showPassword: Bool = false
+    @State private var showConfirmPassword: Bool = false
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showSuccess = false
     @State private var acceptTerms = false
     @State private var showTermsAlert = false
+    @State private var navigateToHome = false
+    @State private var loggedInUserName: String?
     
     var body: some View {
         ZStack {
@@ -39,8 +43,8 @@ struct SignInView: View {
                     inputField(title: LocalizedStringKey("signin_email_placeholder"), text: $email)
                     inputField(title: LocalizedStringKey("signin_first_name_placeholder"), text: $firstName)
                     inputField(title: LocalizedStringKey("signin_last_name_placeholder"), text: $lastName)
-                    secureField(title: LocalizedStringKey("signin_password_placeholder"), text: $password)
-                    secureField(title: LocalizedStringKey("signin_confirm_password_placeholder"), text: $confirmPassword)
+                    passwordField(title: LocalizedStringKey("signin_password_placeholder"), text: $password, showPassword: $showPassword)
+                    passwordField(title: LocalizedStringKey("signin_confirm_password_placeholder"), text: $confirmPassword, showPassword: $showConfirmPassword)
                 }
                 .padding(.horizontal, 40)
                 
@@ -90,6 +94,9 @@ struct SignInView: View {
                 .padding(.bottom, 28)
             }
         }
+        .fullScreenCover(isPresented: $navigateToHome) {
+            HomeScreen(initialName: loggedInUserName)
+        }
         .alert(String(localized: "signin_success_title"), isPresented: $showSuccess) {
             Button(String(localized: "generic_ok")) {
                 dismiss()
@@ -117,6 +124,35 @@ struct SignInView: View {
                     .stroke(ThemeColors.border(colorScheme), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 4, x: 0, y: 2)
+    }
+    
+    private func passwordField(title: LocalizedStringKey, text: Binding<String>, showPassword: Binding<Bool>) -> some View {
+        HStack {
+            Group {
+                if showPassword.wrappedValue {
+                    TextField(title, text: text)
+                } else {
+                    SecureField(title, text: text)
+                }
+            }
+            .textFieldStyle(PlainTextFieldStyle())
+            
+            Button(action: {
+                showPassword.wrappedValue.toggle()
+            }) {
+                Image(systemName: showPassword.wrappedValue ? "eye.slash.fill" : "eye.fill")
+                    .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                    .font(.system(size: 16))
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(ThemeColors.surface(colorScheme))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(ThemeColors.border(colorScheme), lineWidth: 1)
+        )
     }
     
     private func secureField(title: LocalizedStringKey, text: Binding<String>) -> some View {
@@ -212,37 +248,117 @@ private extension SignInView {
             let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
             
-            // Generate a unique username by adding a random suffix if needed
-            var baseUsername = trimmedEmail.split(separator: "@").first.map(String.init)?.lowercased() ?? trimmedFirstName.lowercased()
-            var username = baseUsername
+            // Generate a unique username using UUID for maximum uniqueness
+            // Format: user_ + UUID (32 chars) = guaranteed unique
+            let uuidString = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+            var username = "user_\(uuidString)"
             var attempts = 0
-            let maxAttempts = 5
+            let maxAttempts = 5 // Keep some attempts in case of extremely rare collision
+            
+            print("🔍 [SignIn] Generated username: \(username) (UUID-based for guaranteed uniqueness)")
             
             // Try to register with the base username, if it fails due to username conflict, add a random suffix
             while attempts < maxAttempts {
                 do {
-                    _ = try await AuthService.shared.register(
+                    // Verify all fields are not empty before sending
+                    guard !username.isEmpty, !trimmedEmail.isEmpty, !trimmedFirstName.isEmpty, !trimmedLastName.isEmpty, !password.isEmpty else {
+                        errorMessage = "Tous les champs sont requis."
+                        return
+                    }
+                    
+                    print("🔄 [SignIn] Attempt \(attempts + 1)/\(maxAttempts) - Registering with:")
+                    print("   Username: \(username)")
+                    print("   Email: \(trimmedEmail)")
+                    print("   First Name: \(trimmedFirstName)")
+                    print("   Last Name: \(trimmedLastName)")
+                    print("   Password: \(password.isEmpty ? "(empty)" : "***")")
+                    
+                    let registerResponse = try await AuthService.shared.register(
                         username: username,
                         email: trimmedEmail,
                         firstName: trimmedFirstName,
                         lastName: trimmedLastName,
                         password: password
                     )
-                    showSuccess = true
+                    print("✅ [SignIn] Registration response: \(registerResponse.message)")
+                    print("✅ [SignIn] Registration successful! Auto-logging in...")
+                    
+                    // Auto-login after successful registration
+                    do {
+                        let loginResult = try await AuthService.shared.loginWithResponse(email: trimmedEmail, password: password)
+                        if let user = loginResult.user {
+                            loggedInUserName = user.displayNameValue
+                            UserStorage.saveProfile(user)
+                            print("✅ [SignIn] Auto-login successful, navigating to home")
+                            navigateToHome = true
+                        } else {
+                            // If auto-login fails, just show success and dismiss
+                            showSuccess = true
+                        }
+                    } catch {
+                        print("⚠️ [SignIn] Auto-login failed, showing success alert: \(error.localizedDescription)")
+                        showSuccess = true
+                    }
                     return // Success, exit the function
                 } catch {
                     let errorMessage = error.localizedDescription.lowercased()
-                    // Check if it's a username conflict error
-                    if errorMessage.contains("nom d'utilisateur") || 
-                       errorMessage.contains("username already exists") ||
-                       errorMessage.contains("username") && errorMessage.contains("déjà") {
-                        // Generate a new username with a random suffix
-                        let randomSuffix = Int.random(in: 1000...9999)
-                        username = "\(baseUsername)\(randomSuffix)"
+                    print("❌ [SignIn] Registration attempt \(attempts + 1) failed: \(error.localizedDescription)")
+                    
+                    // First check if it's an email conflict - if so, stop immediately
+                    // The backend checks email first (line 58 in auth.service.ts), so if email exists, we should not retry
+                    // Check both English and French error messages
+                    let isEmailConflict = errorMessage.contains("email already exists") || 
+                                        errorMessage.contains("email already exist") ||
+                                        errorMessage.contains("email") && errorMessage.contains("déjà") && !errorMessage.contains("username") ||
+                                        errorMessage.contains("email") && errorMessage.contains("utilisé") && !errorMessage.contains("nom d'utilisateur")
+                    
+                    if isEmailConflict {
+                        // Email conflict - don't try to generate new username, just show error
+                        print("❌ [SignIn] Email conflict detected - stopping")
+                        self.errorMessage = "Cet email est déjà utilisé. Veuillez utiliser un autre email."
+                        return
+                    }
+                    
+                    // Handle ambiguous "Email or username already exists" message
+                    // The backend checks email first, then username. If we get this ambiguous message,
+                    // it's likely from a MongoDB duplicate key error (line 109 in auth.service.ts)
+                    // If we've tried multiple different usernames and still get this error, it's definitely the email
+                    if errorMessage.contains("email or username already exists") ||
+                       errorMessage.contains("email or username already exist") ||
+                       errorMessage.contains("email ou nom d'utilisateur") {
+                        // If we've already tried 1+ time with different usernames, it's definitely the email
+                        // (since UUID usernames are guaranteed unique, if it fails it must be the email)
+                        if attempts >= 1 {
+                            print("❌ [SignIn] Ambiguous error after \(attempts + 1) attempt(s) with different UUID usernames - must be email conflict")
+                            self.errorMessage = "Cet email est déjà utilisé. Veuillez utiliser un autre email."
+                            return
+                        }
+                        // First attempt: try generating a new username (in case it was really a username conflict)
+                        let uuidString = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                        username = "user_\(uuidString)"
                         attempts += 1
+                        print("🔄 [SignIn] Ambiguous error (email or username, attempt \(attempts)/\(maxAttempts)), trying new username: \(username)")
+                        continue // Try again with the new username
+                    }
+                    
+                    // Check if it's specifically a username conflict error (not email)
+                    // Check both English and French error messages
+                    let isUsernameConflict = errorMessage.contains("username already exists") || 
+                                           errorMessage.contains("username already exist") ||
+                                           errorMessage.contains("nom d'utilisateur") && errorMessage.contains("déjà") ||
+                                           errorMessage.contains("nom d'utilisateur") && errorMessage.contains("utilisé") ||
+                                           (errorMessage.contains("username") && errorMessage.contains("déjà") && !errorMessage.contains("email"))
+                    
+                    if isUsernameConflict {
+                        // Generate a completely new username with fresh UUID
+                        let uuidString = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                        username = "user_\(uuidString)"
+                        attempts += 1
+                        print("🔄 [SignIn] Username conflict detected (attempt \(attempts)/\(maxAttempts)), trying new username: \(username)")
                         continue // Try again with the new username
                     } else {
-                        // It's a different error (email conflict, etc.), show it
+                        // It's a different error, show it
+                        print("❌ [SignIn] Unknown error: \(error.localizedDescription)")
                         self.errorMessage = error.localizedDescription
                         return
                     }
@@ -250,6 +366,7 @@ private extension SignInView {
             }
             
             // If we exhausted all attempts
+            print("❌ [SignIn] Exhausted all attempts to generate unique username")
             errorMessage = "Impossible de générer un nom d'utilisateur unique. Veuillez réessayer."
         } catch {
             errorMessage = error.localizedDescription

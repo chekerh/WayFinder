@@ -326,10 +326,17 @@ private struct ProfileRowContent: View {
                 .foregroundColor(action.isDestructive ? Color(red: 0.82, green: 0.18, blue: 0.12) : ThemeColors.accent())
                 .frame(width: 32, height: 32)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(action.isDestructive ? Color(red: 0.98, green: 0.90, blue: 0.90) : ThemeColors.surface(colorScheme).opacity(0.5))
+                    Group {
+                        if action.isDestructive {
+                            // No background for destructive actions (logout)
+                            Color.clear
+                        } else {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(ThemeColors.surface(colorScheme).opacity(0.5))
+                        }
+                    }
                 )
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.08), radius: 4, x: 0, y: 3)
+                .shadow(color: action.isDestructive ? Color.clear : Color.black.opacity(colorScheme == .dark ? 0.2 : 0.08), radius: 4, x: 0, y: 3)
             
             Text(LocalizedStringKey(action.titleKey))
                 .font(.system(size: 16, weight: action.isDestructive ? .semibold : .regular))

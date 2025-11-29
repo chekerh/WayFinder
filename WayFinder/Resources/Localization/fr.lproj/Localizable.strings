@@ -76,6 +76,8 @@
 "home_offline_cache" = "Affichage hors ligne (cache)";
 "home_community_discussions" = "Discussions de la communauté";
 "home_community_subtitle" = "Partagez vos expériences et découvrez les conseils des voyageurs";
+"home_reels_title" = "Créez vos Reels WayFinder";
+"home_reels_subtitle" = "Transformez vos voyages en Reels captivants et publiez-les automatiquement sur Instagram";
 "home_salutation_format" = "Salut, %@";
 "tab_activity" = "Activité";
 "tab_favorites" = "Favoris";
@@ -302,4 +304,17 @@
 "activity_restaurant" = "Restaurant";
 "activity_cafe" = "Café";
 "activity_cinema" = "Cinéma";
+
+// Advanced Filters
+"filter_advanced_filters" = "Filtres avancés";
+"filter_price" = "Prix";
+"filter_airline" = "Compagnie aérienne";
+"filter_max_duration" = "Durée maximale";
+"filter_travel_class" = "Classe de voyage";
+"filter_economy" = "Économique";
+"filter_premium_economy" = "Premium Économique";
+"filter_hours" = "heures";
+"filter_no_airlines" = "Aucune compagnie disponible";
+"filter_reset" = "Réinitialiser";
+"filter_apply" = "Appliquer les filtres";
 

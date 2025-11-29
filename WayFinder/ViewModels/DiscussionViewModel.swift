@@ -157,11 +157,31 @@ final class DiscussionViewModel: ObservableObject {
     func deleteComment(id: String) async {
         print("🔄 [DiscussionViewModel] Deleting comment")
         do {
+            // Get postId before deleting
+            let postId = comments.first(where: { $0.id == id })?.postId
             try await service.deleteComment(id: id)
             comments.removeAll { $0.id == id }
+            // Update comment count in posts
+            if let postId = postId {
+                if let index = posts.firstIndex(where: { $0.id == postId }) {
+                    posts[index].commentsCount = max(0, posts[index].commentsCount - 1)
+                }
+            }
             print("✅ [DiscussionViewModel] Comment deleted")
         } catch {
             print("❌ [DiscussionViewModel] Error deleting comment: \(error.localizedDescription)")
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    func deletePost(id: String) async {
+        print("🔄 [DiscussionViewModel] Deleting post")
+        do {
+            try await service.deletePost(id: id)
+            posts.removeAll { $0.id == id }
+            print("✅ [DiscussionViewModel] Post deleted")
+        } catch {
+            print("❌ [DiscussionViewModel] Error deleting post: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
     }

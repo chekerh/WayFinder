@@ -19,6 +19,7 @@ struct LoginView: View {
     @FocusState private var focusedField: Field?
     @State private var email = ""
     @State private var password = ""
+    @State private var showPassword = false
     
     enum Field {
         case email, password
@@ -92,14 +93,14 @@ struct LoginView: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                     
-                                    SecureField(LocalizedStringKey("login_password_placeholder"), text: $password)
-                                        .padding()
-                                        .background(Color.white)
-                                        .cornerRadius(14)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                                .stroke(borderColor(for: passwordError, isFocused: focusedField == .password), lineWidth: 1.5)
-                                        )
+                                    HStack {
+                                        Group {
+                                            if showPassword {
+                                                TextField(LocalizedStringKey("login_password_placeholder"), text: $password)
+                                            } else {
+                                                SecureField(LocalizedStringKey("login_password_placeholder"), text: $password)
+                                            }
+                                        }
                                         .focused($focusedField, equals: .password)
                                         .onSubmit {
                                             focusedField = nil
@@ -108,6 +109,22 @@ struct LoginView: View {
                                         .onChange(of: password) { _, _ in
                                             passwordError = nil
                                         }
+                                        
+                                        Button(action: {
+                                            showPassword.toggle()
+                                        }) {
+                                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                                .font(.system(size: 16))
+                                        }
+                                    }
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(14)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(borderColor(for: passwordError, isFocused: focusedField == .password), lineWidth: 1.5)
+                                    )
                                     
                                     if let passwordError {
                                         Text(passwordError)

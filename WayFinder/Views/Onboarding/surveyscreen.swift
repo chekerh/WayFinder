@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 
+// MARK: - SurveyScreen (Legacy - redirects to new OnboardingScreen)
 struct SurveyScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedOptions: [String: String] = [:] // Stocke les valeurs envoyées au backend
@@ -76,28 +77,8 @@ struct SurveyScreen: View {
     ]
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                NavigationLink(value: "home") {
-                    EmptyView()
-                }
-                .hidden()
-                .navigationDestination(isPresented: $navigateToHome) {
-                    HomeScreen()
-                        .navigationBarBackButtonHidden(true)
-                }
-                
-                surveyContent
-            }
-            .background(ThemeColors.background(colorScheme).ignoresSafeArea())
-        }
-        .alert(String(localized: "survey_submit_error_title"), isPresented: errorAlertBinding) {
-            Button(String(localized: "generic_ok")) {
-                submissionError = nil
-            }
-        } message: {
-            Text(submissionError ?? "")
-        }
+        // Redirect to new dynamic onboarding screen
+        OnboardingScreen()
     }
     
     private var surveyContent: some View {

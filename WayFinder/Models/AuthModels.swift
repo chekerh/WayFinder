@@ -109,6 +109,23 @@ struct RegisterRequest: Encodable {
     let firstName: String
     let lastName: String
     let password: String
+    
+    enum CodingKeys: String, CodingKey {
+        case username
+        case email
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case password
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(username, forKey: .username)
+        try container.encode(email, forKey: .email)
+        try container.encode(firstName, forKey: .firstName)
+        try container.encode(lastName, forKey: .lastName)
+        try container.encode(password, forKey: .password)
+    }
 }
 
 struct RegisterResponse: Decodable {

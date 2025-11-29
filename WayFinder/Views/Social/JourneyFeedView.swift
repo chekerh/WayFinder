@@ -116,15 +116,6 @@ struct JourneyFeedView: View {
                 selectedJourney = journey
                 showVideoPlayer = true
             },
-            onGenerateVideoClick: {
-                Task {
-                    do {
-                        try await journeyViewModel.regenerateVideo(journeyId: journey.id)
-                    } catch {
-                        print("❌ Error regenerating video: \(error.localizedDescription)")
-                    }
-                }
-            },
             onDeleteClick: {
                 journeyToDelete = journey
                 showDeleteConfirmation = true
@@ -212,12 +203,9 @@ private struct JourneyCard: View {
     let onCommentClick: () -> Void
     let onImageClick: () -> Void
     let onVideoClick: () -> Void
-    let onGenerateVideoClick: () -> Void
     let onDeleteClick: () -> Void
     
-    private var imageHeight: CGFloat {
-        min(320, UIScreen.main.bounds.width * 0.65)
-    }
+    // Remove fixed height - let images adapt dynamically
     
     private var isOwnJourney: Bool {
         currentUserId != nil && journey.userId == currentUserId
@@ -225,17 +213,13 @@ private struct JourneyCard: View {
     
     @ViewBuilder
     private var videoStatusView: some View {
-        if isOwnJourney {
-            if journey.videoStatus == "completed", journey.videoUrl != nil {
-                videoCompletedButton
-            } else if journey.videoStatus == "processing" {
-                videoProcessingView
-            } else if journey.videoStatus == "pending" || journey.videoStatus == "failed" {
-                generateVideoButton
-            }
-        } else if journey.videoStatus == "completed", journey.videoUrl != nil {
+        // Video status view removed - no longer showing video generation button
+        if journey.videoStatus == "completed", journey.videoUrl != nil {
             videoCompletedButton
+        } else if journey.videoStatus == "processing" {
+            videoProcessingView
         }
+        // Removed: generateVideoButton and related logic
     }
     
     private var videoCompletedButton: some View {
@@ -273,23 +257,7 @@ private struct JourneyCard: View {
         )
     }
     
-    private var generateVideoButton: some View {
-        Button(action: onGenerateVideoClick) {
-            HStack {
-                Image(systemName: "video.fill")
-                    .font(.system(size: 16))
-                Text(journey.videoStatus == "failed" ? "Régénérer la vidéo" : "Générer ma vidéo")
-                    .font(.system(size: 15, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(ThemeColors.accent())
-            )
-        }
-    }
+    // Removed: generateVideoButton - no longer needed
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -367,19 +335,23 @@ private struct JourneyCard: View {
                         case .success(let image):
                             image
                                 .resizable()
-                                .scaledToFill()
+                                .scaledToFit()
+                                .aspectRatio(contentMode: .fit)
                         case .failure, .empty:
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(ThemeColors.surface(colorScheme))
+                                .frame(height: 200)
                                 .overlay(
                                     ProgressView()
                                 )
                         @unknown default:
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(ThemeColors.surface(colorScheme))
+                                .frame(height: 200)
                         }
                     }
-                    .frame(height: imageHeight)
+                    .frame(maxWidth: .infinity)
+                    .frame(maxHeight: 500)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .onTapGesture {
                         onImageClick()

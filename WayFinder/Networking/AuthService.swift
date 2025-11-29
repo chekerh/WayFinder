@@ -223,6 +223,14 @@ final class AuthService {
                   firstName: String,
                   lastName: String,
                   password: String) async throws -> RegisterResponse {
+        // Debug: Log all values before encoding
+        print("🔍 [AuthService] Register values:")
+        print("   username: \(username)")
+        print("   email: \(email)")
+        print("   firstName: \(firstName)")
+        print("   lastName: \(lastName)")
+        print("   password: \(password.isEmpty ? "(empty)" : "***")")
+        
         let requestBody = RegisterRequest(
             username: username,
             email: email,
@@ -232,8 +240,15 @@ final class AuthService {
         )
 
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
+        // Note: CodingKeys are explicitly defined in RegisterRequest, so keyEncodingStrategy is not needed
         let data = try encoder.encode(requestBody)
+        
+        // Debug: Verify the encoded JSON contains all fields
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔍 [AuthService] Register request JSON: \(jsonString)")
+        } else {
+            print("❌ [AuthService] Failed to convert encoded data to string")
+        }
 
         let builder = DefaultRequest(
             method: "POST",

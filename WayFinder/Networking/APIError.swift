@@ -68,6 +68,13 @@ enum APIError: Error, LocalizedError {
 private func translateErrorMessage(_ message: String) -> String {
     let lowercased = message.lowercased()
     
+    // Check for "Email or username" first (ambiguous message)
+    if lowercased.contains("email or username already exists") || 
+       lowercased.contains("email or username already exist") {
+        // Keep the original message so the caller can handle it appropriately
+        return message // Return original to allow proper detection
+    }
+    
     if lowercased.contains("email already exists") || lowercased.contains("email already exist") {
         return "Cet email est déjà utilisé. Veuillez utiliser un autre email."
     }

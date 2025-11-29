@@ -2,9 +2,12 @@ import SwiftUI
 
 struct DiscussionView: View {
     @StateObject private var viewModel = DiscussionViewModel()
+    @StateObject private var profileViewModel = ProfileViewModel()
     @Environment(\.colorScheme) private var colorScheme
     @State private var showCreatePost = false
     @State private var selectedPostId: String? = nil
+    @State private var showDeletePostConfirmation = false
+    @State private var postToDelete: DiscussionPost?
     
     var body: some View {
         ZStack {
@@ -75,9 +78,18 @@ struct DiscussionView: View {
                         ScrollView {
                             VStack(spacing: 16) {
                                 ForEach(viewModel.posts) { post in
-                                    PostCard(post: post, viewModel: viewModel, onCommentTap: {
-                                        selectedPostId = post.id
-                                    })
+                                    PostCard(
+                                        post: post,
+                                        viewModel: viewModel,
+                                        currentUserId: profileViewModel.userId,
+                                        onCommentTap: {
+                                            selectedPostId = post.id
+                                        },
+                                        onDeleteTap: {
+                                            postToDelete = post
+                                            showDeletePostConfirmation = true
+                                        }
+                                    )
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -119,9 +131,25 @@ struct DiscussionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.loadPosts()
+            await profileViewModel.loadProfile()
         }
         .refreshable {
             await viewModel.loadPosts()
+        }
+        .alert("Supprimer le post", isPresented: $showDeletePostConfirmation) {
+            Button("Supprimer", role: .destructive) {
+                if let post = postToDelete {
+                    Task {
+                        await viewModel.deletePost(id: post.id)
+                        postToDelete = nil
+                    }
+                }
+            }
+            Button("Annuler", role: .cancel) {
+                postToDelete = nil
+            }
+        } message: {
+            Text("Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.")
         }
     }
 }
@@ -130,14 +158,25 @@ struct PostCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let post: DiscussionPost
     @ObservedObject var viewModel: DiscussionViewModel
+    let currentUserId: String?
     let onCommentTap: () -> Void
+    let onDeleteTap: () -> Void
     @State private var isLiked: Bool = false
     @State private var likesCount: Int
     
-    init(post: DiscussionPost, viewModel: DiscussionViewModel, onCommentTap: @escaping () -> Void = {}) {
+    private var isOwnPost: Bool {
+        guard let currentUserId = currentUserId else {
+            return false
+        }
+        return currentUserId == post.user.id
+    }
+    
+    init(post: DiscussionPost, viewModel: DiscussionViewModel, currentUserId: String?, onCommentTap: @escaping () -> Void = {}, onDeleteTap: @escaping () -> Void = {}) {
         self.post = post
         self.viewModel = viewModel
+        self.currentUserId = currentUserId
         self.onCommentTap = onCommentTap
+        self.onDeleteTap = onDeleteTap
         _likesCount = State(initialValue: post.likesCount)
     }
     
@@ -172,6 +211,16 @@ struct PostCard: View {
                 }
                 
                 Spacer()
+                
+                // Bouton de suppression (uniquement pour les posts de l'utilisateur)
+                if isOwnPost {
+                    Button(action: onDeleteTap) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(red: 0.91, green: 0.12, blue: 0.39))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             
             // Titre du post
@@ -365,6 +414,7 @@ struct PostCommentsView: View {
                             SwipeableCommentRow(
                                 comment: comment,
                                 currentUserId: currentUserId,
+                                postOwnerId: currentPost?.user.id,
                                 viewModel: commentsViewModel,
                                 onDelete: {
                                     Task {
@@ -484,6 +534,7 @@ struct SwipeableCommentRow: View {
     @Environment(\.colorScheme) private var colorScheme
     let comment: DiscussionComment
     let currentUserId: String?
+    let postOwnerId: String?
     @ObservedObject var viewModel: DiscussionViewModel
     let onDelete: () -> Void
     let onLike: () -> Void
@@ -499,18 +550,24 @@ struct SwipeableCommentRow: View {
     private let commentContent: String
     private let commentUserId: String?
     
-    // Vérifier si l'utilisateur connecté est le propriétaire du commentaire
+    // Vérifier si l'utilisateur peut supprimer le commentaire
+    // L'utilisateur peut supprimer si :
+    // 1. Il est le propriétaire du commentaire
+    // 2. Il est le propriétaire du post
     private var canDelete: Bool {
         guard let currentUserId = currentUserId,
               let commentUserId = commentUserId else {
             return false
         }
-        return currentUserId == commentUserId
+        let isCommentOwner = currentUserId == commentUserId
+        let isPostOwner = currentUserId == postOwnerId
+        return isCommentOwner || isPostOwner
     }
     
-    init(comment: DiscussionComment, currentUserId: String?, viewModel: DiscussionViewModel, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
+    init(comment: DiscussionComment, currentUserId: String?, postOwnerId: String?, viewModel: DiscussionViewModel, onDelete: @escaping () -> Void, onLike: @escaping () -> Void) {
         self.comment = comment
         self.currentUserId = currentUserId
+        self.postOwnerId = postOwnerId
         self.viewModel = viewModel
         self.onDelete = onDelete
         self.onLike = onLike
