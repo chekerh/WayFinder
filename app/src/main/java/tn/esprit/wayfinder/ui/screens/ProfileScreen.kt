@@ -429,7 +429,7 @@ fun ProfileContent(
             // Location
             ProfileMenuItem(
                 icon = Icons.Filled.LocationOn,
-                text = StringTranslator.translate(context, "Location"),
+                text = StringTranslator.translate(context, "Localisation"),
                 onClick = { /* Empty action */ }
             )
             
