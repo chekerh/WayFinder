@@ -22,11 +22,7 @@ app/wayfinder-*.json
 app/google-services.json
 
 # Documentation files that shouldn't be in git
-*_SETUP.md
-*_GUIDE.md
-*_CHECKLIST.md
-*_SOLUTION.md
-*_VERIFICATION.md
-CREATE_*.md
+# Ignore all .md files automatically
+*.md
 # Keep only essential README files
 !README.md
