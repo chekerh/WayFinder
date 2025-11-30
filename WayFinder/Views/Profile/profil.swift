@@ -178,43 +178,35 @@ struct ProfileView: View {
             return nil
         }()
         
-        return VStack(spacing: 18) {
-            // Top row: Points (left) - Photo (center) - Lifetime (right)
-            HStack(spacing: 16) {
-                // Points (left)
-                CompactPointsView(
-                    totalPoints: 0, // TODO: Replace with viewModel.profile?.totalPoints ?? 0
-                    scheme: scheme
-                )
-                
-                // Photo (center)
+        // Get user stats (using defaults for now until backend provides these)
+        let totalPoints = 0 // TODO: Replace with viewModel.profile?.totalPoints ?? 0
+        let lifetimePoints = 0 // TODO: Replace with viewModel.profile?.lifetimePoints ?? 0
+        let currentStreak = 0 // TODO: Replace with viewModel.profile?.currentStreak ?? 0
+        let longestStreak = 0 // TODO: Replace with viewModel.profile?.longestStreak ?? 0
+        let userLevel = 1 // TODO: Replace with viewModel.profile?.level ?? 1
+        let levelProgress = 0.3 // TODO: Calculate from actual progress data
+        let levelMultiplier = 6 // TODO: Replace with viewModel.profile?.levelMultiplier ?? 6
+        
+        // Get username or code for badge
+        let userCode = viewModel.profile?.username?.uppercased() ?? "USER"
+        
+        return VStack(spacing: 20) {
+            // Top row: Avatar (left) - Name & Badge (right)
+            HStack(alignment: .top, spacing: 16) {
+                // Avatar (left) - Rounded rectangle
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     ZStack {
-                        Circle()
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(ThemeColors.surface(scheme))
-                            .frame(width: 132, height: 132)
-                            .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 18, x: 0, y: 8)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.white.opacity(scheme == .dark ? 0.4 : 0.9),
-                                                ThemeColors.accent()
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 3
-                                    )
-                            )
+                            .frame(width: 80, height: 80)
+                            .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 12, x: 0, y: 6)
                         
                         if let imageData = imageData, let uiImage = UIImage(data: imageData) {
                             Image(uiImage: uiImage)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 120, height: 120)
-                                .clipShape(Circle())
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         } else if let url = imageUrl {
                             AsyncImage(url: url) { phase in
                                 switch phase {
@@ -222,22 +214,28 @@ struct ProfileView: View {
                                     image
                                         .resizable()
                                         .scaledToFill()
-                                        .frame(width: 120, height: 120)
-                                        .clipShape(Circle())
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 case .failure, .empty:
                                     profilePlaceholder(for: scheme)
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 @unknown default:
                                     profilePlaceholder(for: scheme)
+                                        .frame(width: 80, height: 80)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 }
                             }
                         } else {
                             profilePlaceholder(for: scheme)
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                         
                         if isUploading {
-                            Circle()
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(Color.black.opacity(0.35))
-                                .frame(width: 120, height: 120)
+                                .frame(width: 80, height: 80)
                             ProgressView()
                                 .tint(.white)
                         }
@@ -246,41 +244,130 @@ struct ProfileView: View {
                 .buttonStyle(.plain)
                 .disabled(viewModel.isUploadingImage)
                 
-                // Lifetime (right)
-                CompactLifetimeView(
-                    lifetimePoints: 0, // TODO: Replace with viewModel.profile?.lifetimePoints ?? 0
+                // Name & Badge (right)
+                VStack(alignment: .leading, spacing: 8) {
+                    // User name
+                    Text(viewModel.displayName)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(ThemeColors.primaryText(scheme))
+                    
+                    // Badge/Pill with user code
+                    HStack(spacing: 4) {
+                        Text(userCode)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(ThemeColors.primaryText(scheme))
+                        
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(ThemeColors.secondaryText(scheme))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(ThemeColors.surface(scheme).opacity(0.6))
+                    )
+                }
+                
+                Spacer()
+            }
+            
+            // Level progress bar
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Level \(userLevel)")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(ThemeColors.primaryText(scheme))
+                    
+                    Spacer()
+                    
+                    Text("x\(levelMultiplier)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(ThemeColors.accent())
+                }
+                
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        ThemeColors.accent().opacity(scheme == .dark ? 0.3 : 0.2),
+                                        ThemeColors.accent().opacity(scheme == .dark ? 0.2 : 0.15)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(height: 8)
+                        
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        ThemeColors.accent(),
+                                        ThemeColors.accent().opacity(0.8)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * levelProgress, height: 8)
+                    }
+                }
+                .frame(height: 8)
+            }
+            
+            // Stats row: Points, Lifetime, Day Streak
+            HStack(spacing: 0) {
+                // Points stat
+                StatBlock(
+                    icon: "trophy.fill",
+                    value: "\(totalPoints)",
+                    label: "Points",
+                    iconColor: Color(red: 1.0, green: 0.757, blue: 0.027), // Gold
+                    scheme: scheme
+                )
+                
+                // Divider
+                Rectangle()
+                    .fill(ThemeColors.secondaryText(scheme).opacity(0.2))
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
+                
+                // Lifetime stat
+                StatBlock(
+                    icon: "infinity",
+                    value: "\(lifetimePoints)",
+                    label: "Lifetime",
+                    iconColor: ThemeColors.accent(),
+                    scheme: scheme
+                )
+                
+                // Divider
+                Rectangle()
+                    .fill(ThemeColors.secondaryText(scheme).opacity(0.2))
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
+                
+                // Day Streak stat
+                StatBlock(
+                    icon: "flame.fill",
+                    value: "\(currentStreak)",
+                    label: "Day Streak",
+                    iconColor: Color(red: 1.0, green: 0.341, blue: 0.133), // Orange-red
                     scheme: scheme
                 )
             }
-            .frame(maxWidth: .infinity)
-            
-            // Day Streak (below photo)
-            CompactDayStreakView(
-                currentStreak: 0, // TODO: Replace with viewModel.profile?.currentStreak ?? 0
-                longestStreak: 0, // TODO: Replace with viewModel.profile?.longestStreak ?? 0
-                scheme: scheme
-            )
-            
-            VStack(spacing: 4) {
-                Text(viewModel.displayName)
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundColor(ThemeColors.primaryText(scheme))
-                
-                if let email = viewModel.profile?.email, !email.isEmpty {
-                    Text(email)
-                        .font(.subheadline)
-                        .foregroundColor(ThemeColors.secondaryText(scheme))
-                }
-            }
-            
+            .padding(.top, 4)
         }
-        .padding(.vertical, 28)
-        .padding(.horizontal, 24)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(ThemeColors.surface(scheme))
-                .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 24, x: 0, y: 12)
+                .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 20, x: 0, y: 10)
         )
         .onChange(of: selectedPhoto) { _, newValue in
             Task {
@@ -505,143 +592,35 @@ struct SurveyScreenWithCompletionWrapper: View {
     }
 }
 
-// MARK: - Compact Points View (left of photo)
-struct CompactPointsView: View {
-    let totalPoints: Int
-    let scheme: ColorScheme
-    
-    @State private var sparkleScale: CGFloat = 1.0
-    
-    var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(red: 1.0, green: 0.757, blue: 0.027), // #FFC107
-                                Color(red: 1.0, green: 0.596, blue: 0.0)    // #FF9800
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: 20
-                        )
-                    )
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: "trophy.fill")
-                    .foregroundColor(.white)
-                    .font(.system(size: 20))
-                    .scaleEffect(sparkleScale)
-            }
-            
-            Text("\(totalPoints)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Color(red: 1.0, green: 0.757, blue: 0.027))
-            
-            Text("Points")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(ThemeColors.secondaryText(scheme))
-        }
-        .frame(width: 80)
-        .onAppear {
-            withAnimation(
-                Animation.easeInOut(duration: 1.5)
-                    .repeatForever(autoreverses: true)
-            ) {
-                sparkleScale = 1.15
-            }
-        }
-    }
-}
-
-// MARK: - Compact Lifetime View (right of photo)
-struct CompactLifetimeView: View {
-    let lifetimePoints: Int
+// MARK: - Stat Block Component
+struct StatBlock: View {
+    let icon: String
+    let value: String
+    let label: String
+    let iconColor: Color
     let scheme: ColorScheme
     
     var body: some View {
-        VStack(spacing: 6) {
-            Text("Lifetime")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(ThemeColors.secondaryText(scheme))
+        HStack(spacing: 8) {
+            // Icon on the left
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .font(.system(size: 20, weight: .semibold))
+                .frame(width: 24)
             
-            Text("\(lifetimePoints)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(ThemeColors.primaryText(scheme))
-            
-            Text("Available now")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(Color(red: 0.298, green: 0.686, blue: 0.314)) // #4CAF50
-        }
-        .frame(width: 80)
-    }
-}
-
-// MARK: - Compact Day Streak View (below photo)
-struct CompactDayStreakView: View {
-    let currentStreak: Int
-    let longestStreak: Int
-    let scheme: ColorScheme
-    
-    @State private var fireScale: CGFloat = 1.0
-    
-    private var progress: Double {
-        min(Double(currentStreak) / 30.0, 1.0)
-    }
-    
-    private var daysUntilMilestone: Int {
-        max(30 - currentStreak, 0)
-    }
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "flame.fill")
-                    .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133)) // #FF5722
-                    .font(.system(size: 24))
-                    .scaleEffect(fireScale)
+            // Value and label stacked vertically
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(ThemeColors.primaryText(scheme))
                 
-                Text("\(currentStreak)")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133))
-                
-                Text("Day Streak")
-                    .font(.system(size: 14, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(ThemeColors.secondaryText(scheme))
             }
-            
-            // Progress bar
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            Color(red: 1.0, green: 0.341, blue: 0.133)
-                                .opacity(scheme == .dark ? 0.25 : 0.2)
-                        )
-                        .frame(height: 6)
-                    
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(red: 1.0, green: 0.341, blue: 0.133))
-                        .frame(width: geometry.size.width * progress, height: 6)
-                }
-            }
-            .frame(height: 6)
-            .frame(maxWidth: 200)
-            
-            Text("\(daysUntilMilestone) days until next milestone!")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133))
-                .multilineTextAlignment(.center)
         }
-        .onAppear {
-            withAnimation(
-                Animation.easeInOut(duration: 1.0)
-                    .repeatForever(autoreverses: true)
-            ) {
-                fireScale = 1.1
-            }
-        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
     }
 }
 

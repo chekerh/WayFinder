@@ -163,12 +163,22 @@ struct PostCard: View {
     let onDeleteTap: () -> Void
     @State private var isLiked: Bool = false
     @State private var likesCount: Int
+    @State private var offset: CGFloat = 0
+    
+    // Stocker les valeurs statiques pour éviter le rafraîchissement
+    private let userName: String
+    private let userImageUrl: String?
+    private let postTitle: String
+    private let postContent: String
+    private let postDestination: String?
+    private let postTags: [String]
+    private let postUserId: String
     
     private var isOwnPost: Bool {
         guard let currentUserId = currentUserId else {
             return false
         }
-        return currentUserId == post.user.id
+        return currentUserId == postUserId
     }
     
     init(post: DiscussionPost, viewModel: DiscussionViewModel, currentUserId: String?, onCommentTap: @escaping () -> Void = {}, onDeleteTap: @escaping () -> Void = {}) {
@@ -177,6 +187,16 @@ struct PostCard: View {
         self.currentUserId = currentUserId
         self.onCommentTap = onCommentTap
         self.onDeleteTap = onDeleteTap
+        
+        // Stocker les valeurs statiques pour éviter le rafraîchissement
+        self.userName = post.user.displayName
+        self.userImageUrl = post.user.profileImageUrl
+        self.postTitle = post.title
+        self.postContent = post.content
+        self.postDestination = post.destination
+        self.postTags = post.tags
+        self.postUserId = post.user.id
+        
         _likesCount = State(initialValue: post.likesCount)
     }
     
@@ -192,147 +212,196 @@ struct PostCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // En-tête avec photo de profil, nom et date
-            HStack(spacing: 10) {
-                userAvatar
-                    .frame(width: 40, height: 40)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(post.user.displayName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    
-                    if !formattedDate.isEmpty {
-                        Text(formattedDate)
-                            .font(.caption)
-                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    }
-                }
-                
-                Spacer()
-                
-                // Bouton de suppression (uniquement pour les posts de l'utilisateur)
-                if isOwnPost {
-                    Button(action: onDeleteTap) {
+        ZStack(alignment: .trailing) {
+            // Bouton de suppression (visible quand on swipe vers la gauche)
+            if isOwnPost {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            offset = 0
+                        }
+                        // Attendre un peu avant de supprimer pour voir l'animation
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            onDeleteTap()
+                        }
+                    }) {
                         Image(systemName: "trash")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color(red: 0.91, green: 0.12, blue: 0.39))
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                            .frame(width: 60)
+                            .frame(maxHeight: .infinity)
+                            .background(
+                                Color.red
+                                    .clipShape(Rectangle())
+                            )
                     }
                     .buttonStyle(.plain)
                 }
+                .opacity(offset < -10 ? 1 : 0) // Visible seulement quand on swipe
+                .allowsHitTesting(offset < -10) // Désactiver les interactions quand invisible
             }
             
-            // Titre du post
-            Text(post.title)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-            
-            // Contenu du post
-            Text(post.content)
-                .font(.system(size: 14))
-                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                .lineLimit(nil)
-            
-            // Destination avec pin rouge
-            if let destination = post.destination {
-                HStack(spacing: 4) {
-                    Image(systemName: "mappin.fill")
-                        .foregroundColor(.red)
-                        .font(.system(size: 12))
-                    Text(destination)
-                        .font(.caption)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                }
-            }
-            
-            // Tags (optionnel)
-            if !post.tags.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(post.tags, id: \.self) { tag in
-                            Text("#\(tag)")
+            // Contenu de la carte
+            VStack(alignment: .leading, spacing: 12) {
+                // En-tête avec photo de profil, nom et date
+                HStack(spacing: 10) {
+                    // Utiliser les valeurs stockées pour éviter le rafraîchissement
+                    if let imageUrl = userImageUrl, let url = buildImageURL(from: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                            case .failure, .empty:
+                                placeholder
+                            @unknown default:
+                                placeholder
+                            }
+                        }
+                    } else {
+                        placeholder
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(userName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        
+                        if !formattedDate.isEmpty {
+                            Text(formattedDate)
                                 .font(.caption)
-                                .foregroundColor(ThemeColors.accent())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(ThemeColors.accent().opacity(0.1))
-                                )
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                         }
                     }
+                    
+                    Spacer()
                 }
-            }
-            
-            // Likes et commentaires en bas
-            HStack(spacing: 16) {
-                Button(action: {
-                    Task {
-                        await toggleLike()
-                    }
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .foregroundColor(isLiked ? .red : ThemeColors.secondaryText(colorScheme))
-                            .font(.system(size: 14))
-                        Text("\(likesCount)")
-                            .font(.caption)
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    }
-                }
-                .buttonStyle(.plain)
                 
-                Button(action: onCommentTap) {
+                // Titre du post (utiliser la valeur stockée)
+                Text(postTitle)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                
+                // Contenu du post (utiliser la valeur stockée)
+                Text(postContent)
+                    .font(.system(size: 14))
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    .lineLimit(nil)
+                
+                // Destination avec pin rouge (utiliser la valeur stockée)
+                if let destination = postDestination {
                     HStack(spacing: 4) {
-                        Image(systemName: "bubble.right")
-                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                            .font(.system(size: 14))
-                        Text(String(format: String(localized: "discussions_comments_count"), post.commentsCount))
+                        Image(systemName: "mappin.fill")
+                            .foregroundColor(.red)
+                            .font(.system(size: 12))
+                        Text(destination)
                             .font(.caption)
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }
                 }
-                .buttonStyle(.plain)
                 
-                Spacer()
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(ThemeColors.surface(colorScheme))
-        )
-        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-    }
-    
-    @ViewBuilder
-    private var userAvatar: some View {
-        if let imageUrl = post.user.profileImageUrl, let url = buildImageURL(from: imageUrl) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .clipShape(Circle())
-                case .failure, .empty:
-                    placeholder
-                @unknown default:
-                    placeholder
+                // Tags (optionnel) (utiliser la valeur stockée)
+                if !postTags.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(postTags, id: \.self) { tag in
+                                Text("#\(tag)")
+                                    .font(.caption)
+                                    .foregroundColor(ThemeColors.accent())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        Capsule()
+                                            .fill(ThemeColors.accent().opacity(0.1))
+                                    )
+                            }
+                        }
+                    }
+                }
+                
+                // Likes et commentaires en bas
+                HStack(spacing: 16) {
+                    Button(action: {
+                        Task {
+                            await toggleLike()
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: isLiked ? "heart.fill" : "heart")
+                                .foregroundColor(isLiked ? .red : ThemeColors.secondaryText(colorScheme))
+                                .font(.system(size: 14))
+                            Text("\(likesCount)")
+                                .font(.caption)
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: onCommentTap) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.right")
+                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                .font(.system(size: 14))
+                            Text(String(format: String(localized: "discussions_comments_count"), post.commentsCount))
+                                .font(.caption)
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Spacer()
                 }
             }
-        } else {
-            placeholder
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ThemeColors.surface(colorScheme))
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+            .offset(x: offset)
+            .gesture(
+                // Permettre le swipe seulement si l'utilisateur peut supprimer
+                isOwnPost ? DragGesture()
+                    .onChanged { value in
+                        if value.translation.width < 0 {
+                            // Swipe vers la gauche
+                            offset = max(value.translation.width, -60)
+                        } else if offset < 0 {
+                            // Permettre de revenir en arrière
+                            offset = min(0, offset + value.translation.width)
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.width < -30 || offset < -30 {
+                            // Ouvrir le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = -60
+                            }
+                        } else {
+                            // Fermer le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = 0
+                            }
+                        }
+                    } : nil
+            )
         }
+        .clipped() // Empêcher le bouton de dépasser les bords
+        .contentShape(Rectangle())
     }
     
     private var placeholder: some View {
         Circle()
             .fill(Color.gray.opacity(0.3))
+            .frame(width: 40, height: 40)
             .overlay(
                 Image(systemName: "person.fill")
                     .foregroundColor(.white)
+                    .font(.system(size: 20))
             )
     }
     

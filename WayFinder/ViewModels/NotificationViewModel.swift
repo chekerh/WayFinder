@@ -20,7 +20,7 @@ final class NotificationViewModel: ObservableObject {
         }
     }
     
-    func loadNotifications() async {
+    func loadNotifications(autoDeleteOld: Bool = true) async {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
@@ -83,6 +83,11 @@ final class NotificationViewModel: ObservableObject {
                 // Notify FirebaseMessagingService to check for new notifications immediately
                 FirebaseMessagingService.shared.checkForNewNotifications()
             }
+            
+            // Supprimer automatiquement les anciennes notifications (plus de 1 heure)
+            if autoDeleteOld {
+                await deleteOldNotifications()
+            }
         } catch {
             print("❌ [NotificationViewModel] Error loading notifications: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
@@ -134,6 +139,37 @@ final class NotificationViewModel: ObservableObject {
             print("❌ [NotificationViewModel] Error deleting all notifications: \(error.localizedDescription)")
             errorMessage = "Erreur lors de la suppression des notifications"
         }
+    }
+    
+    /// Supprime automatiquement les notifications anciennes (plus de 1 heure)
+    func deleteOldNotifications() async {
+        print("🔄 [NotificationViewModel] Deleting notifications older than 1 hour")
+        let cutoffDate = Calendar.current.date(byAdding: .hour, value: -1, to: Date()) ?? Date.distantPast
+        
+        let oldNotifications = notifications.filter { notification in
+            guard let createdAt = notification.createdAt else { return false }
+            return createdAt < cutoffDate
+        }
+        
+        guard !oldNotifications.isEmpty else {
+            print("ℹ️ [NotificationViewModel] No old notifications to delete")
+            return
+        }
+        
+        print("📋 [NotificationViewModel] Found \(oldNotifications.count) old notification(s) to delete")
+        
+        var deletedCount = 0
+        for notification in oldNotifications {
+            do {
+                try await service.deleteNotification(notificationId: notification.id)
+                notifications.removeAll { $0.id == notification.id }
+                deletedCount += 1
+            } catch {
+                print("⚠️ [NotificationViewModel] Error deleting old notification \(notification.id): \(error.localizedDescription)")
+            }
+        }
+        
+        print("✅ [NotificationViewModel] Deleted \(deletedCount) old notification(s)")
     }
 }
 

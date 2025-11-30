@@ -114,11 +114,15 @@ struct ConfirmationScreen: View {
                         // Return to Home Button (White with blue border)
                         Button(action: {
                             // Appeler le callback pour fermer toutes les vues et revenir à Home
+                            // Fermer d'abord cette vue
+                            dismiss()
+                            // Puis appeler le callback parent si disponible
                             if let onBackToHome = onBackToHome {
-                                onBackToHome()
-                            } else {
-                                // Fallback: fermer cette vue seulement
-                                dismiss()
+                                // Utiliser un petit délai pour s'assurer que cette vue est fermée
+                                Task { @MainActor in
+                                    try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
+                                    onBackToHome()
+                                }
                             }
                         }) {
                             Text("confirmation_back_home")

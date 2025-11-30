@@ -128,6 +128,7 @@ private struct BookingCard: View {
     @State private var reactivateErrorMessage: String?
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
+    @State private var offset: CGFloat = 0
     
     private var statusColor: Color {
         switch booking.status {
@@ -141,104 +142,149 @@ private struct BookingCard: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            // Destination avec pays en gras et grand (ex: "Paris, France")
-                            Text(DestinationHelper.getFullDestinationName(from: booking.destination))
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                            
-                            // Numéro de confirmation en plus petit
-                            Text(booking.confirmationNumber)
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                            
-                            // Date et heure
-                            Text(formatDate(booking.createdAt))
-                                .font(.system(size: 13))
-                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                            
-                            // Montant avec devise
-                            if let price = booking.price {
-                                Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
-                                    .padding(.top, 4)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Badge de statut
-                        Text(booking.status.displayName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(statusColor)
-                            )
-                    }
-                    .padding(16)
-                }
-                .buttonStyle(.plain)
-                
-                // Bouton de suppression
+        ZStack(alignment: .trailing) {
+            // Bouton de suppression (visible quand on swipe vers la gauche)
+            HStack {
+                Spacer()
                 Button(action: {
-                    showDeleteConfirmation = true
+                    withAnimation(.spring()) {
+                        offset = 0
+                    }
+                    // Attendre un peu avant de supprimer pour voir l'animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showDeleteConfirmation = true
+                    }
                 }) {
                     Image(systemName: "trash")
+                        .foregroundColor(.white)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.red)
-                        .frame(width: 44, height: 44)
-                        .background(Color.red.opacity(0.1))
-                        .clipShape(Circle())
+                        .frame(width: 60)
+                        .frame(maxHeight: .infinity)
+                        .background(
+                            Color.red
+                                .clipShape(Rectangle())
+                        )
                 }
                 .buttonStyle(.plain)
                 .disabled(isDeleting)
             }
+            .opacity(offset < -10 ? 1 : 0) // Visible seulement quand on swipe
+            .allowsHitTesting(offset < -10) // Désactiver les interactions quand invisible
             
-            // Bouton Réserver à nouveau pour les réservations annulées
-            if booking.status == .cancelled {
-                Divider()
-                    .padding(.horizontal, 16)
-                
-                Button(action: {
-                    Task {
-                        await reactivateBooking()
+            // Contenu de la carte
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    NavigationLink(destination: BookingDetailScreen(booking: booking, viewModel: viewModel)) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                // Destination avec pays en gras et grand (ex: "Paris, France")
+                                Text(DestinationHelper.getFullDestinationName(from: booking.destination))
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                
+                                // Numéro de confirmation en plus petit
+                                Text(booking.confirmationNumber)
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                
+                                // Date et heure
+                                Text(formatDate(booking.createdAt))
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                
+                                // Montant avec devise
+                                if let price = booking.price {
+                                    Text(String(format: "%.2f %@", price, booking.currency ?? "EUR"))
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                                        .padding(.top, 4)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // Badge de statut
+                            Text(booking.status.displayName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(statusColor)
+                                )
+                        }
+                        .padding(16)
                     }
-                }) {
-                    HStack {
-                        if isReactivating {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
+                    .buttonStyle(.plain)
+                }
+            
+                // Bouton Réserver à nouveau pour les réservations annulées
+                if booking.status == .cancelled {
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    Button(action: {
+                        Task {
+                            await reactivateBooking()
+                        }
+                    }) {
+                        HStack {
+                            if isReactivating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            Text("Réserver à nouveau")
                                 .font(.system(size: 14, weight: .semibold))
                         }
-                        Text("Réserver à nouveau")
-                            .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(ThemeColors.accent())
                     }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(ThemeColors.accent())
+                    .disabled(isReactivating)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
-                .disabled(isReactivating)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(ThemeColors.surface(colorScheme))
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+            .offset(x: offset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        if value.translation.width < 0 {
+                            // Swipe vers la gauche
+                            offset = max(value.translation.width, -60)
+                        } else if offset < 0 {
+                            // Permettre de revenir en arrière
+                            offset = min(0, offset + value.translation.width)
+                        }
+                    }
+                    .onEnded { value in
+                        if value.translation.width < -30 || offset < -30 {
+                            // Ouvrir le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = -60
+                            }
+                        } else {
+                            // Fermer le bouton de suppression
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                offset = 0
+                            }
+                        }
+                    }
+            )
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(ThemeColors.surface(colorScheme))
-        )
-        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .clipped() // Empêcher le bouton de dépasser les bords
+        .contentShape(Rectangle())
         .alert("Erreur", isPresented: $showReactivateError) {
             Button("OK", role: .cancel) { }
         } message: {

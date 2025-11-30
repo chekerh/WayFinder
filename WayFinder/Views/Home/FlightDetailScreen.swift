@@ -357,8 +357,9 @@ struct FlightDetailScreen: View {
                                             // Fermer FlightDetailScreen pour revenir à Home
                                             // Utiliser un petit délai pour s'assurer que ReservationScreen est fermé d'abord
                                             Task { @MainActor in
-                                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
-                                                dismiss() // Ferme FlightDetailScreen et revient à HomeScreen
+                                                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
+                                                // Fermer FlightDetailScreen et revenir à HomeScreen
+                                                dismiss()
                                             }
                                         }
                                     )) {

@@ -112,12 +112,17 @@ struct ReservationScreen: View {
                             TextField(String(localized: "reservation_card_number"), text: $cardNumber)
                                 .keyboardType(.numberPad)
                                 .onChange(of: cardNumber) { oldValue, newValue in
-                                    // Format card number (add spaces every 4 digits)
-                                    let formatted = newValue.filter { $0.isNumber }
-                                        .chunked(into: 4)
-                                        .joined(separator: " ")
-                                    if formatted.count <= 19 {
+                                    // Limiter à 16 chiffres maximum
+                                    let digitsOnly = newValue.filter { $0.isNumber }
+                                    if digitsOnly.count <= 16 {
+                                        // Format card number (add spaces every 4 digits)
+                                        let formatted = digitsOnly
+                                            .chunked(into: 4)
+                                            .joined(separator: " ")
                                         cardNumber = formatted
+                                    } else {
+                                        // Garder l'ancienne valeur si on dépasse 16 chiffres
+                                        cardNumber = oldValue
                                     }
                                 }
                         }
@@ -355,17 +360,16 @@ struct ReservationScreen: View {
                     // Fermer ConfirmationScreen d'abord
                     navigateToConfirmation = false
                     // Puis fermer ReservationScreen
-                    // Le callback parent (FlightDetailScreen) fermera FlightDetailScreen pour revenir à Home
                     Task { @MainActor in
                         // Attendre que ConfirmationScreen soit fermé
-                        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 secondes
-                        // Si onBackToHome est fourni depuis FlightDetailScreen, l'utiliser
+                        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 secondes
+                        // Fermer ReservationScreen
+                        dismiss()
+                        // Si onBackToHome est fourni depuis FlightDetailScreen, l'utiliser après un court délai
                         // Cela fermera FlightDetailScreen et reviendra à Home
                         if let onBackToHome = onBackToHome {
+                            try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 secondes
                             onBackToHome()
-                        } else {
-                            // Sinon, fermer seulement ReservationScreen
-                            dismiss()
                         }
                     }
                 }

@@ -8,101 +8,110 @@ struct NotificationView: View {
     @State private var showDeleteAllConfirmation = false
     
     var body: some View {
-        ZStack {
-            ThemeColors.background(colorScheme)
-                .ignoresSafeArea()
-            
+        Group {
             if viewModel.isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    ThemeColors.background(colorScheme)
+                        .ignoresSafeArea()
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else if let error = viewModel.errorMessage {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 48))
-                        .foregroundColor(.orange)
-                    Text("Erreur")
-                        .font(.headline)
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text(error)
-                        .font(.subheadline)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    
-                    Button(action: {
-                        Task {
-                            await viewModel.loadNotifications()
-                        }
-                    }) {
-                        Text("Réessayer")
+                ZStack {
+                    ThemeColors.background(colorScheme)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.orange)
+                        Text("Erreur")
                             .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(ThemeColors.accent())
-                            .clipShape(Capsule())
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.notifications.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "bell.slash")
-                        .font(.system(size: 48))
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    Text("Aucune notification")
-                        .font(.headline)
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("Vous n'avez pas encore de notifications")
-                        .font(.subheadline)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        Text("Notifications")
-                            .font(.system(size: 28, weight: .bold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                        
-                        Spacer()
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                         
                         Button(action: {
                             Task {
-                                await viewModel.markAllAsRead()
+                                await viewModel.loadNotifications()
                             }
                         }) {
-                            Text("Tout marquer comme lu")
-                                .font(.caption)
-                                .foregroundColor(ThemeColors.accent())
+                            Text("Réessayer")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(ThemeColors.accent())
+                                .clipShape(Capsule())
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
-                    
-                    // Delete All Notifications Button
-                    Button(action: {
-                        showDeleteAllConfirmation = true
-                    }) {
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else if viewModel.notifications.isEmpty {
+                ZStack {
+                    ThemeColors.background(colorScheme)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        Image(systemName: "bell.slash")
+                            .font(.system(size: 48))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        Text("Aucune notification")
+                            .font(.headline)
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        Text("Vous n'avez pas encore de notifications")
+                            .font(.subheadline)
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                ScrollView(showsIndicators: true) {
+                    VStack(spacing: 0) {
+                        // Header
                         HStack {
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("Supprimer toutes les notifications")
-                                .font(.system(size: 14, weight: .semibold))
+                            Text("Notifications")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                Task {
+                                    await viewModel.markAllAsRead()
+                                }
+                            }) {
+                                Text("Tout marquer comme lu")
+                                    .font(.caption)
+                                    .foregroundColor(ThemeColors.accent())
+                            }
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 16)
-                    
-                    // Liste des notifications
-                    ScrollView {
-                        VStack(spacing: 12) {
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                        .padding(.bottom, 16)
+                        
+                        // Delete All Notifications Button
+                        Button(action: {
+                            showDeleteAllConfirmation = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Supprimer toutes les notifications")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
+                        
+                        // Liste des notifications
+                        LazyVStack(spacing: 12) {
                             ForEach(viewModel.notifications) { notification in
                                 NotificationCard(
                                     notification: notification,
@@ -123,9 +132,11 @@ struct NotificationView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.top, 8)
                         .padding(.bottom, 100)
                     }
                 }
+                .background(ThemeColors.background(colorScheme))
             }
         }
         .navigationBarTitleDisplayMode(.inline)
