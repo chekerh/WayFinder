@@ -126,6 +126,13 @@
 "profile_points" = "Points";
 "profile_lifetime" = "Lifetime";
 "profile_points_explanation" = "Earn points by using the app: book a flight (+50), share a journey (+30), analyze an outfit (+20), and more. Use your points to unlock badges, access premium features, and get discounts on your bookings.";
+"map_memories_title" = "My Memories";
+"map_memories_retry" = "Retry";
+"map_memories_empty_title" = "No memories on the map";
+"map_memories_empty_message" = "Share your journeys to see your memories on the map!";
+"map_memories_countries_visited" = "%d Countries visited";
+"map_memories_memory_count" = "%d memories";
+"map_memories_memories" = "Memories";
 "profile_available_now" = "Available now";
 "profile_day_streak" = "Day Streak";
 "profile_days_until_milestone" = "%d days until next milestone!";

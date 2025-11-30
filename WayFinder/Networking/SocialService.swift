@@ -88,5 +88,31 @@ final class SocialService {
         
         return try await APIService.shared.request(builder, decodeTo: LikeResponse.self)
     }
+    
+    func getMapMemories() async throws -> MapMemoriesResponse {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "social/map-memories"
+        )
+        
+        do {
+            return try await APIService.shared.request(builder, decodeTo: MapMemoriesResponse.self)
+        } catch {
+            print("❌ [SocialService] Error fetching map memories: \(error)")
+            if let decodingError = error as? DecodingError {
+                print("❌ [SocialService] DecodingError: \(decodingError)")
+            }
+            throw error
+        }
+    }
+    
+    func getGoogleMapsApiKey() async throws -> GoogleMapsApiKeyResponse {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "config/google-maps-api-key"
+        )
+        
+        return try await APIService.shared.request(builder, decodeTo: GoogleMapsApiKeyResponse.self)
+    }
 }
 

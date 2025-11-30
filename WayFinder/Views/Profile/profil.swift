@@ -36,6 +36,7 @@ struct ProfileView: View {
             .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
             .init(icon: "square.and.arrow.up", titleKey: "profileShareTrip", destination: .shareTrip),
             .init(icon: "photo.on.rectangle.angled", titleKey: "profileSharedJourneys", destination: .sharedJourneys),
+            .init(icon: "map.fill", titleKey: "map_memories_title", destination: .mapMemories),
             .init(icon: "sparkles", titleKey: "profile_discover_app", destination: .discoverApp),
             .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
             .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
@@ -485,6 +486,7 @@ private enum ProfileDestination {
     case settings
     case shareTrip
     case sharedJourneys
+    case mapMemories
     case retakeOnboarding
     case discoverApp
 }
@@ -561,6 +563,8 @@ private extension ProfileView {
             ShareTripView()
         case .sharedJourneys:
             JourneyFeedView()
+        case .mapMemories:
+            MapMemoriesView()
         case .retakeOnboarding:
             // This will be handled by fullScreenCover, but we need this for the enum
             EmptyView()

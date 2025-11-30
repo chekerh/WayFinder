@@ -16,6 +16,34 @@ struct UserPreview: Decodable {
         case profileImageUrl = "profile_image_url"
         case followedAt
     }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Handle _id - try string first, fallback to any string value
+        if let idString = try? container.decode(String.self, forKey: .id) {
+            id = idString
+        } else {
+            // If not a string, try to extract string value from any type
+            id = String(describing: try container.decode(AnyCodable.self, forKey: .id).value)
+        }
+        
+        username = try container.decodeIfPresent(String.self, forKey: .username) ?? ""
+        firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
+        lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
+        profileImageUrl = try container.decodeIfPresent(String.self, forKey: .profileImageUrl)
+        followedAt = try container.decodeIfPresent(String.self, forKey: .followedAt)
+    }
+    
+    // Manual init for fallback cases
+    init(id: String, username: String, firstName: String?, lastName: String?, profileImageUrl: String?, followedAt: String?) {
+        self.id = id
+        self.username = username
+        self.firstName = firstName
+        self.lastName = lastName
+        self.profileImageUrl = profileImageUrl
+        self.followedAt = followedAt
+    }
 }
 
 struct SharedTrip: Decodable, Identifiable {
@@ -53,6 +81,45 @@ struct SharedTrip: Decodable, Identifiable {
         case isVisible = "is_visible"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Handle _id
+        if let idString = try? container.decode(String.self, forKey: .id) {
+            id = idString
+        } else {
+            id = try container.decode(String.self, forKey: .id)
+        }
+        
+        // Handle userId - can be object or string
+        if let userIdObj = try? container.decode(UserPreview.self, forKey: .userId) {
+            userId = userIdObj
+        } else if let userIdString = try? container.decode(String.self, forKey: .userId) {
+            // Create a minimal UserPreview if userId is just a string
+            userId = UserPreview(id: userIdString, username: "", firstName: nil, lastName: nil, profileImageUrl: nil, followedAt: nil)
+        } else {
+            // Try to decode as object with fallback
+            userId = try container.decode(UserPreview.self, forKey: .userId)
+        }
+        
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        tripType = try container.decodeIfPresent(String.self, forKey: .tripType) ?? "custom"
+        tripId = try container.decodeIfPresent(String.self, forKey: .tripId)
+        images = try container.decodeIfPresent([String].self, forKey: .images) ?? []
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        metadata = try container.decodeIfPresent([String: AnyCodable].self, forKey: .metadata)
+        likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount) ?? 0
+        commentsCount = try container.decodeIfPresent(Int.self, forKey: .commentsCount) ?? 0
+        sharesCount = try container.decodeIfPresent(Int.self, forKey: .sharesCount) ?? 0
+        isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic) ?? true
+        isVisible = try container.decodeIfPresent(Bool.self, forKey: .isVisible) ?? true
+        
+        // Handle date fields - try both snake_case and camelCase
+        createdAt = (try? container.decode(String.self, forKey: .createdAt)) ?? ISO8601DateFormatter().string(from: Date())
+        updatedAt = (try? container.decode(String.self, forKey: .updatedAt)) ?? ISO8601DateFormatter().string(from: Date())
     }
 }
 
@@ -104,6 +171,53 @@ struct LikeResponse: Decodable {
     }
 }
 
+struct CountryMemory: Decodable, Identifiable {
+    let id: String
+    let country: String
+    let lat: Double
+    let lng: Double
+    let trips: [SharedTrip]
+    let count: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case country
+        case lat
+        case lng
+        case trips
+        case count
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        country = try container.decode(String.self, forKey: .country)
+        id = country // Use country name as id
+        lat = try container.decode(Double.self, forKey: .lat)
+        lng = try container.decode(Double.self, forKey: .lng)
+        trips = try container.decode([SharedTrip].self, forKey: .trips)
+        count = try container.decode(Int.self, forKey: .count)
+    }
+}
+
+struct MapMemoriesResponse: Decodable {
+    let countries: [CountryMemory]
+    let totalCountries: Int
+    let totalMemories: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case countries
+        case totalCountries
+        case totalMemories
+    }
+}
+
+struct GoogleMapsApiKeyResponse: Decodable {
+    let apiKey: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case apiKey = "api_key"
+    }
+}
+
 // Helper pour gérer les valeurs JSON arbitraires
 struct AnyCodable: Codable {
     let value: Any
@@ -115,6 +229,13 @@ struct AnyCodable: Codable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         
+        // Handle null values first - decodeNil() returns true if nil
+        if container.decodeNil() {
+            value = Optional<Any>.none as Any
+            return
+        }
+        
+        // Try to decode each type in order
         if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
@@ -128,28 +249,33 @@ struct AnyCodable: Codable {
         } else if let dictionary = try? container.decode([String: AnyCodable].self) {
             value = dictionary.mapValues { $0.value }
         } else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded")
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable value cannot be decoded: unknown type")
         }
     }
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         
-        switch value {
-        case let bool as Bool:
-            try container.encode(bool)
-        case let int as Int:
-            try container.encode(int)
-        case let double as Double:
-            try container.encode(double)
-        case let string as String:
-            try container.encode(string)
-        case let array as [Any]:
-            try container.encode(array.map { AnyCodable($0) })
-        case let dictionary as [String: Any]:
-            try container.encode(dictionary.mapValues { AnyCodable($0) })
-        default:
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded"))
+        // Check if value is Optional.none (null)
+        if let optionalValue = value as? Optional<Any>, case .none = optionalValue {
+            try container.encodeNil()
+        } else {
+            switch value {
+            case let bool as Bool:
+                try container.encode(bool)
+            case let int as Int:
+                try container.encode(int)
+            case let double as Double:
+                try container.encode(double)
+            case let string as String:
+                try container.encode(string)
+            case let array as [Any]:
+                try container.encode(array.map { AnyCodable($0) })
+            case let dictionary as [String: Any]:
+                try container.encode(dictionary.mapValues { AnyCodable($0) })
+            default:
+                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable value cannot be encoded"))
+            }
         }
     }
 }

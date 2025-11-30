@@ -1,0 +1,410 @@
+import SwiftUI
+import MapKit
+
+struct MapMemoriesView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var viewModel = MapMemoriesViewModel()
+    @State private var selectedCountry: CountryMemory?
+    @State private var showCountryMemories = false
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 50.0, longitude: 10.0), // Europe center
+        span: MKCoordinateSpan(latitudeDelta: 60.0, longitudeDelta: 60.0)
+    )
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Map
+                Map(coordinateRegion: $region, annotationItems: viewModel.mapMemories?.countries ?? []) { country in
+                    MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng)) {
+                        Button(action: {
+                            selectedCountry = country
+                            showCountryMemories = true
+                            // Animate to country location
+                            withAnimation {
+                                region = MKCoordinateRegion(
+                                    center: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng),
+                                    span: MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
+                                )
+                            }
+                        }) {
+                            CountryMarker(country: country)
+                        }
+                    }
+                }
+                .ignoresSafeArea()
+                
+                // Loading state
+                if viewModel.isLoading {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.1))
+                }
+                
+                // Error state
+                if let error = viewModel.errorMessage, !viewModel.isLoading {
+                    VStack(spacing: 16) {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                        
+                        Button(action: {
+                            Task {
+                                await viewModel.loadMapMemories()
+                            }
+                        }) {
+                            Text(String(localized: "map_memories_retry"))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 12)
+                                .background(ThemeColors.accent())
+                                .cornerRadius(12)
+                        }
+                    }
+                    .padding()
+                    .background(ThemeColors.surface(colorScheme))
+                    .cornerRadius(16)
+                    .shadow(radius: 8)
+                }
+                
+                // Empty state
+                if viewModel.mapMemories?.countries.isEmpty == true && !viewModel.isLoading && viewModel.errorMessage == nil {
+                    VStack(spacing: 16) {
+                        Image(systemName: "map")
+                            .font(.system(size: 64))
+                            .foregroundColor(ThemeColors.accent().opacity(0.6))
+                        
+                        Text(String(localized: "map_memories_empty_title"))
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text(String(localized: "map_memories_empty_message"))
+                            .font(.body)
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(32)
+                    .background(ThemeColors.surface(colorScheme))
+                    .cornerRadius(24)
+                    .shadow(radius: 12)
+                }
+                
+                // Bottom sheet with countries list
+                if let countries = viewModel.mapMemories?.countries, !countries.isEmpty {
+                    VStack {
+                        Spacer()
+                        CountriesBottomSheet(
+                            countries: countries,
+                            onCountryTap: { country in
+                                selectedCountry = country
+                                showCountryMemories = true
+                                withAnimation {
+                                    region = MKCoordinateRegion(
+                                        center: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng),
+                                        span: MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+            .navigationTitle(String(localized: "map_memories_title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                    }
+                }
+            }
+            .sheet(isPresented: $showCountryMemories) {
+                if let country = selectedCountry {
+                    CountryMemoriesSheet(
+                        country: country,
+                        onDismiss: {
+                            showCountryMemories = false
+                            selectedCountry = nil
+                        },
+                        onMemoryTap: { trip in
+                            // Navigate to journey detail
+                            showCountryMemories = false
+                            selectedCountry = nil
+                        }
+                    )
+                }
+            }
+            .task {
+                await viewModel.loadGoogleMapsApiKey()
+                await viewModel.loadMapMemories()
+            }
+        }
+    }
+}
+
+struct CountryMarker: View {
+    let country: CountryMemory
+    @State private var image: UIImage?
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            // Marker image
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 60, height: 60)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.purple, lineWidth: 3)
+                    )
+                    .shadow(radius: 4)
+            } else {
+                Circle()
+                    .fill(Color.purple)
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 24))
+                    )
+                    .shadow(radius: 4)
+            }
+            
+            // Count badge
+            if country.count > 1 {
+                Text("\(country.count)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(6)
+                    .background(Color.purple)
+                    .clipShape(Circle())
+                    .offset(x: 8, y: -8)
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+    
+    private func loadImage() {
+        guard let firstImageUrl = country.trips.first?.images.first,
+              let url = URL(string: firstImageUrl) else {
+            return
+        }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let uiImage = UIImage(data: data) {
+                    await MainActor.run {
+                        self.image = uiImage
+                    }
+                }
+            } catch {
+                print("Failed to load marker image: \(error)")
+            }
+        }
+    }
+}
+
+struct CountriesBottomSheet: View {
+    let countries: [CountryMemory]
+    let onCountryTap: (CountryMemory) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Handle
+            RoundedRectangle(cornerRadius: 3)
+                .fill(ThemeColors.secondaryText(colorScheme).opacity(0.3))
+                .frame(width: 40, height: 4)
+                .padding(.top, 8)
+            
+            // Header
+            HStack {
+                        Text(String(format: String(localized: "map_memories_countries_visited"), countries.count))
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(ThemeColors.primaryText(colorScheme))
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            
+            // Countries list
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(countries) { country in
+                        CountryChip(
+                            country: country,
+                            onTap: { onCountryTap(country) }
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .padding(.bottom, 20)
+        }
+        .background(ThemeColors.surface(colorScheme))
+        .cornerRadius(20, corners: [.topLeft, .topRight])
+        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        .frame(height: 180)
+    }
+}
+
+struct CountryChip: View {
+    let country: CountryMemory
+    let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 8) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(ThemeColors.accent())
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(country.country)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                    
+                    Text(String(format: String(localized: "map_memories_memory_count"), country.count))
+                        .font(.system(size: 12))
+                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(ThemeColors.surface(colorScheme))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(ThemeColors.secondaryText(colorScheme).opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+}
+
+struct CountryMemoriesSheet: View {
+    let country: CountryMemory
+    let onDismiss: () -> Void
+    let onMemoryTap: (SharedTrip) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(country.trips) { trip in
+                        MemoryCard(trip: trip, onTap: { onMemoryTap(trip) })
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("\(String(localized: "map_memories_memories")) - \(country.country)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: onDismiss) {
+                        Text(String(localized: "generic_ok"))
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct MemoryCard: View {
+    let trip: SharedTrip
+    let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                if let firstImage = trip.images.first {
+                    AsyncImage(url: URL(string: firstImage)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .failure, .empty:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(ThemeColors.surface(colorScheme))
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                )
+                        @unknown default:
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(ThemeColors.surface(colorScheme))
+                        }
+                    }
+                    .frame(width: 80, height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(ThemeColors.surface(colorScheme))
+                        .frame(width: 80, height: 80)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        )
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trip.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .lineLimit(2)
+                    
+                    if let description = trip.description {
+                        Text(description)
+                            .font(.system(size: 14))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineLimit(2)
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .background(ThemeColors.surface(colorScheme))
+            .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// Extension for rounded corners
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
+    }
+}
+

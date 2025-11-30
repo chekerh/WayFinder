@@ -95,8 +95,15 @@ final class APIService {
 
         // Log de la réponse
         print("📥 [API] Status: \(httpResponse.statusCode)")
+        if data.isEmpty {
+            print("⚠️ [API] Response data is EMPTY")
+        }
         if let responseString = String(data: data, encoding: .utf8) {
-            print("📥 [API] Response: \(responseString.prefix(500))")
+            let preview = responseString.prefix(1000)
+            print("📥 [API] Response (\(data.count) bytes): \(preview)")
+            if responseString.count > 1000 {
+                print("📥 [API] ... (truncated, total: \(responseString.count) chars)")
+            }
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
