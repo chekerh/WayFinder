@@ -8,12 +8,13 @@
 import SwiftUI
 
 struct WelcomeView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var navigateToLogin = false
     
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(UIColor.systemGray6)
+                ThemeColors.background(colorScheme)
                     .ignoresSafeArea()
                 
                 VStack(spacing: 24) {
@@ -25,13 +26,13 @@ struct WelcomeView: View {
                     VStack(spacing: 12) {
                         Text("welcome_back_title")
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(Color(red: 0.09, green: 0.09, blue: 0.09))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 16)
                         
                         Text("welcome_back_body")
                             .font(.system(size: 15))
-                            .foregroundColor(Color(red: 0.38, green: 0.38, blue: 0.38))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
                             .padding(.horizontal, 32)
@@ -58,7 +59,7 @@ struct WelcomeView: View {
                             .padding(.vertical, 16)
                             .background(Color(red: 1.0, green: 0.75, blue: 0.0))
                             .clipShape(Capsule())
-                            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 12, x: 0, y: 6)
                     }
                     .padding(.horizontal, 48)
                     .padding(.top, 8)
@@ -75,8 +76,8 @@ struct WelcomeView: View {
     private var illustrationCard: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 40, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
+                .fill(ThemeColors.surface(colorScheme))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.06), radius: 14, x: 0, y: 8)
                 .frame(height: 420)
             
             VStack {
