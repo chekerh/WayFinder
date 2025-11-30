@@ -109,6 +109,8 @@
 "profile_settings" = "Settings";
 "profile_preferences" = "Preferences";
 "profile_retake_onboarding" = "Retake Onboarding";
+"profileShareTrip" = "Share my trip";
+"profileSharedJourneys" = "Shared journeys";
 "profile_logout" = "Log out";
 "profile_logout_confirm_title" = "Sign out?";
 "profile_logout_confirm_message" = "Are you sure you want to log out of WayFinder?";

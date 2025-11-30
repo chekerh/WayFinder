@@ -33,8 +33,8 @@ struct ProfileView: View {
         
         actionsList.append(contentsOf: [
             .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
-            .init(icon: "square.and.arrow.up", titleKey: "profile_share_trip", destination: .shareTrip),
-            .init(icon: "photo.on.rectangle.angled", titleKey: "profile_shared_journeys", destination: .sharedJourneys),
+            .init(icon: "square.and.arrow.up", titleKey: "profileShareTrip", destination: .shareTrip),
+            .init(icon: "photo.on.rectangle.angled", titleKey: "profileSharedJourneys", destination: .sharedJourneys),
             .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
             .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
         ])

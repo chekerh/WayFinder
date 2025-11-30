@@ -1551,35 +1551,32 @@ struct ComparisonCard: View {
                             .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                     }
                 }
-                
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // Prix et favori
                 VStack(alignment: .trailing, spacing: 8) {
                     if let price = destination.price, price > 0 {
                         VStack(alignment: .trailing, spacing: 4) {
-                            HStack(spacing: 6) {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\(Int(price))")
-                                        .font(.system(size: 22, weight: .bold))
-                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                    Text(destination.currency)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                }
-                                
-                                // Popular badge
-                                if isPopularDestination(destination) {
-                                    Text("Popular")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color(red: 0.298, green: 0.686, blue: 0.314))
-                                        )
-                                }
+                            // Popular badge au-dessus du prix
+                            if isPopularDestination(destination) {
+                                Text("Popular")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color(red: 0.298, green: 0.686, blue: 0.314))
+                                    )
+                            }
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("\(Int(price))")
+                                    .font(.system(size: 22, weight: .bold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                Text(destination.currency)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                             }
                         }
                     } else {
