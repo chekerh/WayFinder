@@ -28,7 +28,21 @@ enum ThemeColors {
     }
 
     static func accent() -> Color {
-        Color(red: 0.18, green: 0.55, blue: 0.99)
+        Color(red: 0.18, green: 0.55, blue: 0.99) // WayFinderBlue = 0xFF1976D2
+    }
+    
+    // Matching Android MaterialTheme primaryContainer
+    static func primaryContainer(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+        ? Color(red: 0.05, green: 0.18, blue: 0.38) // WayFinderBlueDark = 0xFF0D47A1
+        : Color(red: 0.26, green: 0.65, blue: 0.96) // WayFinderBlueLight = 0xFF42A5F5
+    }
+    
+    // Matching Android MaterialTheme onPrimaryContainer
+    static func onPrimaryContainer(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+        ? Color(red: 0.56, green: 0.79, blue: 0.98) // WayFinderBlueDark80 = 0xFF90CAF9
+        : Color(red: 0.05, green: 0.18, blue: 0.38) // WayFinderBlueDark = 0xFF0D47A1
     }
 
     static func accentGradient(_ scheme: ColorScheme) -> LinearGradient {

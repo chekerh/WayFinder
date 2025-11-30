@@ -26,56 +26,64 @@ class OnboardingViewModel: ObservableObject {
     
     // MARK: - Start Onboarding
     
-    func startOnboarding() {
+    func startOnboarding() async {
         let operationId = beginOperation()
-        Task {
-            do {
-                uiState = .loading
-                let response = try await OnboardingService.shared.startOnboarding()
-                
-                guard !isStaleOperation(operationId) else { return }
-                
-                currentSessionId = response.sessionId
-                
-                if response.completed {
-                    uiState = .completed(message: response.message ?? "Onboarding completed!")
-                } else if let question = response.question, let progress = response.progress {
-                    uiState = .questionLoaded(question: question, progress: progress)
-                } else {
-                    uiState = .error(message: "Invalid response from server")
-                }
-                
-                await verifyProgress()
-            } catch {
-                guard !isStaleOperation(operationId) else { return }
-                
-                let errorDescription = error.localizedDescription.lowercased()
-                let isAlreadyCompleted = errorDescription.contains("already completed") || 
-                                        errorDescription.contains("déjà complété")
-                
-                // Handle "already completed" error - treat as completion, not error
-                if isAlreadyCompleted {
-                    uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
-                } else if let apiError = error as? APIError,
-                   case .httpError(let statusCode, let data) = apiError,
-                   statusCode == 400 {
-                    // Extract message from data if available
-                    var errorMessage: String?
-                    if let data = data,
-                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let message = json["message"] as? String {
-                        errorMessage = message
-                        let messageLower = message.lowercased()
-                        if messageLower.contains("already completed") || messageLower.contains("déjà complété") {
-                            uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
-                            return
-                        }
+        do {
+            // Check status first to avoid "already completed" error
+            print("🔄 [OnboardingViewModel] Checking onboarding status before starting...")
+            let status = try await OnboardingService.shared.getStatus()
+            if status.onboardingCompleted {
+                print("⚠️ [OnboardingViewModel] Onboarding already completed! Resetting first...")
+                await resetOnboarding()
+                return
+            }
+            
+            print("🔄 [OnboardingViewModel] Starting onboarding...")
+            uiState = .loading
+            let response = try await OnboardingService.shared.startOnboarding()
+            
+            guard !isStaleOperation(operationId) else { return }
+            
+            currentSessionId = response.sessionId
+            
+            if response.completed {
+                uiState = .completed(message: response.message ?? "Onboarding completed!")
+            } else if let question = response.question, let progress = response.progress {
+                uiState = .questionLoaded(question: question, progress: progress)
+            } else {
+                uiState = .error(message: "Invalid response from server")
+            }
+            
+            await verifyProgress()
+        } catch {
+            guard !isStaleOperation(operationId) else { return }
+            
+            let errorDescription = error.localizedDescription.lowercased()
+            let isAlreadyCompleted = errorDescription.contains("already completed") || 
+                                    errorDescription.contains("déjà complété")
+            
+            // Handle "already completed" error - treat as completion, not error
+            if isAlreadyCompleted {
+                uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
+            } else if let apiError = error as? APIError,
+               case .httpError(let statusCode, let data) = apiError,
+               statusCode == 400 {
+                // Extract message from data if available
+                var errorMessage: String?
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = json["message"] as? String {
+                    errorMessage = message
+                    let messageLower = message.lowercased()
+                    if messageLower.contains("already completed") || messageLower.contains("déjà complété") {
+                        uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
+                        return
                     }
-                    
-                    uiState = .error(message: error.localizedDescription)
-                } else {
-                    uiState = .error(message: error.localizedDescription)
                 }
+                
+                uiState = .error(message: error.localizedDescription)
+            } else {
+                uiState = .error(message: error.localizedDescription)
             }
         }
     }
@@ -143,30 +151,44 @@ class OnboardingViewModel: ObservableObject {
     
     // MARK: - Reset Onboarding
     
-    func resetOnboarding() {
+    func resetOnboarding() async {
         let operationId = beginOperation()
-        Task {
-            do {
-                uiState = .loading
-                let response = try await OnboardingService.shared.resetOnboarding()
-                
-                guard !isStaleOperation(operationId) else { return }
-                
-                currentSessionId = response.sessionId
-                
-                if response.completed {
-                    uiState = .completed(message: response.message ?? "Onboarding completed!")
-                } else if let question = response.question, let progress = response.progress {
-                    uiState = .questionLoaded(question: question, progress: progress)
-                } else {
-                    uiState = .error(message: "Invalid response from server")
-                }
-                
-                await verifyProgress()
-            } catch {
-                guard !isStaleOperation(operationId) else { return }
-                uiState = .error(message: error.localizedDescription)
+        do {
+            print("🔄 [OnboardingViewModel] Resetting onboarding...")
+            uiState = .loading
+            let response = try await OnboardingService.shared.resetOnboarding()
+            
+            guard !isStaleOperation(operationId) else {
+                print("⚠️ [OnboardingViewModel] Reset operation is stale, ignoring")
+                return
             }
+            
+            print("✅ [OnboardingViewModel] Reset successful - sessionId: \(response.sessionId ?? "nil"), completed: \(response.completed), hasQuestion: \(response.question != nil)")
+            currentSessionId = response.sessionId
+            
+            // After reset, if we get a question, show it. Otherwise, start a fresh onboarding
+            if response.completed {
+                print("ℹ️ [OnboardingViewModel] Reset returned completed status")
+                uiState = .completed(message: response.message ?? "Onboarding completed!")
+            } else if let question = response.question, let progress = response.progress {
+                print("✅ [OnboardingViewModel] Reset returned question, showing it")
+                uiState = .questionLoaded(question: question, progress: progress)
+            } else {
+                // Reset completed but no question returned - start fresh onboarding
+                print("🔄 [OnboardingViewModel] Reset completed but no question, starting fresh onboarding...")
+                await startOnboarding()
+            }
+            
+            await verifyProgress()
+        } catch {
+            guard !isStaleOperation(operationId) else {
+                print("⚠️ [OnboardingViewModel] Reset error but operation is stale, ignoring")
+                return
+            }
+            print("❌ [OnboardingViewModel] Reset failed: \(error.localizedDescription)")
+            // If reset fails, try to start anyway (maybe reset isn't needed)
+            print("🔄 [OnboardingViewModel] Attempting to start onboarding after reset failure...")
+            await startOnboarding()
         }
     }
     

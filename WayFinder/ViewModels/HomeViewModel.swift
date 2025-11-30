@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class HomeViewModel: ObservableObject {
-    @Published var greetingName: String = "Javier"
+    @Published var greetingName: String = "" // Start empty, will be loaded from profile
     @Published var profileImageUrl: String?
     @Published var regions: [RecommendationRegion] = []
     @Published var highlights: [RecommendationHighlight] = []
@@ -83,7 +83,9 @@ final class HomeViewModel: ObservableObject {
                 self.greetingName = storedName
                 print("✅ [HomeViewModel] Loaded greeting name from storage: \(storedName)")
             } else {
-                print("⚠️ [HomeViewModel] No stored name found, using default: Javier")
+                print("⚠️ [HomeViewModel] No stored name found, will load from profile")
+                // Load profile immediately to get the user's name
+                await loadUserProfileIfNeeded()
             }
             
             // Charger l'image depuis le service centralisé
@@ -159,10 +161,19 @@ final class HomeViewModel: ObservableObject {
         defer { isLoading = false }
         errorMessage = nil
         
+        // Load profile first to get the user's name
+        await loadUserProfileIfNeeded()
+        
         do {
             let preferenceId = preferenceStorage.fetchPreferenceId()
             let response = try await recommendationService.fetchRecommendations(preferenceId: preferenceId)
-            greetingName = response.user.firstName
+            // Only use firstName from recommendations if we don't have a name yet
+            if greetingName.isEmpty, !response.user.firstName.isEmpty {
+                greetingName = response.user.firstName
+                // Save it to UserStorage
+                UserStorage.saveProfile(displayName: response.user.firstName, profileImageUrl: nil, email: nil)
+                print("✅ [HomeViewModel] Updated greeting name from recommendations: \(response.user.firstName)")
+            }
             regions = response.regions
             highlights = response.highlights
             if selectedRegionId == nil {
@@ -180,8 +191,6 @@ final class HomeViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
-        
-        await loadUserProfileIfNeeded()
     }
     
     /// Recharge l'image de profil depuis UserStorage
@@ -231,8 +240,23 @@ final class HomeViewModel: ObservableObject {
             let profile = try await userService.fetchProfile()
             let newImageUrl = profile.resolvedProfileImageUrl
             
-            // Sauvegarder dans UserStorage pour la persistance (avec email)
-            UserStorage.saveProfile(profile)
+            // Déterminer le meilleur nom d'affichage à sauvegarder
+            let displayNameToSave: String? = {
+                if let firstName = profile.firstName, !firstName.isEmpty {
+                    return firstName
+                } else if let username = profile.username, !username.isEmpty {
+                    return username
+                } else {
+                    return profile.displayNameValue.isEmpty ? nil : profile.displayNameValue
+                }
+            }()
+            
+            // Sauvegarder dans UserStorage pour la persistance (avec email et le meilleur nom)
+            if let displayName = displayNameToSave {
+                UserStorage.saveProfile(displayName: displayName, profileImageUrl: newImageUrl, email: profile.email)
+            } else {
+                UserStorage.saveProfile(profile)
+            }
             
             // Mettre à jour le service centralisé
             if let imageUrl = newImageUrl {
@@ -257,12 +281,27 @@ final class HomeViewModel: ObservableObject {
             
             print("✅ [HomeViewModel] Profile loaded - Image URL: \(profileImageUrl ?? "nil"), Onboarding completed: \(onboardingCompleted), Skipped: \(onboardingSkipped)")
             
-            // Si aucun prénom depuis les recommandations, utiliser celui du profil
-            if greetingName == "Javier" || greetingName.isEmpty {
+            // Mettre à jour le nom d'accueil depuis le profil si pas déjà défini
+            if greetingName.isEmpty {
                 if let firstName = profile.firstName, !firstName.isEmpty {
                     greetingName = firstName
+                    // Sauvegarder dans UserStorage pour la prochaine fois
+                    UserStorage.saveProfile(displayName: firstName, profileImageUrl: nil, email: profile.email)
+                    print("✅ [HomeViewModel] Updated greeting name from profile firstName: \(firstName)")
                 } else if let username = profile.username, !username.isEmpty {
                     greetingName = username
+                    // Sauvegarder dans UserStorage pour la prochaine fois
+                    UserStorage.saveProfile(displayName: username, profileImageUrl: nil, email: profile.email)
+                    print("✅ [HomeViewModel] Updated greeting name from profile username: \(username)")
+                } else {
+                    let displayName = profile.displayNameValue
+                    // displayNameValue always returns a value (at minimum "Utilisateur"), so check if it's meaningful
+                    if !displayName.isEmpty && displayName != "Utilisateur" {
+                        greetingName = displayName
+                        // Sauvegarder dans UserStorage pour la prochaine fois
+                        UserStorage.saveProfile(displayName: displayName, profileImageUrl: nil, email: profile.email)
+                        print("✅ [HomeViewModel] Updated greeting name from profile displayName: \(displayName)")
+                    }
                 }
             }
         } catch {

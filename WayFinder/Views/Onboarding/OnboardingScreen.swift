@@ -49,7 +49,9 @@ struct OnboardingScreen: View {
                         ErrorView(
                             message: message,
                             onRetry: {
-                                viewModel.startOnboarding()
+                                Task {
+                                    await viewModel.startOnboarding()
+                                }
                             },
                             onGoHome: {
                                 navigateToHome = true
@@ -64,7 +66,7 @@ struct OnboardingScreen: View {
             }
             .task {
                 await viewModel.verifyProgress()
-                viewModel.startOnboarding()
+                await viewModel.startOnboarding()
             }
         }
     }
