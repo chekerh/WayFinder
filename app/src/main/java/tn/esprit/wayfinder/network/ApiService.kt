@@ -322,6 +322,13 @@ interface ApiService {
     @POST("social/share-trip/{id}/like")
     suspend fun likeSharedTrip(@Path("id") id: String): LikeResponse
 
+    @GET("social/map-memories")
+    suspend fun getMapMemories(): MapMemoriesResponse
+
+    // --- CONFIG --- //
+    @GET("config/google-maps-api-key")
+    suspend fun getGoogleMapsApiKey(): GoogleMapsApiKeyResponse
+
     // --- SEARCH HISTORY --- //
     @POST("search-history")
     suspend fun recordSearch(@Body request: CreateSearchHistoryRequest): SearchHistory

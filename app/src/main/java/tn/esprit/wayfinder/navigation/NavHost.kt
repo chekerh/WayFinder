@@ -18,6 +18,7 @@ import tn.esprit.wayfinder.MainActivity
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.screens.*
+import tn.esprit.wayfinder.ui.screens.MapMemoriesScreen
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 
 @Composable
@@ -284,6 +285,9 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val outfitId = backStackEntry.arguments?.getString("outfitId") ?: ""
             OutfitResultScreen(navController = navController, outfitId = outfitId)
+        }
+        composable("map_memories") {
+            MapMemoriesScreen(navController = navController)
         }
     }
 }

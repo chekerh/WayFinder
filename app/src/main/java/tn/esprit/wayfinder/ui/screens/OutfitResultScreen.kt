@@ -10,7 +10,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +76,44 @@ fun OutfitResultScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    outfit?.recommendation?.let { rec ->
+                        if (rec.is_suitable) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color(0xFF4CAF50),
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Adapted",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = StringTranslator.translate(context, "Adapté"),
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Close"
                         )
                     }
                 },
@@ -238,44 +281,89 @@ fun OutfitResultContent(
         weather?.let {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Météo de la destination"),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (it.condition.lowercase().contains("sun") || it.condition.lowercase().contains("clear"))
+                                Icons.Filled.WbSunny
+                            else
+                                Icons.Filled.Cloud,
+                            contentDescription = "Weather",
+                            tint = Color(0xFF2196F3),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Météo de la destination"),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     HorizontalDivider()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            StringTranslator.translate(context, "Température"),
-                            color = Color.Gray
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.WbSunny,
+                                contentDescription = "Temperature",
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                StringTranslator.translate(context, "Température"),
+                                color = Color.Gray
+                            )
+                        }
                         Text(
                             "${it.temperature}°C",
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFFF9800),
+                            fontSize = 16.sp
                         )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            StringTranslator.translate(context, "Condition"),
-                            color = Color.Gray
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Cloud,
+                                contentDescription = "Condition",
+                                tint = Color(0xFF2196F3),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                StringTranslator.translate(context, "Condition"),
+                                color = Color.Gray
+                            )
+                        }
                         Text(
                             it.condition,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
                         )
                     }
                 }
@@ -288,26 +376,61 @@ fun OutfitResultContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = Color.White
                 )
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = StringTranslator.translate(context, "Feedback"),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ChatBubbleOutline,
+                            contentDescription = "Feedback",
+                            tint = Color(0xFF9C27B0),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Feedback"),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     HorizontalDivider()
                     Text(
                         text = rec.feedback,
                         fontSize = 16.sp,
                         lineHeight = 24.sp
                     )
+                    if (rec.is_suitable) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "Suitable",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = StringTranslator.translate(
+                                    context,
+                                    "Vous portez ${outfit.detected_items.size} article(s) adapté(s) à la météo"
+                                ),
+                                fontSize = 14.sp,
+                                color = Color(0xFF4CAF50),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
 
@@ -317,37 +440,52 @@ fun OutfitResultContent(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        containerColor = Color(0xFFE3F2FD)
                     )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = StringTranslator.translate(context, "Suggestions"),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Lightbulb,
+                                contentDescription = "Suggestions",
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = StringTranslator.translate(context, "Suggestions"),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+                        }
                         HorizontalDivider()
-                        rec.suggestions.forEach { suggestion ->
+                        rec.suggestions.forEachIndexed { index, suggestion ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.Top
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    text = "• ",
+                                    text = "${index + 1}",
                                     fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2196F3)
                                 )
                                 Text(
                                     text = suggestion,
                                     modifier = Modifier.weight(1f),
                                     fontSize = 16.sp,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    color = Color.Black,
+                                    lineHeight = 24.sp
                                 )
                             }
                         }

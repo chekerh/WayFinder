@@ -118,3 +118,8 @@ data class FcmTokenRequest(
 data class FcmTokenResponse(
     val message: String
 )
+
+@Serializable
+data class GoogleMapsApiKeyResponse(
+    @SerialName("apiKey") val apiKey: String? = null
+)

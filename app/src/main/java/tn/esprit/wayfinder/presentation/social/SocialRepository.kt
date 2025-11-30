@@ -60,5 +60,9 @@ class SocialRepository(private val apiService: ApiService) {
     suspend fun likeSharedTrip(tripId: String): LikeResponse {
         return apiService.likeSharedTrip(tripId)
     }
+
+    suspend fun getMapMemories(): MapMemoriesResponse {
+        return apiService.getMapMemories()
+    }
 }
 

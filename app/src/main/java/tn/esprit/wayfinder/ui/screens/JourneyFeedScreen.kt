@@ -632,11 +632,17 @@ fun JourneyCard(
                 )
             }
             
-            // Images Grid
-            if (journey.imageUrls.isNotEmpty()) {
-                val firstImage = journey.imageUrls.first()
+            // Images Grid - Use slides if available, otherwise use imageUrls
+            val imagesList = if (journey.slides.isNotEmpty()) {
+                journey.slides.map { it.imageUrl }
+            } else {
+                journey.imageUrls
+            }
+            
+            if (imagesList.isNotEmpty()) {
+                val firstImage = imagesList.first()
                 val baseUrl = "https://wayfinder-api-w92x.onrender.com"
-                val imageUrl = if (firstImage.startsWith("http")) firstImage else "$baseUrl$firstImage"
+                val imageUrl = if (firstImage.startsWith("http")) firstImage else "$baseUrl${if (firstImage.startsWith("/")) firstImage else "/$firstImage"}"
                 
                 Box(
                     modifier = Modifier
@@ -653,7 +659,7 @@ fun JourneyCard(
                     )
                     
                     // Image count badge
-                    if (journey.imageUrls.size > 1) {
+                    if (imagesList.size > 1) {
                         Surface(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
@@ -662,7 +668,7 @@ fun JourneyCard(
                             color = Color.Black.copy(alpha = 0.6f)
                         ) {
                             Text(
-                                text = "+${journey.imageUrls.size - 1}",
+                                text = "+${imagesList.size - 1}",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 color = Color.White,
                                 style = MaterialTheme.typography.bodySmall

@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
@@ -19,7 +21,7 @@
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android.supportsRtl="true"
+        android:supportsRtl="true"
         android:theme="@style/Theme.WayFinder"
         tools:targetApi="31">
         <service
@@ -57,6 +59,16 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Google Maps API Key -->
+        <!-- IMPORTANT: Add your Google Maps API key here -->
+        <!-- You can get the key from your backend Render environment variables: -->
+        <!-- 1. Go to Render Dashboard > Your Service > Environment -->
+        <!-- 2. Find GOOGLE_MAPS_API_KEY variable -->
+        <!-- 3. Copy the value and paste it in the value attribute below -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBAZxrDjNK7_HqMz-reXjQXfG6-fAmOf1s" />
     </application>
 
 </manifest>

@@ -26,6 +26,12 @@ class OutfitWeatherViewModel(private val apiService: ApiService) : ViewModel() {
     private val _uiState = MutableStateFlow<OutfitWeatherUiState>(OutfitWeatherUiState.Idle)
     val uiState: StateFlow<OutfitWeatherUiState> = _uiState.asStateFlow()
 
+    private val _outfitHistory = MutableStateFlow<List<Outfit>>(emptyList())
+    val outfitHistory: StateFlow<List<Outfit>> = _outfitHistory.asStateFlow()
+
+    private val _isLoadingHistory = MutableStateFlow(false)
+    val isLoadingHistory: StateFlow<Boolean> = _isLoadingHistory.asStateFlow()
+
     val isLoading: Boolean
         get() = _uiState.value is OutfitWeatherUiState.Loading
 
@@ -110,6 +116,55 @@ class OutfitWeatherViewModel(private val apiService: ApiService) : ViewModel() {
             } catch (e: Exception) {
                 android.util.Log.e("OutfitWeatherViewModel", "Unexpected error: ${e.message}", e)
                 _uiState.value = OutfitWeatherUiState.Error("Erreur inattendue: ${e.message ?: "Erreur inconnue"}")
+            }
+        }
+    }
+
+    fun loadOutfitHistory(bookingId: String) {
+        viewModelScope.launch {
+            _isLoadingHistory.value = true
+            try {
+                android.util.Log.d("OutfitWeatherViewModel", "Loading outfit history for booking: $bookingId")
+                val outfits = apiService.getOutfitsForBooking(bookingId)
+                android.util.Log.d("OutfitWeatherViewModel", "Loaded ${outfits.size} outfits")
+                _outfitHistory.value = outfits.sortedByDescending { it.createdAt }
+            } catch (e: HttpException) {
+                android.util.Log.e("OutfitWeatherViewModel", "HTTP error loading history: ${e.code()}")
+                _outfitHistory.value = emptyList()
+            } catch (e: IOException) {
+                android.util.Log.e("OutfitWeatherViewModel", "IO error loading history: ${e.message}")
+                _outfitHistory.value = emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("OutfitWeatherViewModel", "Unexpected error loading history: ${e.message}", e)
+                _outfitHistory.value = emptyList()
+            } finally {
+                _isLoadingHistory.value = false
+            }
+        }
+    }
+
+    fun deleteOutfit(outfitId: String, bookingId: String) {
+        viewModelScope.launch {
+            try {
+                android.util.Log.d("OutfitWeatherViewModel", "Deleting outfit: $outfitId for booking: $bookingId")
+                apiService.deleteOutfit(outfitId)
+                android.util.Log.d("OutfitWeatherViewModel", "Outfit deleted successfully, refreshing history")
+                // Remove from local state immediately for better UX
+                _outfitHistory.value = _outfitHistory.value.filter { it._id != outfitId }
+                // Refresh history from server to ensure consistency
+                loadOutfitHistory(bookingId)
+            } catch (e: HttpException) {
+                android.util.Log.e("OutfitWeatherViewModel", "HTTP error deleting outfit: ${e.code()}, ${e.message()}")
+                // Reload history even on error to show current state
+                loadOutfitHistory(bookingId)
+            } catch (e: IOException) {
+                android.util.Log.e("OutfitWeatherViewModel", "IO error deleting outfit: ${e.message}")
+                // Reload history even on error to show current state
+                loadOutfitHistory(bookingId)
+            } catch (e: Exception) {
+                android.util.Log.e("OutfitWeatherViewModel", "Unexpected error deleting outfit: ${e.message}", e)
+                // Reload history even on error to show current state
+                loadOutfitHistory(bookingId)
             }
         }
     }
