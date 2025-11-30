@@ -188,14 +188,24 @@ struct ProfileView: View {
             return nil
         }()
         
-        // Get user stats (using defaults for now until backend provides these)
-        let totalPoints = 0 // TODO: Replace with viewModel.profile?.totalPoints ?? 0
-        let lifetimePoints = 0 // TODO: Replace with viewModel.profile?.lifetimePoints ?? 0
-        let currentStreak = 0 // TODO: Replace with viewModel.profile?.currentStreak ?? 0
-        let longestStreak = 0 // TODO: Replace with viewModel.profile?.longestStreak ?? 0
-        let userLevel = 1 // TODO: Replace with viewModel.profile?.level ?? 1
-        let levelProgress = 0.3 // TODO: Calculate from actual progress data
-        let levelMultiplier = 6 // TODO: Replace with viewModel.profile?.levelMultiplier ?? 6
+        // Get user stats from profile
+        let totalPoints = viewModel.profile?.totalPoints ?? 0
+        let lifetimePoints = viewModel.profile?.lifetimePoints ?? 0
+        let currentStreak = viewModel.profile?.currentStreak ?? 0
+        let longestStreak = viewModel.profile?.longestStreak ?? 0
+        
+        // Calculate level from total points (100 points per level)
+        let userLevel = max(1, (totalPoints / 100) + 1)
+        
+        // Calculate level progress (points needed for current level)
+        let pointsForCurrentLevel = (userLevel - 1) * 100
+        let pointsForNextLevel = userLevel * 100
+        let pointsInCurrentLevel = totalPoints - pointsForCurrentLevel
+        let pointsNeededForLevel = pointsForNextLevel - pointsForCurrentLevel
+        let levelProgress = pointsNeededForLevel > 0 ? Double(pointsInCurrentLevel) / Double(pointsNeededForLevel) : 0.0
+        
+        // Level multiplier (simple: level * 2, max 10)
+        let levelMultiplier = min(10, userLevel * 2)
         
         // Get username or code for badge
         let userCode = viewModel.profile?.username?.uppercased() ?? "USER"
@@ -329,7 +339,7 @@ struct ProfileView: View {
             }
             
             // Stats row: Points, Lifetime, Day Streak
-            HStack(spacing: 0) {
+            HStack(spacing: 16) {
                 // Points stat
                 StatBlock(
                     icon: "trophy.fill",
@@ -353,7 +363,6 @@ struct ProfileView: View {
                     iconColor: ThemeColors.accent(),
                     scheme: scheme
                 )
-                .padding(.leading, 8)
                 
                 // Divider
                 Rectangle()
@@ -371,6 +380,22 @@ struct ProfileView: View {
                 )
             }
             .padding(.top, 4)
+            
+            // Explanation text
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(ThemeColors.accent())
+                    
+                    Text(String(localized: "profile_points_explanation"))
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(ThemeColors.secondaryText(scheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 12)
+            .padding(.horizontal, 4)
         }
         .padding(.vertical, 24)
         .padding(.horizontal, 20)

@@ -365,7 +365,7 @@ struct OutfitResultContent: View {
                             .background(ThemeColors.secondaryText(colorScheme).opacity(0.2))
                         
                         Text(recommendation.feedback)
-                            .font(.body)
+                            .font(.body.weight(.semibold))
                             .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             .lineSpacing(4)
                             .fixedSize(horizontal: false, vertical: true)

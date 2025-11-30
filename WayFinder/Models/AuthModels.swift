@@ -54,6 +54,21 @@ struct UserProfile: Decodable {
     let onboardingCompleted: Bool?
     let onboardingSkipped: Bool?
     
+    // Points and rewards
+    let totalPoints: Int?
+    let lifetimePoints: Int?
+    let currentStreak: Int?
+    let longestStreak: Int?
+    
+    // Lifetime metrics
+    let totalBookings: Int?
+    let totalDestinations: Int?
+    let totalTravelDays: Int?
+    let totalDistanceKm: Int?
+    let totalCountries: Int?
+    let totalOutfitsAnalyzed: Int?
+    let totalPostsShared: Int?
+    
     enum CodingKeys: String, CodingKey {
         case id = "_id"
         case email
@@ -65,6 +80,17 @@ struct UserProfile: Decodable {
         case preferences
         case onboardingCompleted = "onboarding_completed"
         case onboardingSkipped = "onboarding_skipped"
+        case totalPoints = "total_points"
+        case lifetimePoints = "lifetime_points"
+        case currentStreak = "current_streak"
+        case longestStreak = "longest_streak"
+        case totalBookings = "total_bookings"
+        case totalDestinations = "total_destinations"
+        case totalTravelDays = "total_travel_days"
+        case totalDistanceKm = "total_distance_km"
+        case totalCountries = "total_countries"
+        case totalOutfitsAnalyzed = "total_outfits_analyzed"
+        case totalPostsShared = "total_posts_shared"
     }
     
     init(from decoder: Decoder) throws {
@@ -89,6 +115,21 @@ struct UserProfile: Decodable {
         preferences = try container.decodeIfPresent([String].self, forKey: .preferences)
         onboardingCompleted = try container.decodeIfPresent(Bool.self, forKey: .onboardingCompleted)
         onboardingSkipped = try container.decodeIfPresent(Bool.self, forKey: .onboardingSkipped)
+        
+        // Points and rewards
+        totalPoints = try container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        lifetimePoints = try container.decodeIfPresent(Int.self, forKey: .lifetimePoints)
+        currentStreak = try container.decodeIfPresent(Int.self, forKey: .currentStreak)
+        longestStreak = try container.decodeIfPresent(Int.self, forKey: .longestStreak)
+        
+        // Lifetime metrics
+        totalBookings = try container.decodeIfPresent(Int.self, forKey: .totalBookings)
+        totalDestinations = try container.decodeIfPresent(Int.self, forKey: .totalDestinations)
+        totalTravelDays = try container.decodeIfPresent(Int.self, forKey: .totalTravelDays)
+        totalDistanceKm = try container.decodeIfPresent(Int.self, forKey: .totalDistanceKm)
+        totalCountries = try container.decodeIfPresent(Int.self, forKey: .totalCountries)
+        totalOutfitsAnalyzed = try container.decodeIfPresent(Int.self, forKey: .totalOutfitsAnalyzed)
+        totalPostsShared = try container.decodeIfPresent(Int.self, forKey: .totalPostsShared)
     }
 }
 

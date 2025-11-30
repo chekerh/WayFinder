@@ -125,6 +125,7 @@
 "profile_discover_app" = "Découvrir notre application";
 "profile_points" = "Points";
 "profile_lifetime" = "Durée de vie";
+"profile_points_explanation" = "Gagnez des points en utilisant l'app : réservez un vol (+50), partagez un voyage (+30), analysez un outfit (+20), et plus encore. Utilisez vos points pour débloquer des badges, accéder à des fonctionnalités premium et obtenir des réductions sur vos réservations.";
 "profile_available_now" = "Disponible maintenant";
 "profile_day_streak" = "Série de jours";
 "profile_days_until_milestone" = "%d jours jusqu'au prochain jalon !";
