@@ -7,6 +7,18 @@ struct LoginRequest: Encodable {
 
 struct GoogleLoginRequest: Encodable {
     let idToken: String
+    let clientType: String
+    
+    enum CodingKeys: String, CodingKey {
+        case idToken = "id_token"
+        case clientType = "client_type"
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(idToken, forKey: .idToken)
+        try container.encode(clientType, forKey: .clientType)
+    }
 }
 
 struct AppleLoginRequest: Encodable {

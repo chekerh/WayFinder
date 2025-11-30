@@ -150,7 +150,8 @@ final class AuthService {
     ///   pour valider le token Google. Le GOOGLE_CLIENT_ID dans Info.plist est utilisé côté iOS.
     func loginWithGoogle(idToken: String) async throws -> UserProfile {
         let encoder = JSONEncoder()
-        let data = try encoder.encode(GoogleLoginRequest(idToken: idToken))
+        // iOS uses web client ID, so we need to specify client_type as 'web'
+        let data = try encoder.encode(GoogleLoginRequest(idToken: idToken, clientType: "web"))
 
         let builder = DefaultRequest(
             method: "POST",
