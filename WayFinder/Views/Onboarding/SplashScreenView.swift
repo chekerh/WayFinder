@@ -25,7 +25,6 @@ struct SplashScreenView: View {
                 VStack(spacing: 24) {
                     HStack(spacing: 12) {
                         Spacer()
-                            .frame(width: 60)
                         
                         HStack(spacing: 0) {
                             Text("Way")
@@ -36,23 +35,28 @@ struct SplashScreenView: View {
                                 .font(.system(size: 44, weight: .bold))
                                 .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.09))
                         }
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                         
                         Image("LogoWayFinder.png")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 60, height: 60)
+                        
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity, alignment: .center)
                     
                     Text("splash_subheadline")
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 32)
                 
                 Spacer()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onAppear {
             // Vérifier si l'utilisateur est déjà connecté

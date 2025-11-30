@@ -783,10 +783,6 @@ struct CompactDayStreakView: View {
         }
     }
 }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-    }
-}
 
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
