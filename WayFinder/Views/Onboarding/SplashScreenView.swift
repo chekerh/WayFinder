@@ -32,7 +32,7 @@ struct SplashScreenView: View {
                                 .font(.system(size: 44, weight: .bold))
                                 .foregroundColor(.red)
                             
-                            Text("findr")
+                            Text("finder")
                                 .font(.system(size: 44, weight: .bold))
                                 .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.09))
                         }

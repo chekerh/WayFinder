@@ -10,6 +10,7 @@ import SwiftUI
 struct SignInView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Binding var showSignUp: Bool
     @State private var email: String = ""
     @State private var firstName: String = ""
     @State private var lastName: String = ""
@@ -24,6 +25,8 @@ struct SignInView: View {
     @State private var showTermsAlert = false
     @State private var navigateToHome = false
     @State private var loggedInUserName: String?
+    @State private var showPrivacyPolicy = false
+    @State private var showTermsOfUse = false
     
     var body: some View {
         ZStack {
@@ -45,13 +48,9 @@ struct SignInView: View {
                     inputField(title: LocalizedStringKey("signin_last_name_placeholder"), text: $lastName)
                     passwordField(title: LocalizedStringKey("signin_password_placeholder"), text: $password, showPassword: $showPassword)
                     passwordField(title: LocalizedStringKey("signin_confirm_password_placeholder"), text: $confirmPassword, showPassword: $showConfirmPassword)
-                }
-                .padding(.horizontal, 40)
-                
-                Spacer()
-                
-                VStack(spacing: 8) {
-                    HStack(alignment: .top, spacing: 10) {
+                    
+                    // Privacy Policy and Terms checkbox - moved here
+                    HStack(alignment: .center, spacing: 10) {
                         Button(action: {
                             acceptTerms.toggle()
                         }) {
@@ -60,29 +59,37 @@ struct SignInView: View {
                                 .font(.system(size: 20))
                         }
                         
-                        consentText
-                            .font(.system(size: 13))
+                        clickableConsentText
+                            .font(.system(size: 14, weight: .regular))
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
                     
+                    // Create account button - moved here, right after checkbox
                     Button(action: {
                         Task { await submit() }
                     }) {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            } else {
-                                Text("signin_button")
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("signin_button")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
                         }
                     }
-                        .padding(.vertical, 16)
-                        .background(ThemeColors.accent())
-                        .clipShape(Capsule())
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(ThemeColors.accent())
+                    .clipShape(Capsule())
+                    .padding(.top, 16)
                     .disabled(isLoading)
-                    
+                }
+                .padding(.horizontal, 40)
+                
+                Spacer()
+                
+                VStack(spacing: 8) {
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.system(size: 14))
@@ -90,6 +97,29 @@ struct SignInView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
+                    
+                    // Already have an account button
+                    HStack(spacing: 4) {
+                        Text("signin_already_have_account")
+                            .font(.system(size: 14))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        
+                        Button(action: {
+                            // Close SignInView and return to LoginView
+                            // Update binding first, then dismiss
+                            showSignUp = false
+                            // Small delay to ensure binding update is processed
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                dismiss()
+                            }
+                        }) {
+                            Text("signin_sign_in")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(ThemeColors.accent())
+                                .underline()
+                        }
+                    }
+                    .padding(.top, 8)
                 }
                 .padding(.bottom, 28)
             }
@@ -109,6 +139,12 @@ struct SignInView: View {
                 label: { Text("generic_ok") }
         } message: {
             Text("alert_terms_message")
+        }
+        .sheet(isPresented: $showPrivacyPolicy) {
+            PrivacyPolicyView()
+        }
+        .sheet(isPresented: $showTermsOfUse) {
+            TermsOfUseView()
         }
     }
     
@@ -209,6 +245,40 @@ struct SignInView: View {
         + Text("login_terms_conditions")
             .foregroundColor(accent)
             .underline()
+    }
+    
+    var clickableConsentText: some View {
+        let accent = Color(red: 0.99, green: 0.70, blue: 0.19)
+        return HStack(spacing: 4) {
+            Text("login_accept_prefix")
+                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                .fontWeight(.bold)
+            
+            Button(action: {
+                showPrivacyPolicy = true
+            }) {
+                Text("login_privacy")
+                    .foregroundColor(accent)
+                    .underline()
+                    .fontWeight(.bold)
+            }
+            
+            Text("login_terms_connector")
+                .foregroundColor(ThemeColors.primaryText(colorScheme))
+                .fontWeight(.bold)
+            
+            Button(action: {
+                showTermsOfUse = true
+            }) {
+                Text("login_terms_conditions")
+                    .foregroundColor(accent)
+                    .underline()
+                    .fontWeight(.bold)
+            }
+        }
+        .font(.system(size: 14, weight: .bold))
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
     }
 }
 
@@ -388,6 +458,222 @@ private extension SignInView {
 
 struct SignInView_Previews: PreviewProvider {
     static var previews: some View {
-        SignInView()
+        SignInView(showSignUp: .constant(true))
+    }
+}
+
+// MARK: - Privacy Policy View
+struct PrivacyPolicyView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Main Title
+                    Text("privacy_policy_title")
+                        .font(.system(size: 28, weight: .bold, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .padding(.bottom, 4)
+                    
+                    // Introduction
+                    Text("At WayFinder, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your personal information when you use our mobile application.")
+                        .font(.system(size: 16, weight: .regular, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .lineSpacing(6)
+                        .padding(.bottom, 8)
+                    
+                    // Section 1
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("1. Information We Collect")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("We collect information that you provide directly to us, such as when you create an account, make a booking, or contact us for support.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 2
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("2. How We Use Your Information")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 3
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("3. Data Security")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 4
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("4. Your Rights")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("You have the right to access, update, or delete your personal information at any time through your account settings.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Conclusion
+                    Text("By using our app, you agree to the collection and use of information in accordance with this policy.")
+                        .font(.system(size: 15, weight: .medium, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .lineSpacing(4)
+                        .padding(.top, 8)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(ThemeColors.background(colorScheme))
+            .navigationTitle(String(localized: "login_privacy"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("generic_ok")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(ThemeColors.accent())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(ThemeColors.accent().opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Terms of Use View
+struct TermsOfUseView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Main Title
+                    Text("terms_of_use_title")
+                        .font(.system(size: 28, weight: .bold, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .padding(.bottom, 4)
+                    
+                    // Introduction
+                    Text("Welcome to WayFinder. These Terms of Use govern your access to and use of our mobile application.")
+                        .font(.system(size: 16, weight: .regular, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .lineSpacing(6)
+                        .padding(.bottom, 8)
+                    
+                    // Section 1
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("1. Acceptance of Terms")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("By accessing or using WayFinder, you agree to be bound by these Terms of Use.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 2
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("2. Use of the Service")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("You may use WayFinder for personal, non-commercial purposes only. You agree not to misuse the service or help anyone else do so.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 3
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("3. User Accounts")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 4
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("4. Bookings and Payments")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("All bookings are subject to availability and confirmation. Payment terms and cancellation policies apply as specified at the time of booking.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Section 5
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("5. Limitation of Liability")
+                            .font(.system(size: 18, weight: .semibold, design: .default))
+                            .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        
+                        Text("WayFinder shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the service.")
+                            .font(.system(size: 15, weight: .regular, design: .default))
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                            .lineSpacing(4)
+                    }
+                    
+                    // Conclusion
+                    Text("By using WayFinder, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use.")
+                        .font(.system(size: 15, weight: .medium, design: .default))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .lineSpacing(4)
+                        .padding(.top, 8)
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(ThemeColors.background(colorScheme))
+            .navigationTitle(String(localized: "login_terms_conditions"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("generic_ok")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(ThemeColors.accent())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(ThemeColors.accent().opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                }
+            }
+        }
     }
 }

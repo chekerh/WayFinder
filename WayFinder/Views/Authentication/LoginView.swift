@@ -263,7 +263,7 @@ struct LoginView: View {
                 get: { showSignUp ? "signUp" : nil },
                 set: { showSignUp = $0 != nil }
             )) { _ in
-                SignInView()
+                SignInView(showSignUp: $showSignUp)
                     .environmentObject(languageManager)
                     .navigationBarBackButtonHidden(true)
             }

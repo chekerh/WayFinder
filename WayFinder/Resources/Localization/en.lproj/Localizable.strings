@@ -30,6 +30,12 @@
 "signin_error_password_mismatch" = "Passwords do not match.";
 "signin_success_title" = "Account created";
 "signin_success_message" = "You can now sign in.";
+"signin_already_have_account" = "Already have an account?";
+"signin_sign_in" = "Sign in";
+"privacy_policy_title" = "Privacy Policy";
+"privacy_policy_content" = "At WayFinder, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your personal information when you use our mobile application.\n\n1. Information We Collect\nWe collect information that you provide directly to us, such as when you create an account, make a booking, or contact us for support.\n\n2. How We Use Your Information\nWe use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you.\n\n3. Data Security\nWe implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.\n\n4. Your Rights\nYou have the right to access, update, or delete your personal information at any time through your account settings.\n\nBy using our app, you agree to the collection and use of information in accordance with this policy.";
+"terms_of_use_title" = "Terms of Use";
+"terms_of_use_content" = "Welcome to WayFinder. These Terms of Use govern your access to and use of our mobile application.\n\n1. Acceptance of Terms\nBy accessing or using WayFinder, you agree to be bound by these Terms of Use.\n\n2. Use of the Service\nYou may use WayFinder for personal, non-commercial purposes only. You agree not to misuse the service or help anyone else do so.\n\n3. User Accounts\nYou are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.\n\n4. Bookings and Payments\nAll bookings are subject to availability and confirmation. Payment terms and cancellation policies apply as specified at the time of booking.\n\n5. Limitation of Liability\nWayFinder shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the service.\n\nBy using WayFinder, you acknowledge that you have read, understood, and agree to be bound by these Terms of Use.";
 "signup_notice_prefix" = "By signing up, you accept our";
 "signup_terms" = "General Conditions";
 "signup_and" = "and our";
