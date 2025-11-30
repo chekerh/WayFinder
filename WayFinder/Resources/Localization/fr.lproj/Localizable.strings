@@ -104,8 +104,8 @@
 "profile_edit_profile" = "Modifier le profil";
 "profile_list_project" = "Liste des projets";
 "profile_list_reservations" = "Liste des réservations";
-"profile_share_trip" = "Partager mon voyage";
-"profile_shared_journeys" = "Voyage partagé";
+"profileShareTrip" = "Partager mon voyage";
+"profileSharedJourneys" = "Voyages partagés";
 "profile_change_password" = "Changer le mot de passe";
 "profile_change_email" = "Modifier l'adresse e-mail";
 "profile_settings" = "Réglages";
