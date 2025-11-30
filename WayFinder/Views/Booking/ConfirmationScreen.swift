@@ -99,6 +99,18 @@ struct ConfirmationScreen: View {
                     
                     // Action Buttons
                     VStack(spacing: 16) {
+                        // Check My Outfit Button (Green) - First button
+                        NavigationLink(destination: OutfitSelectionView()) {
+                            Text("outfit_check_my_outfit")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(Color(red: 0.133, green: 0.694, blue: 0.298))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .buttonStyle(.plain)
+                        
                         // View My Reservations Button (Blue)
                         NavigationLink(destination: BookingHistoryView()) {
                             Text("confirmation_view_reservations")

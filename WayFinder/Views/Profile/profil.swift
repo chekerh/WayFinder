@@ -32,6 +32,7 @@ struct ProfileView: View {
         }
         
         actionsList.append(contentsOf: [
+            .init(icon: "camera.fill", titleKey: "outfit_check_my_outfit", destination: .outfitSelection),
             .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
             .init(icon: "square.and.arrow.up", titleKey: "profileShareTrip", destination: .shareTrip),
             .init(icon: "photo.on.rectangle.angled", titleKey: "profileSharedJourneys", destination: .sharedJourneys),
@@ -352,6 +353,7 @@ struct ProfileView: View {
                     iconColor: ThemeColors.accent(),
                     scheme: scheme
                 )
+                .padding(.leading, 8)
                 
                 // Divider
                 Rectangle()
@@ -450,6 +452,7 @@ struct ProfileView: View {
 
 private enum ProfileDestination {
     case bookingHistory
+    case outfitSelection
     case editProfile
     case editName
     case changePassword
@@ -517,6 +520,8 @@ private extension ProfileView {
         switch destination {
         case .bookingHistory:
             BookingHistoryView()
+        case .outfitSelection:
+            OutfitSelectionView()
         case .editProfile:
             EditProfileView()
         case .editName:
