@@ -264,6 +264,9 @@ fun JourneyFeedScreen(navController: NavController) {
                                 onImageClick = { imageUrl ->
                                     navController.navigate("journey_detail/${journey.id}")
                                 },
+                                onVideoClick = { videoUrl ->
+                                    showVideoDialog = videoUrl
+                                },
                                 onGenerateVideoClick = {
                                     journeyViewModel.regenerateVideo(journey.id)
                                 },
@@ -521,6 +524,7 @@ fun JourneyCard(
     onLikeClick: () -> Unit,
     onCommentClick: () -> Unit,
     onImageClick: (String) -> Unit,
+    onVideoClick: (String) -> Unit,
     onGenerateVideoClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -678,6 +682,11 @@ fun JourneyCard(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color(0xFF4A90E2).copy(alpha = 0.1f))
+                            .clickable {
+                                journey.videoUrl?.let { url ->
+                                    onVideoClick(url)
+                                }
+                            }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -689,13 +698,36 @@ fun JourneyCard(
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            text = StringTranslator.translate(context, "Vidéo AI générée"),
+                            text = StringTranslator.translate(context, "Vidéo AI générée - Appuyez pour lire"),
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF4A90E2)
                         )
                     }
                 }
-                // Do not show processing indicator - video will appear automatically when ready
+                // Show processing indicator for better UX
+                else if (journey.videoStatus == "processing") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFF9800).copy(alpha = 0.1f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color(0xFFFF9800),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Génération de la vidéo en cours..."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF9800)
+                        )
+                    }
+                }
+                // Show generate button for pending or failed
                 else if (journey.videoStatus == "pending" || journey.videoStatus == "failed") {
                     // Show "Generate Video" button for own journeys when video is not yet generated or failed
                     Button(
@@ -725,6 +757,11 @@ fun JourneyCard(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFF4A90E2).copy(alpha = 0.1f))
+                        .clickable {
+                            journey.videoUrl?.let { url ->
+                                onVideoClick(url)
+                            }
+                        }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -736,7 +773,7 @@ fun JourneyCard(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = StringTranslator.translate(context, "Vidéo AI générée"),
+                        text = StringTranslator.translate(context, "Vidéo AI générée - Appuyez pour lire"),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF4A90E2)
                     )

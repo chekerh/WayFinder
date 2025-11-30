@@ -444,6 +444,8 @@ fun JourneyDetailCard(
 private fun JourneyVideoPlayer(videoUrl: String) {
     val context = LocalContext.current
     var isVideoReady by remember { mutableStateOf(false) }
+    var hasError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     AndroidView(
         modifier = Modifier
@@ -456,31 +458,62 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 controller.setAnchorView(this)
                 setMediaController(controller)
                 
-                // Add error listener
+                // Add error listener with better error handling
                 setOnErrorListener { _, what, extra ->
                     android.util.Log.e("JourneyVideoPlayer", "Video error: what=$what, extra=$extra, url=$videoUrl")
-                    false
+                    hasError = true
+                    isVideoReady = false
+                    errorMessage = when (what) {
+                        android.media.MediaPlayer.MEDIA_ERROR_UNKNOWN -> {
+                            if (videoUrl.contains("sample") || videoUrl.contains("placeholder") || videoUrl.contains("gtv-videos")) {
+                                StringTranslator.translate(context, "Vidéo de test non disponible")
+                            } else {
+                                StringTranslator.translate(context, "Impossible de charger la vidéo")
+                            }
+                        }
+                        android.media.MediaPlayer.MEDIA_ERROR_SERVER_DIED -> StringTranslator.translate(context, "Serveur vidéo indisponible")
+                        android.media.MediaPlayer.MEDIA_ERROR_IO -> StringTranslator.translate(context, "Erreur de connexion réseau")
+                        android.media.MediaPlayer.MEDIA_ERROR_MALFORMED -> StringTranslator.translate(context, "Format vidéo non supporté")
+                        else -> "${StringTranslator.translate(context, "Erreur de lecture")} (code: $what)"
+                    }
+                    true
                 }
                 
                 // Detect when video starts rendering to avoid black screen
                 setOnInfoListener { _, what, _ ->
-                    if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                        isVideoReady = true
+                    when (what) {
+                        android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
+                            isVideoReady = true
+                            hasError = false
+                        }
+                        android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
+                            isVideoReady = false
+                        }
+                        android.media.MediaPlayer.MEDIA_INFO_BUFFERING_END -> {
+                            // Video buffering complete
+                        }
                     }
                     false
                 }
                 
-                setVideoURI(Uri.parse(videoUrl))
-                setOnPreparedListener { player ->
-                    player.isLooping = true
-                    // Wait for rendering to start before playing
-                    player.setOnInfoListener { _, what, _ ->
-                        if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                            isVideoReady = true
+                try {
+                    setVideoURI(Uri.parse(videoUrl))
+                    setOnPreparedListener { player ->
+                        player.isLooping = true
+                        // Wait for rendering to start before playing
+                        player.setOnInfoListener { _, what, _ ->
+                            if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                                isVideoReady = true
+                                hasError = false
+                            }
+                            false
                         }
-                        false
+                        start()
                     }
-                    start()
+                } catch (e: Exception) {
+                    android.util.Log.e("JourneyVideoPlayer", "Error setting video URI: ${e.message}", e)
+                    hasError = true
+                    errorMessage = StringTranslator.translate(context, "URL vidéo invalide")
                 }
                 tag = videoUrl
             }
@@ -488,26 +521,54 @@ private fun JourneyVideoPlayer(videoUrl: String) {
         update = { videoView ->
             if (videoView.tag != videoUrl) {
                 isVideoReady = false
+                hasError = false
+                errorMessage = null
                 videoView.tag = videoUrl
-                videoView.setVideoURI(Uri.parse(videoUrl))
-                videoView.start()
+                try {
+                    videoView.setVideoURI(Uri.parse(videoUrl))
+                    videoView.start()
+                } catch (e: Exception) {
+                    android.util.Log.e("JourneyVideoPlayer", "Error updating video: ${e.message}", e)
+                    hasError = true
+                    errorMessage = StringTranslator.translate(context, "Erreur de chargement")
+                }
             }
         }
     )
     
-    // Show placeholder while video is loading (prevents black screen)
-    if (!isVideoReady) {
+    // Show placeholder/error while video is loading
+    if (!isVideoReady || hasError) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .background(Color.Black.copy(alpha = 0.3f)),
+                .background(if (hasError) Color(0xFFFFEBEE) else Color.Black.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                color = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
+            if (hasError) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Error,
+                        contentDescription = "Error",
+                        tint = Color(0xFFC62828),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        text = errorMessage ?: StringTranslator.translate(context, "Erreur de chargement"),
+                        color = Color(0xFFC62828),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
     }
 }

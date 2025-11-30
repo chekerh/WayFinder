@@ -154,7 +154,7 @@ fun SignUpScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F8FF))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -169,10 +169,16 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = username,
             onValueChange = { username = it.trimStart() },
-            label = { Text("Username") },
+            label = { Text("Username", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -180,10 +186,16 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -191,18 +203,30 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = firstName,
             onValueChange = { firstName = it },
-            label = { Text("First Name") },
+            label = { Text("First Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = lastName,
             onValueChange = { lastName = it },
-            label = { Text("Last Name") },
+            label = { Text("Last Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -210,11 +234,17 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         passwordError?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
@@ -225,11 +255,17 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
+            label = { Text("Confirm Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         confirmPasswordError?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
@@ -290,7 +326,7 @@ fun SignUpScreen(navController: NavController) {
                 "OU",
                 modifier = Modifier.padding(horizontal = 16.dp),
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             HorizontalDivider(modifier = Modifier.weight(1f))
         }
@@ -305,7 +341,7 @@ fun SignUpScreen(navController: NavController) {
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
                     .clickable {
                         // Simplified like iOS - just check if Client ID is valid
                         if (googleClientId.isBlank() || !googleClientId.contains(".apps.googleusercontent.com")) {
@@ -340,7 +376,12 @@ fun SignUpScreen(navController: NavController) {
                             modifier = Modifier.size(22.dp)
                         )
                     }
-                    Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Google", 
+                        fontSize = 14.sp, 
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -348,7 +389,10 @@ fun SignUpScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
         
         TextButton(onClick = { navController.navigate("login") }) {
-            Text("Already have an account? Log In")
+            Text(
+                "Already have an account? Log In",
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

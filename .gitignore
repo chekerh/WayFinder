@@ -20,3 +20,9 @@ app/wayfinder-*.json
 
 # Firebase google-services.json (contains API keys)
 app/google-services.json
+
+# Documentation files that shouldn't be in git
+# Ignore all .md files automatically
+*.md
+# Keep only essential README files
+!README.md

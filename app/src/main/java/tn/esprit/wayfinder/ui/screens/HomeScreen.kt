@@ -73,7 +73,7 @@ import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 
-data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
+data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList(), val id: String = name)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +108,8 @@ fun HomeScreen(navController: NavController) {
         Region(
             name = StringTranslator.translate(context, "Préférences"),
             imageRes = R.drawable.travel_image, // Not used - we use Star icon instead
-            filterCountries = emptyList() // No filter - show personalized preferences
+            filterCountries = emptyList(), // No filter - show personalized preferences
+            id = "preferences" // Unique identifier for preferences region
         ),
         Region(
             name = StringTranslator.translate(context, "Europe"),
@@ -225,8 +226,8 @@ fun HomeScreen(navController: NavController) {
                         }
                         is CatalogUiState.Success -> {
                             // Filter destinations based on selected region
-                            val filteredDestinations = if (selectedRegion != null && selectedRegion != "Préférences") {
-                                val selectedRegionData = regions.find { it.name == selectedRegion }
+                            val selectedRegionData = regions.find { it.name == selectedRegion }
+                            val filteredDestinations = if (selectedRegion != null && selectedRegionData?.id != "preferences") {
                                 val filterCountries = selectedRegionData?.filterCountries ?: emptyList()
                                 if (filterCountries.isNotEmpty()) {
                                     state.destinations.filter { destination ->
@@ -322,7 +323,7 @@ fun TopBar(
     // Get user's first name or username, fallback to "Explorateur"
     val userName = user?.firstName?.takeIf { it.isNotBlank() } 
         ?: user?.username?.takeIf { it.isNotBlank() }
-        ?: "Explorateur"
+        ?: StringTranslator.translate(context, "Explorateur")
     
     // Personalized greeting based on time of day
     val greeting = remember {
@@ -503,7 +504,7 @@ fun RegionChip(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Use icon for "Préférences", image for others
-        if (region.name == "Préférences") {
+        if (region.id == "preferences") {
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = region.name,
