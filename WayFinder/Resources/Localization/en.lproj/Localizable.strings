@@ -116,6 +116,12 @@
 "profile_logout_confirm_message" = "Are you sure you want to log out of WayFinder?";
 "profile_logout_cancel" = "Cancel";
 "profile_change_photo_hint" = "Tap to update your profile photo";
+"profile_discover_app" = "Discover our app";
+"profile_points" = "Points";
+"profile_lifetime" = "Lifetime";
+"profile_available_now" = "Available now";
+"profile_day_streak" = "Day Streak";
+"profile_days_until_milestone" = "%d days until next milestone!";
 "survey_option_trip_beach" = "Beach vacation 🏖️";
 "survey_option_trip_mountain" = "Mountain adventure 🏔️";
 "survey_option_trip_cultural" = "Cultural escape 🏛️";

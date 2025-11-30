@@ -24,6 +24,9 @@ struct HomeScreen: View {
     @State private var navigateToOnboarding = false // Pour naviguer vers l'onboarding
     @State private var personalizedDestinations: [FlightDestination] = []
     @State private var isLoadingPersonalized = false
+    @State private var toastMessage: String?
+    @State private var toastType: ToastView.ToastType = .error
+    @State private var showOnboardingReminder = true
     let initialName: String?
     
     init(initialName: String? = nil) {
@@ -69,21 +72,6 @@ struct HomeScreen: View {
                         
                         ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 0) {
-                                // Onboarding Reminder Card (like Android) - affichée en haut si onboarding non complété
-                                if !viewModel.onboardingCompleted {
-                                    OnboardingReminderCard(
-                                        onStart: {
-                                            navigateToOnboarding = true
-                                        },
-                                        onContinue: {
-                                            viewModel.showOnboardingAlert = false
-                                        },
-                                        colorScheme: colorScheme
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 8)
-                                }
                                 // Section "Personnalisé par Gemini"
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("home_personalized_title")
@@ -104,8 +92,8 @@ struct HomeScreen: View {
                                         if selectedRegion == region {
                                             selectedRegion = nil
                                             // Load regular flights when deselecting
-                                            Task {
-                                                await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                        Task {
+                                            await catalogViewModel.loadRecommendedFlights(showAll: false)
                                             }
                                         } else {
                                             // Select the new region
@@ -171,55 +159,55 @@ struct HomeScreen: View {
                                         }
                                     } else {
                                         // Show regular flights filtered by region
-                                        switch catalogViewModel.uiState {
-                                        case .loading:
-                                            ProgressView()
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 340)
-                                        case .success(let destinations, let fromCache, _, _):
-                                            if fromCache {
-                                                HStack(spacing: 8) {
-                                                    Image(systemName: "wifi.slash")
-                                                        .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0)) // #EF6C00
-                                                    Text("home_offline_cache")
-                                                        .font(.caption)
-                                                        .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
-                                                }
-                                                .padding(.horizontal, 24)
-                                                .padding(.bottom, 12)
-                                            }
-                                            
-                                            let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
-                                            let displayDestinations = Array(filteredDestinations.prefix(6))
-                                            
-                                            if displayDestinations.isEmpty {
-                                                Text("home_no_destinations")
-                                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                                                    .frame(maxWidth: .infinity)
-                                                    .frame(height: 340)
-                                            } else {
-                                                DestinationsSection(
-                                                    destinations: displayDestinations,
-                                                    favoritesViewModel: favoritesViewModel
-                                                )
-                                            }
-                                        case .error(let message):
-                                            VStack(spacing: 16) {
-                                                Text(message)
-                                                    .foregroundColor(.red)
-                                                    .multilineTextAlignment(.center)
-                                                    .padding(.horizontal)
-                                                Button(String(localized: "home_retry")) {
-                                                    Task {
-                                                        await catalogViewModel.loadRecommendedFlights(showAll: false)
-                                                    }
-                                                }
-                                                .buttonStyle(.borderedProminent)
-                                            }
+                                    switch catalogViewModel.uiState {
+                                    case .loading:
+                                        ProgressView()
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 340)
-                                        case .idle:
+                                    case .success(let destinations, let fromCache, _, _):
+                                        if fromCache {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "wifi.slash")
+                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0)) // #EF6C00
+                                                Text("home_offline_cache")
+                                                    .font(.caption)
+                                                    .foregroundColor(Color(red: 0.937, green: 0.188, blue: 0.0))
+                                            }
+                                            .padding(.horizontal, 24)
+                                            .padding(.bottom, 12)
+                                        }
+                                        
+                                        let filteredDestinations = filterDestinations(destinations, by: selectedRegion)
+                                        let displayDestinations = Array(filteredDestinations.prefix(6))
+                                        
+                                        if displayDestinations.isEmpty {
+                                            Text("home_no_destinations")
+                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 340)
+                                        } else {
+                                            DestinationsSection(
+                                                destinations: displayDestinations,
+                                                favoritesViewModel: favoritesViewModel
+                                            )
+                                        }
+                                    case .error(let message):
+                                            // Error shown as toast overlay, not inline
                                             EmptyView()
+                                                .onAppear {
+                                                    toastType = .error
+                                                    toastMessage = message
+                                                }
+                                            Button(String(localized: "home_retry")) {
+                                                Task {
+                                                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+                                                }
+                                            }
+                                            .buttonStyle(.borderedProminent)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 340)
+                                    case .idle:
+                                        EmptyView()
                                         }
                                     }
                                 }
@@ -248,6 +236,35 @@ struct HomeScreen: View {
                             .scrollContentBackground(.hidden)
                         }
                         .contentMargins(.horizontal, 0, for: .scrollContent)
+                    }
+                    .overlay(alignment: .top) {
+                        // Floating onboarding reminder card overlay
+                        if !viewModel.onboardingCompleted && showOnboardingReminder {
+                            OnboardingReminderCard(
+                                onStart: {
+                                    navigateToOnboarding = true
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        showOnboardingReminder = false
+                                    }
+                                },
+                                onContinue: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        showOnboardingReminder = false
+                                    }
+                                },
+                                onDismiss: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        showOnboardingReminder = false
+                                    }
+                                },
+                                colorScheme: colorScheme
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .zIndex(100)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showOnboardingReminder)
+                        }
                     }
                     }
                 case .favorites:
@@ -281,7 +298,7 @@ struct HomeScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingTabBar(selection: $selectedTab)
+                FloatingTabBar(selection: $selectedTab)
         }
         .onAppear {
             // Recharger l'image à chaque fois que l'écran apparaît
@@ -324,8 +341,8 @@ struct HomeScreen: View {
         .onChange(of: selectedRegion) { oldValue, newValue in
             // Reload flights when region changes (but not if Preferences is selected - handled separately)
             if newValue != "Preferences" {
-                Task {
-                    await catalogViewModel.loadRecommendedFlights(showAll: false)
+            Task {
+                await catalogViewModel.loadRecommendedFlights(showAll: false)
                 }
             }
         }
@@ -345,6 +362,7 @@ struct HomeScreen: View {
             // Désactiver le polling quand on quitte l'interface principale
             FirebaseMessagingService.shared.setMainInterfaceState(false)
         }
+        .toast(message: $toastMessage, type: $toastType)
     }
     
     private func localizedRegionName(for key: String) -> String {
@@ -396,6 +414,8 @@ struct HomeScreen: View {
             print("✅ [HomeScreen] Loaded \(personalizedDestinations.count) personalized destinations")
         } catch {
             print("❌ [HomeScreen] Error loading personalized recommendations: \(error.localizedDescription)")
+            toastType = .error
+            toastMessage = "Error loading personalized recommendations: \(error.localizedDescription)"
             personalizedDestinations = []
         }
     }
@@ -666,13 +686,13 @@ struct DestinationsSection: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: cardHeight)
         } else {
-            GeometryReader { geometry in
-                let screenWidth = geometry.size.width
-                let centerX = screenWidth / 2
-                
+        GeometryReader { geometry in
+            let screenWidth = geometry.size.width
+            let centerX = screenWidth / 2
+            
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: cardSpacing) {
-                        ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
+                ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
                             GeometryReader { cardGeometry in
                                 let cardFrame = cardGeometry.frame(in: .named("scroll"))
                                 let cardCenter = cardFrame.midX
@@ -702,17 +722,17 @@ struct DestinationsSection: View {
                                 // Calculate transparency effect based on distance
                                 let transparency = max(0.3, 1.0 - pageOffset * 0.7)
                                 
-                                NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
+                    NavigationLink(destination: FlightDetailScreen(destinationId: destination.id, destination: destination)) {
                                     ZStack(alignment: .topTrailing) {
-                                        DestinationCard(
-                                            destination: destination,
-                                            favoritesViewModel: favoritesViewModel,
-                                            index: index,
+                            DestinationCard(
+                                destination: destination,
+                                favoritesViewModel: favoritesViewModel,
+                                index: index,
                                             currentIndex: 0,
-                                            totalCount: destinations.count,
+                                totalCount: destinations.count,
                                             pageOffset: pageOffset
-                                        )
-                                        .frame(width: cardWidth, height: cardHeight)
+                            )
+                            .frame(width: cardWidth, height: cardHeight)
                                         .blur(radius: pageOffset > 0.25 ? 1.5 * pageOffset : 0)
                                         .overlay(
                                             // Dynamic glass effect overlay for cards not in center
@@ -754,14 +774,14 @@ struct DestinationsSection: View {
                                             }
                                         )
                                         
-                                        FavoriteButtonOverlay(
-                                            destination: destination,
-                                            favoritesViewModel: favoritesViewModel,
+                                    FavoriteButtonOverlay(
+                                        destination: destination,
+                                        favoritesViewModel: favoritesViewModel,
                                             isFocused: pageOffset < 0.1
-                                        )
-                                        .padding(.trailing, 16)
-                                        .padding(.top, 16)
-                                    }
+                                    )
+                                    .padding(.trailing, 16)
+                                    .padding(.top, 16)
+                                }
                                     .padding(.vertical, pageOffset > 0.15 ? 12 * pageOffset : 0)
                                     .padding(.horizontal, pageOffset > 0.15 ? 6 * pageOffset : 0)
                                 }
@@ -894,13 +914,13 @@ struct DestinationCard: View {
                 
                 if let price = destination.price, price > 0 {
                         HStack(spacing: 8) {
-                            HStack(spacing: 4) {
-                                Text("\(Int(price))")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text(destination.currency)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.9))
+                        HStack(spacing: 4) {
+                            Text("\(Int(price))")
+                                .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                            Text(destination.currency)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
                             }
                             
                             // Popular badge
@@ -939,8 +959,8 @@ struct DestinationCard: View {
             }
             .frame(width: width, height: height)
             .shadow(
-                color: isCurrentCard
-                    ? Color.black.opacity(0.35)
+                color: isCurrentCard 
+                    ? Color.black.opacity(0.35) 
                     : Color.black.opacity(0.15),
                 radius: isCurrentCard ? 20 : 10,
                 x: 0,
@@ -1133,6 +1153,8 @@ struct AllFlightsScreen: View {
     @State private var sortOption: SortOption = .price
     @State private var selectedRegion: String?
     @State private var showAdvancedFilters = false
+    @State private var toastMessage: String?
+    @State private var toastType: ToastView.ToastType = .error
     
     // Advanced filter states
     @State private var minPrice: Double = 0
@@ -1311,19 +1333,8 @@ struct AllFlightsScreen: View {
                         }
                     }
                 case .error(let message):
+                    // Error shown as toast overlay, not inline
                     VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 48))
-                            .foregroundColor(.orange)
-                        Text("home_error")
-                            .font(.headline)
-                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                        Text(message)
-                            .font(.subheadline)
-                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
                         Button(action: {
                             Task {
                                 await catalogViewModel.loadRecommendedFlights(showAll: true)
@@ -1339,6 +1350,10 @@ struct AllFlightsScreen: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        toastType = .error
+                        toastMessage = message
+                    }
                 case .idle:
                     EmptyView()
                 }
@@ -1372,6 +1387,7 @@ struct AllFlightsScreen: View {
                 )
             }
         }
+        .toast(message: $toastMessage, type: $toastType)
     }
     
     private func hasActiveFilters() -> Bool {
@@ -1570,13 +1586,13 @@ struct ComparisonCard: View {
                                     )
                             }
                             
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("\(Int(price))")
-                                    .font(.system(size: 22, weight: .bold))
-                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                                Text(destination.currency)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("\(Int(price))")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            Text(destination.currency)
+                                .font(.system(size: 12))
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
                             }
                         }
                     } else {
@@ -1939,49 +1955,65 @@ extension Array where Element: Hashable {
     }
 }
 
-// MARK: - Onboarding Reminder Card (like Android)
+// MARK: - Onboarding Reminder Card (Floating Overlay)
 struct OnboardingReminderCard: View {
     let onStart: () -> Void
     let onContinue: () -> Void
+    let onDismiss: () -> Void
     let colorScheme: ColorScheme
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("home_onboarding_title")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+        HStack(spacing: 12) {
+            // Close button
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(ThemeColors.secondaryText(colorScheme).opacity(0.6))
+            }
+            .buttonStyle(.plain)
             
-            Text("home_onboarding_message")
-                .font(.system(size: 14))
-                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-            
-            HStack(spacing: 12) {
-                Button(action: onStart) {
-                    Text("home_onboarding_fill_form")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(ThemeColors.accent())
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                
-                Button(action: onContinue) {
-                    Text("home_onboarding_continue")
-                        .font(.system(size: 16, weight: .medium))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Text("home_onboarding_title")
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                    Text("✨")
+                        .font(.system(size: 14))
                 }
-                .buttonStyle(.plain)
+                
+                Text("home_onboarding_message")
+                    .font(.system(size: 12))
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    .lineLimit(2)
+                
+                HStack(spacing: 8) {
+                    Button(action: onStart) {
+                        Text("home_onboarding_fill_form")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(ThemeColors.accent())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: onContinue) {
+                        Text("home_onboarding_continue")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
-        .padding(20)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(ThemeColors.surface(colorScheme))
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.05), radius: 10, x: 0, y: 6)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15), radius: 12, x: 0, y: 4)
         )
     }
 }

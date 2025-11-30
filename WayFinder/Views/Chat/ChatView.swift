@@ -7,6 +7,8 @@ struct ChatView: View {
     @State private var messageText: String = ""
     @State private var showModelSelector: Bool = false
     @State private var errorMessage: String?
+    @State private var toastMessage: String?
+    @State private var toastType: ToastView.ToastType = .error
     @FocusState private var isInputFocused: Bool
     @State private var selectedDestination: FlightDestination? = nil
     @State private var showFlightDetail = false
@@ -93,22 +95,12 @@ struct ChatView: View {
         }
         .onChange(of: viewModel.uiState) { _, newState in
             if case .error(let message) = newState {
-                errorMessage = message
+                toastType = .error
+                toastMessage = message
                 viewModel.clearError()
             }
         }
-        .alert("Error", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("OK") {
-                errorMessage = nil
-            }
-        } message: {
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
-            }
-        }
+        .toast(message: $toastMessage, type: $toastType)
     }
     
     private var headerView: some View {

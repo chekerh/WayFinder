@@ -116,6 +116,12 @@
 "profile_logout_confirm_message" = "Souhaites-tu vraiment te déconnecter ?";
 "profile_logout_cancel" = "Annuler";
 "profile_change_photo_hint" = "Touchez pour mettre à jour votre photo de profil";
+"profile_discover_app" = "Découvrir notre application";
+"profile_points" = "Points";
+"profile_lifetime" = "Durée de vie";
+"profile_available_now" = "Disponible maintenant";
+"profile_day_streak" = "Série de jours";
+"profile_days_until_milestone" = "%d jours jusqu'au prochain jalon !";
 "survey_option_trip_beach" = "Vacances à la plage 🏖️";
 "survey_option_trip_mountain" = "Aventure en montagne 🏔️";
 "survey_option_trip_cultural" = "Voyage culturel 🏛️";

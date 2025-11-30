@@ -15,6 +15,8 @@ struct FlightDetailScreen: View {
     let destination: FlightDestination?
     @State private var loadedDestination: FlightDestination?
     @State private var showReservation = false
+    @State private var toastMessage: String?
+    @State private var toastType: ToastView.ToastType = .error
     
     init(destinationId: String, destination: FlightDestination? = nil) {
         self.destinationId = destinationId
@@ -31,12 +33,8 @@ struct FlightDetailScreen: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let error = viewModel.errorMessage {
+                    // Error shown as toast overlay, not inline
                     VStack(spacing: 16) {
-                        Text("home_error")
-                            .font(.headline)
-                        Text(error)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
                         Button(String(localized: "generic_retry")) {
                             Task {
                                 await viewModel.loadDestination(id: destinationId)
@@ -45,6 +43,10 @@ struct FlightDetailScreen: View {
                         .buttonStyle(.borderedProminent)
                     }
                     .padding()
+                    .onAppear {
+                        toastType = .error
+                        toastMessage = error
+                    }
                 } else if let destination = destination ?? loadedDestination ?? viewModel.destination {
                     // Scrollable content - full screen width and height with safe area respect
                     ScrollView(showsIndicators: false) {
@@ -402,6 +404,7 @@ struct FlightDetailScreen: View {
                     loadedDestination = destination
                 }
             }
+            .toast(message: $toastMessage, type: $toastType)
         }
     }
     
