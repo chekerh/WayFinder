@@ -92,3 +92,10 @@ iOSInjectionProject/
 # macOS
 .DS_Store
 
+# Documentation files that shouldn't be in git
+*_SETUP.md
+*_GUIDE.md
+*_CHECKLIST.md
+# Keep only essential README files
+!README.md
+
