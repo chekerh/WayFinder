@@ -7,6 +7,8 @@ class OutfitWeatherViewModel: ObservableObject {
     @Published var uiState: OutfitWeatherUiState = .idle
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var outfitHistory: [Outfit] = []
+    @Published var isLoadingHistory: Bool = false
     
     private let outfitService = OutfitWeatherService.shared
     
@@ -66,6 +68,41 @@ class OutfitWeatherViewModel: ObservableObject {
         }
     }
     
+    func loadOutfitHistory(bookingId: String) async {
+        isLoadingHistory = true
+        do {
+            let outfits = try await outfitService.getOutfitsForBooking(bookingId: bookingId)
+            outfitHistory = outfits.sorted { outfit1, outfit2 in
+                // Sort by outfit_date if available, otherwise by createdAt
+                if let date1 = outfit1.outfitDate, let date2 = outfit2.outfitDate {
+                    return date1 > date2
+                }
+                if let date1 = outfit1.outfitDate {
+                    return true
+                }
+                if let date2 = outfit2.outfitDate {
+                    return false
+                }
+                return (outfit1.createdAt ?? "") > (outfit2.createdAt ?? "")
+            }
+            isLoadingHistory = false
+        } catch {
+            print("❌ [OutfitWeatherViewModel] Error loading history: \(error)")
+            isLoadingHistory = false
+        }
+    }
+    
+    func deleteOutfit(outfitId: String, bookingId: String) async {
+        do {
+            try await outfitService.deleteOutfit(outfitId: outfitId)
+            // Recharger l'historique après suppression
+            await loadOutfitHistory(bookingId: bookingId)
+        } catch {
+            print("❌ [OutfitWeatherViewModel] Error deleting outfit: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+    
     func resetState() {
         uiState = .idle
         errorMessage = nil
@@ -73,10 +110,23 @@ class OutfitWeatherViewModel: ObservableObject {
     }
 }
 
-enum OutfitWeatherUiState {
+enum OutfitWeatherUiState: Equatable {
     case idle
     case loading
     case success(Outfit)
     case error(String)
+    
+    static func == (lhs: OutfitWeatherUiState, rhs: OutfitWeatherUiState) -> Bool {
+        switch (lhs, rhs) {
+        case (.idle, .idle), (.loading, .loading):
+            return true
+        case (.success(let lhsOutfit), .success(let rhsOutfit)):
+            return lhsOutfit.id == rhsOutfit.id
+        case (.error(let lhsError), .error(let rhsError)):
+            return lhsError == rhsError
+        default:
+            return false
+        }
+    }
 }
 

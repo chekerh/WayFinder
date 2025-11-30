@@ -23,28 +23,17 @@ struct SplashScreenView: View {
                 Spacer()
                 
                 VStack(spacing: 24) {
-                    HStack(spacing: 12) {
-                        Spacer()
+                    HStack(spacing: 0) {
+                        Text("Way")
+                            .font(.system(size: 44, weight: .bold))
+                            .foregroundColor(.red)
                         
-                        HStack(spacing: 0) {
-                            Text("Way")
-                                .font(.system(size: 44, weight: .bold))
-                                .foregroundColor(.red)
-                            
-                            Text("finder")
-                                .font(.system(size: 44, weight: .bold))
-                                .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.09))
-                        }
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                        
-                        Image("LogoWayFinder.png")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 60, height: 60)
-                        
-                        Spacer()
+                        Text("finder")
+                            .font(.system(size: 44, weight: .bold))
+                            .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.09))
                     }
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     
                     Text("splash_subheadline")
                         .font(.system(size: 20, weight: .medium))

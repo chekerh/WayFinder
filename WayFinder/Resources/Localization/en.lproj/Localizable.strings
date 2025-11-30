@@ -375,4 +375,11 @@
 "outfit_timeout_message" = "The analysis is taking longer than expected. Please check your connection and try again.";
 "outfit_no_internet" = "No internet connection. Please check your network and try again.";
 "outfit_server_error" = "Cannot connect to server. The server may be starting up. Please try again in a moment.";
+"outfit_history_title" = "Outfit History";
+"outfit_outfit" = "outfit";
+"outfit_outfits" = "outfits";
+"outfit_delete_title" = "Delete this outfit?";
+"outfit_delete_message" = "This action cannot be undone.";
+"outfit_delete_cancel" = "Cancel";
+"outfit_delete_confirm" = "Delete";
 

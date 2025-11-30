@@ -113,10 +113,15 @@ final class DiscussionViewModel: ObservableObject {
         do {
             let updated = try await service.likePost(id: id)
             if let index = posts.firstIndex(where: { $0.id == id }) {
-                posts[index] = updated
+                let existing = posts[index]
+                // Préserver les données du user existant si le nouveau post n'a pas toutes les infos
+                let preservedPost = updated.preservingUser(from: existing)
+                posts[index] = preservedPost
             }
             if currentPost?.id == id {
-                currentPost = updated
+                let existing = currentPost!
+                let preservedPost = updated.preservingUser(from: existing)
+                currentPost = preservedPost
             }
             print("✅ [DiscussionViewModel] Post liked")
         } catch {

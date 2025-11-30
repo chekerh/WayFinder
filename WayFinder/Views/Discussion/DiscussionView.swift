@@ -90,6 +90,7 @@ struct DiscussionView: View {
                                             showDeletePostConfirmation = true
                                         }
                                     )
+                                    .id(post.id) // Préserver la vue même si le post change
                                 }
                             }
                             .padding(.horizontal, 20)

@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Outfit Model
-struct Outfit: Decodable, Identifiable {
+struct Outfit: Decodable, Identifiable, Equatable {
     let id: String
     let userId: String
     let bookingId: String
@@ -30,7 +30,7 @@ struct Outfit: Decodable, Identifiable {
 }
 
 // MARK: - Weather Data Model
-struct WeatherData: Decodable {
+struct WeatherData: Decodable, Equatable {
     let temperature: Int
     let condition: String
     let humidity: Int?
@@ -45,7 +45,7 @@ struct WeatherData: Decodable {
 }
 
 // MARK: - Outfit Recommendation Model
-struct OutfitRecommendation: Decodable {
+struct OutfitRecommendation: Decodable, Equatable {
     let isSuitable: Bool
     let score: Int
     let feedback: String

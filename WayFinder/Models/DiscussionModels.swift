@@ -1,6 +1,6 @@
 import Foundation
 
-struct DiscussionPost: Decodable, Identifiable {
+struct DiscussionPost: Codable, Identifiable {
     let id: String
     let user: DiscussionUser
     let title: String
@@ -88,6 +88,22 @@ struct DiscussionPost: Decodable, Identifiable {
         createdAt = decodedCreatedAt
         
         updatedAt = nil
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(user, forKey: .user)
+        try container.encode(title, forKey: .title)
+        try container.encode(content, forKey: .content)
+        try container.encode(tags, forKey: .tags)
+        try container.encodeIfPresent(destination, forKey: .destination)
+        try container.encode(likesCount, forKey: .likesCount)
+        try container.encode(likedBy, forKey: .likedBy)
+        try container.encode(commentsCount, forKey: .commentsCount)
+        try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -182,7 +198,7 @@ struct DiscussionComment: Decodable, Identifiable {
     }
 }
 
-struct DiscussionUser: Decodable, Identifiable {
+struct DiscussionUser: Codable, Identifiable {
     let id: String
     let username: String?
     let firstName: String?
@@ -216,6 +232,15 @@ struct DiscussionUser: Decodable, Identifiable {
         firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
         lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
         profileImageUrl = try container.decodeIfPresent(String.self, forKey: .profileImageUrl)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(username, forKey: .username)
+        try container.encodeIfPresent(firstName, forKey: .firstName)
+        try container.encodeIfPresent(lastName, forKey: .lastName)
+        try container.encodeIfPresent(profileImageUrl, forKey: .profileImageUrl)
     }
     
     var displayName: String {
@@ -271,6 +296,58 @@ extension DiscussionUser {
             return true
         }
         return false
+    }
+    
+    /// Retourne le meilleur user entre deux, en préservant les informations complètes.
+    static func preserving(from new: DiscussionUser, existing: DiscussionUser) -> DiscussionUser {
+        // Si le nouveau user a toutes les infos, l'utiliser
+        if new.profileImageUrl != nil && new.hasDisplayInfo {
+            return new
+        }
+        // Sinon, préserver l'existant s'il a plus d'infos
+        if existing.profileImageUrl != nil || existing.hasDisplayInfo {
+            return DiscussionUser(
+                id: new.id, // Toujours utiliser le nouvel ID
+                username: new.username ?? existing.username,
+                firstName: new.firstName ?? existing.firstName,
+                lastName: new.lastName ?? existing.lastName,
+                profileImageUrl: new.profileImageUrl ?? existing.profileImageUrl
+            )
+        }
+        // Sinon, utiliser le nouveau
+        return new
+    }
+}
+
+extension DiscussionPost {
+    /// Retourne une copie du post en préservant les informations du user existant.
+    func preservingUser(from existing: DiscussionPost) -> DiscussionPost {
+        let preservedUser = DiscussionUser.preserving(from: self.user, existing: existing.user)
+        
+        // Créer un nouveau post en encodant/décodant pour préserver toutes les propriétés
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            var jsonData = try encoder.encode(self)
+            
+            // Modifier le user dans le JSON avec le user préservé
+            if var json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                // Encoder le user préservé
+                let userData = try encoder.encode(preservedUser)
+                if let userDict = try JSONSerialization.jsonObject(with: userData) as? [String: Any] {
+                    json["user_id"] = userDict
+                }
+                jsonData = try JSONSerialization.data(withJSONObject: json)
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(DiscussionPost.self, from: jsonData)
+        } catch {
+            print("⚠️ [DiscussionPost] Error preserving user: \(error)")
+            // Fallback: retourner le post mis à jour tel quel (mieux que de perdre les likes)
+            return self
+        }
     }
 }
 

@@ -76,6 +76,14 @@ final class OutfitWeatherService {
         do {
             let uploadResponse = try decoder.decode(UploadOutfitResponse.self, from: responseData)
             print("✅ [OutfitWeatherService] Outfit uploaded and analyzed successfully")
+            if let score = uploadResponse.analysis.recommendation?.score {
+                print("📊 [OutfitWeatherService] Score received: \(score)")
+            } else {
+                print("⚠️ [OutfitWeatherService] No score in recommendation")
+            }
+            if let jsonString = String(data: responseData, encoding: .utf8) {
+                print("📋 [OutfitWeatherService] Full response JSON: \(jsonString)")
+            }
             return uploadResponse
         } catch {
             print("❌ [OutfitWeatherService] Decode error: \(error)")
@@ -120,7 +128,29 @@ final class OutfitWeatherService {
             path: "outfit-weather/booking/\(bookingId)"
         )
         
-        return try await apiService.request(request, decodeTo: [Outfit].self)
+        let outfits = try await apiService.request(request, decodeTo: [Outfit].self)
+        
+        // Log scores for debugging
+        print("📊 [OutfitWeatherService] Loaded \(outfits.count) outfits for booking \(bookingId)")
+        for (index, outfit) in outfits.enumerated() {
+            if let score = outfit.recommendation?.score {
+                print("📊 [OutfitWeatherService] Outfit \(index + 1) - Score: \(score), ID: \(outfit.id)")
+            } else {
+                print("⚠️ [OutfitWeatherService] Outfit \(index + 1) - No score, ID: \(outfit.id)")
+            }
+        }
+        
+        return outfits
+    }
+    
+    /// Delete an outfit
+    func deleteOutfit(outfitId: String) async throws {
+        let request = DefaultRequest(
+            method: "DELETE",
+            path: "outfit-weather/\(outfitId)"
+        )
+        
+        try await apiService.requestVoid(request)
     }
 }
 

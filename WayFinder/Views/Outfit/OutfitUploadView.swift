@@ -209,6 +209,24 @@ struct OutfitUploadView: View {
                             )
                             .padding(.horizontal, 24)
                         }
+                        
+                        // Outfit History Section
+                        if !viewModel.outfitHistory.isEmpty {
+                            OutfitHistorySection(
+                                outfits: viewModel.outfitHistory,
+                                colorScheme: colorScheme,
+                                onOutfitTap: { outfitId in
+                                    resultOutfitId = outfitId
+                                    navigateToResult = true
+                                },
+                                onOutfitDelete: { outfitId in
+                                    Task {
+                                        await viewModel.deleteOutfit(outfitId: outfitId, bookingId: bookingId)
+                                    }
+                                }
+                            )
+                            .padding(.top, 8)
+                        }
                     }
                     .padding(.bottom, 32)
                 }
@@ -232,6 +250,282 @@ struct OutfitUploadView: View {
             if let outfitId = resultOutfitId {
                 OutfitResultView(outfitId: outfitId)
             }
+        }
+        .onAppear {
+            Task {
+                await viewModel.loadOutfitHistory(bookingId: bookingId)
+            }
+        }
+    }
+}
+
+// MARK: - Outfit History Section
+struct OutfitHistorySection: View {
+    let outfits: [Outfit]
+    let colorScheme: ColorScheme
+    let onOutfitTap: (String) -> Void
+    let onOutfitDelete: (String) -> Void
+    
+    private var groupedOutfits: [String: [Outfit]] {
+        Dictionary(grouping: outfits) { outfit in
+            if let outfitDate = outfit.outfitDate {
+                return outfitDate
+            } else if let createdAt = outfit.createdAt {
+                // Extraire la date depuis createdAt (format ISO8601)
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let date = formatter.date(from: createdAt) {
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd"
+                    return dateFormatter.string(from: date)
+                }
+            }
+            return "Unknown"
+        }
+    }
+    
+    private var sortedDates: [String] {
+        groupedOutfits.keys.sorted(by: >)
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: dateString) {
+            formatter.dateFormat = "EEEE, MMM d"
+            formatter.locale = Locale.current
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+    
+    private func getScoreColor(score: Int) -> Color {
+        if score >= 80 {
+            return Color(red: 0.298, green: 0.686, blue: 0.314) // Green
+        } else if score >= 60 {
+            return Color(red: 1.0, green: 0.596, blue: 0.0) // Orange
+        } else {
+            return Color(red: 0.956, green: 0.262, blue: 0.212) // Red
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // Section Header
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.clock")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.purple, Color.blue]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                Text("outfit_history_title")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                
+                Spacer()
+                
+                Text("\(outfits.count)")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(ThemeColors.accent())
+                    )
+            }
+            .padding(.horizontal, 24)
+            
+            // Outfits by Date
+            ForEach(sortedDates, id: \.self) { date in
+                if let dayOutfits = groupedOutfits[date] {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Date Header
+                        HStack {
+                            Text(formatDate(date))
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            
+                            Spacer()
+                            
+                            Text("\(dayOutfits.count) \(dayOutfits.count > 1 ? String(localized: "outfit_outfits") : String(localized: "outfit_outfit"))")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Outfit Cards for this day
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(dayOutfits) { outfit in
+                                    OutfitHistoryCard(
+                                        outfit: outfit,
+                                        colorScheme: colorScheme,
+                                        scoreColor: getScoreColor(score: outfit.recommendation?.score ?? 0),
+                                        onTap: {
+                                            onOutfitTap(outfit.id)
+                                        },
+                                        onDelete: {
+                                            onOutfitDelete(outfit.id)
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(ThemeColors.surface(colorScheme))
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 15, x: 0, y: -5)
+        )
+        .padding(.top, 16)
+    }
+}
+
+// MARK: - Outfit History Card
+struct OutfitHistoryCard: View {
+    let outfit: Outfit
+    let colorScheme: ColorScheme
+    let scoreColor: Color
+    let onTap: () -> Void
+    let onDelete: () -> Void
+    
+    @State private var showDeleteConfirmation = false
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Button(action: onTap) {
+            VStack(spacing: 0) {
+                // Image
+                AsyncImage(url: URL(string: outfit.imageUrl)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 140, height: 140)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    case .failure, .empty:
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(ThemeColors.surface(colorScheme).opacity(0.5))
+                            .frame(width: 140, height: 140)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(ThemeColors.secondaryText(colorScheme).opacity(0.5))
+                            )
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .overlay(
+                    // Score Badge (left) and Delete Button (right)
+                    VStack {
+                        HStack {
+                            // Score Badge - Left
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                scoreColor,
+                                                scoreColor.opacity(0.8)
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 44, height: 44)
+                                    .shadow(color: scoreColor.opacity(0.4), radius: 8, x: 0, y: 4)
+                                
+                                Text("\(outfit.recommendation?.score ?? 0)")
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.leading, 8)
+                            .padding(.top, 8)
+                            
+                            Spacer()
+                            
+                            // Delete Button - Right (X gris très clair) - Coin supérieur droit
+                            Button(action: {
+                                showDeleteConfirmation = true
+                            }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(ThemeColors.secondaryText(colorScheme).opacity(0.5))
+                                    .frame(width: 24, height: 24)
+                                    .background(
+                                        Circle()
+                                            .fill(ThemeColors.surface(colorScheme).opacity(0.8))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, 4)
+                            .padding(.top, 4)
+                        }
+                        Spacer()
+                    }
+                )
+                
+                // Info Section
+                VStack(spacing: 6) {
+                    // Temperature
+                    if let weather = outfit.weatherData {
+                        HStack(spacing: 4) {
+                            Image(systemName: "thermometer")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color.orange)
+                            Text("\(weather.temperature)°C")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        }
+                    }
+                    
+                    // Status Badge
+                    HStack(spacing: 4) {
+                        Image(systemName: outfit.recommendation?.isSuitable == true ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(outfit.recommendation?.isSuitable == true ? Color.green : Color.orange)
+                        
+                        Text(outfit.recommendation?.isSuitable == true ? "OK" : "À améliorer")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(ThemeColors.surface(colorScheme).opacity(0.5))
+                )
+            }
+            .frame(width: 140)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(ThemeColors.surface(colorScheme))
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 10, x: 0, y: 5)
+            )
+        }
+        .buttonStyle(.plain)
+        .alert(String(localized: "outfit_delete_title"), isPresented: $showDeleteConfirmation) {
+            Button(String(localized: "outfit_delete_cancel"), role: .cancel) { }
+            Button(String(localized: "outfit_delete_confirm"), role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text(String(localized: "outfit_delete_message"))
+        }
         }
     }
 }

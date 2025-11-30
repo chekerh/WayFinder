@@ -367,4 +367,11 @@
 "outfit_timeout_message" = "L'analyse prend plus de temps que prévu. Veuillez vérifier votre connexion et réessayer.";
 "outfit_no_internet" = "Pas de connexion Internet. Veuillez vérifier votre réseau et réessayer.";
 "outfit_server_error" = "Impossible de se connecter au serveur. Le serveur peut être en cours de démarrage. Veuillez réessayer dans un instant.";
+"outfit_history_title" = "Historique des tenues";
+"outfit_outfit" = "tenue";
+"outfit_outfits" = "tenues";
+"outfit_delete_title" = "Supprimer cette tenue ?";
+"outfit_delete_message" = "Cette action est irréversible.";
+"outfit_delete_cancel" = "Annuler";
+"outfit_delete_confirm" = "Supprimer";
 
