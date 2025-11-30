@@ -268,5 +268,22 @@ fun AppNavigation() {
             val journeyId = backStackEntry.arguments?.getString("journeyId") ?: ""
             JourneyDetailScreen(navController = navController, journeyId = journeyId)
         }
+        composable("outfit_selection") {
+            OutfitSelectionScreen(navController = navController)
+        }
+        composable(
+            "outfit_upload/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+            OutfitUploadScreen(navController = navController, bookingId = bookingId)
+        }
+        composable(
+            "outfit_result/{outfitId}",
+            arguments = listOf(navArgument("outfitId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val outfitId = backStackEntry.arguments?.getString("outfitId") ?: ""
+            OutfitResultScreen(navController = navController, outfitId = outfitId)
+        }
     }
 }

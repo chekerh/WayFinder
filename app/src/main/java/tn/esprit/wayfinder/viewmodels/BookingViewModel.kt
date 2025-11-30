@@ -75,6 +75,12 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         destination: String? = null, // Destination name (e.g., "Paris, France")
         destinationCountry: String? = null // Destination country (e.g., "France")
     ) {
+        // Prevent multiple simultaneous requests
+        if (_reservationState.value is ReservationUiState.Loading) {
+            android.util.Log.w("BookingViewModel", "Booking confirmation already in progress, ignoring duplicate request")
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 _reservationState.value = ReservationUiState.Loading

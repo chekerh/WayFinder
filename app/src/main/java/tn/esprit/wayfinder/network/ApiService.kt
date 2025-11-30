@@ -477,4 +477,27 @@ interface ApiService {
 
     @GET("chat/models")
     suspend fun getAvailableModels(): AvailableModelsResponse
+
+    // --- OUTFIT WEATHER --- //
+    @Multipart
+    @POST("outfit-weather/upload")
+    suspend fun uploadOutfitImage(
+        @Part image: MultipartBody.Part,
+        @Part("booking_id") bookingId: okhttp3.RequestBody
+    ): UploadOutfitResponse
+
+    @POST("outfit-weather/analyze")
+    suspend fun analyzeOutfit(@Body request: AnalyzeOutfitRequest): Outfit
+
+    @GET("outfit-weather/booking/{bookingId}")
+    suspend fun getOutfitsForBooking(@Path("bookingId") bookingId: String): List<Outfit>
+
+    @GET("outfit-weather/{outfitId}")
+    suspend fun getOutfit(@Path("outfitId") outfitId: String): Outfit
+
+    @POST("outfit-weather/{outfitId}/approve")
+    suspend fun approveOutfit(@Path("outfitId") outfitId: String): Outfit
+
+    @DELETE("outfit-weather/{outfitId}")
+    suspend fun deleteOutfit(@Path("outfitId") outfitId: String): Map<String, String>
 }

@@ -26,12 +26,19 @@ import tn.esprit.wayfinder.navigation.BOOKING_TOTAL_KEY
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.utils.StringTranslator
 import androidx.compose.ui.platform.LocalContext
+import android.util.Log
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
     val context = LocalContext.current
     val previousEntry = navController.previousBackStackEntry
+    
+    // Debug log
+    LaunchedEffect(bookingId) {
+        Log.d("BookingConfirmation", "Booking ID: $bookingId")
+    }
     val bookingTotal = previousEntry?.savedStateHandle?.get<Double>(BOOKING_TOTAL_KEY)
     val bookingCurrency = previousEntry?.savedStateHandle?.get<String>(BOOKING_CURRENCY_KEY) ?: "EUR"
     val bookingDestination = previousEntry?.savedStateHandle?.get<String>(BOOKING_DESTINATION_NAME_KEY)
@@ -157,6 +164,34 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             }
             
             Spacer(modifier = Modifier.height(20.dp))
+            
+            // Outfit Weather Button - Navigate to outfit_selection (same as profile)
+            Button(
+                onClick = {
+                    Log.d("BookingConfirmation", "Vérifier ma tenue clicked, navigating to outfit_selection")
+                    try {
+                        navController.navigate("outfit_selection") {
+                            launchSingleTop = true
+                        }
+                    } catch (e: Exception) {
+                        Log.e("BookingConfirmation", "Navigation error", e)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                ),
+                enabled = bookingId.isNotEmpty()
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Vérifier ma tenue"),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             
             // Action Buttons
             Button(
