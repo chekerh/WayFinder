@@ -68,7 +68,7 @@ struct LoginView: View {
                                 VStack(spacing: 15) {
                                     TextField(LocalizedStringKey("login_email_placeholder"), text: $email)
                                         .padding()
-                                        .background(Color.white)
+                                        .background(ThemeColors.surface(colorScheme))
                                         .cornerRadius(14)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -119,7 +119,7 @@ struct LoginView: View {
                                         }
                                     }
                                     .padding()
-                                    .background(Color.white)
+                                    .background(ThemeColors.surface(colorScheme))
                                     .cornerRadius(14)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -185,16 +185,16 @@ struct LoginView: View {
                                 
                                 HStack {
                                     Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
+                                        .fill(ThemeColors.secondaryText(colorScheme).opacity(0.3))
                                         .frame(height: 1)
                                     
                                     Text("login_or")
                                         .font(.system(size: 14))
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
                                         .padding(.horizontal, 8)
                                     
                                     Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
+                                        .fill(ThemeColors.secondaryText(colorScheme).opacity(0.3))
                                         .frame(height: 1)
                                 }
                                 
@@ -215,8 +215,8 @@ struct LoginView: View {
                                         .padding(.horizontal, 18)
                                         .background(
                                             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                                .fill(Color.white)
-                                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+                                                .fill(ThemeColors.surface(colorScheme))
+                                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.05), radius: 8, x: 0, y: 4)
                                         )
                                     }
                                     .disabled(activeLoginFlow != nil || !googleLoginEnabled)
@@ -237,8 +237,8 @@ struct LoginView: View {
                                         .padding(.horizontal, 18)
                                         .background(
                                             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                                .fill(Color.white)
-                                                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+                                                .fill(ThemeColors.surface(colorScheme))
+                                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.05), radius: 8, x: 0, y: 4)
                                         )
                                     }
                                     .disabled(activeLoginFlow != nil)
@@ -248,9 +248,9 @@ struct LoginView: View {
                             .frame(maxWidth: 420)
                             .background(
                                 RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                    .fill(Color.white)
+                                    .fill(ThemeColors.surface(colorScheme))
                             )
-                            .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.08), radius: 20, x: 0, y: 10)
                             .padding(.horizontal, 24)
                             .padding(.top, 24)
                             .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 30 : 50)

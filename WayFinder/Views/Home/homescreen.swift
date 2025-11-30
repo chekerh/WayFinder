@@ -367,12 +367,23 @@ struct HomeScreen: View {
             
             // Convert PersonalizedDestination to FlightDestination
             personalizedDestinations = (payload.destinations ?? []).map { personalizedDest in
-                FlightDestination(
+                // Use provided imageUrl if available and valid, otherwise generate one based on city name
+                let imageUrl: String = {
+                    if let providedUrl = personalizedDest.imageUrl, !providedUrl.isEmpty, URL(string: providedUrl) != nil {
+                        return providedUrl
+                    }
+                    // Generate image URL based on destination name using CatalogService logic
+                    let generatedUrl = getImageUrlForCity(personalizedDest.name)
+                    print("🖼️ [HomeScreen] Generated image URL for '\(personalizedDest.name)': \(generatedUrl)")
+                    return generatedUrl
+                }()
+                
+                return FlightDestination(
                     id: personalizedDest.id,
                     name: personalizedDest.name,
                     city: personalizedDest.name,
                     country: "", // PersonalizedDestination doesn't have country
-                    imageUrl: personalizedDest.imageUrl,
+                    imageUrl: imageUrl,
                     price: personalizedDest.estimatedCost?.flight,
                     currency: personalizedDest.estimatedCost?.currency ?? "EUR",
                     description: personalizedDest.reason ?? personalizedDest.highlights?.joined(separator: ", ") ?? "Personalized recommendation",
@@ -389,6 +400,85 @@ struct HomeScreen: View {
         }
     }
     
+    // Helper function to get image URL for a city name (same logic as CatalogService)
+    private func getImageUrlForCity(_ cityName: String) -> String {
+        // Extract city name (before comma if present, e.g., "Paris, France" -> "Paris")
+        let normalizedName = cityName
+            .components(separatedBy: ",").first?
+            .trimmingCharacters(in: .whitespaces)
+            .lowercased() ?? cityName.lowercased()
+        
+        // Try exact match first
+        switch normalizedName {
+        case "paris":
+            return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=600&fit=crop&q=80"
+        case "london":
+            return "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=600&fit=crop&q=80"
+        case "new york":
+            return "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop&q=80"
+        case "dubai":
+            return "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&h=600&fit=crop&q=80"
+        case "rome":
+            return "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&h=600&fit=crop&q=80"
+        case "madrid":
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+        case "barcelona":
+            return "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+        case "amsterdam":
+            return "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800&h=600&fit=crop&q=80"
+        case "frankfurt":
+            return "https://images.unsplash.com/photo-1587330979470-3585ac3ac6cd?w=800&h=600&fit=crop&q=80"
+        case "munich":
+            return "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop&q=80"
+        case "istanbul":
+            return "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&h=600&fit=crop&q=80"
+        case "cairo":
+            return "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
+        case "tunis":
+            return "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=800&h=600&fit=crop&q=80"
+        case "los angeles":
+            return "https://images.unsplash.com/photo-1515895306158-439192690299?w=800&h=600&fit=crop&q=80"
+        case "tokyo":
+            return "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop&q=80"
+        case "bangkok":
+            return "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=600&fit=crop&q=80"
+        case "singapore":
+            return "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&h=600&fit=crop&q=80"
+        case "seoul":
+            return "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=600&fit=crop&q=80"
+        default:
+            // Try partial match for common patterns
+            if normalizedName.contains("paris") {
+                return "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("london") {
+                return "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("tokyo") {
+                return "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("bangkok") {
+                return "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("singapore") {
+                return "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("seoul") {
+                return "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("rome") {
+                return "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("madrid") {
+                return "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("barcelona") {
+                return "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("dubai") {
+                return "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&h=600&fit=crop&q=80"
+            } else if normalizedName.contains("new york") {
+                return "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=600&fit=crop&q=80"
+            }
+            
+            // For unknown cities, use a generic travel image
+            // Note: In production, you could use Unsplash API with API key for dynamic search
+            print("⚠️ [HomeScreen] Unknown city name: '\(cityName)' (normalized: '\(normalizedName)'), using generic image")
+            return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&h=600&fit=crop&q=80"
+        }
+    }
+    
     private func filterDestinations(_ destinations: [FlightDestination], by region: String?) -> [FlightDestination] {
         guard let region = region, region != "Preferences" else {
             return destinations
@@ -398,7 +488,7 @@ struct HomeScreen: View {
             "Europe": ["France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"],
             "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "United Arab Emirates", "Saudi Arabia", "Turkey", "Israel"],
             "Amerique": ["United States", "USA", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
-            "Australie": ["Australia", "New Zealand", "Fiji"]
+            "Australie": ["Australia", "New Zealand", "Fiji", "Papua New Guinea", "New Caledonia", "French Polynesia", "Samoa", "Tonga", "Vanuatu", "Solomon Islands", "Palau", "Micronesia", "Marshall Islands", "Cook Islands", "Kiribati", "Nauru", "Tuvalu", "Niue", "Guam", "Northern Mariana Islands", "American Samoa"]
         ]
         
         guard let countries = regionCountries[region] else {
@@ -1330,7 +1420,7 @@ struct AllFlightsScreen: View {
             "Europe": ["France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"],
             "Asie": ["China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "United Arab Emirates", "Saudi Arabia", "Turkey", "Israel"],
             "Amerique": ["United States", "USA", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"],
-            "Australie": ["Australia", "New Zealand", "Fiji"]
+            "Australie": ["Australia", "New Zealand", "Fiji", "Papua New Guinea", "New Caledonia", "French Polynesia", "Samoa", "Tonga", "Vanuatu", "Solomon Islands", "Palau", "Micronesia", "Marshall Islands", "Cook Islands", "Kiribati", "Nauru", "Tuvalu", "Niue", "Guam", "Northern Mariana Islands", "American Samoa"]
         ]
         
         guard let countries = regionCountries[region] else {

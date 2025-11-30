@@ -318,4 +318,15 @@
 "filter_no_airlines" = "Aucune compagnie disponible";
 "filter_reset" = "Réinitialiser";
 "filter_apply" = "Appliquer les filtres";
+"destination_videos_title" = "Vidéos par destination";
+"destination_video_ready" = "Vidéo prête";
+"destination_video_generating" = "Génération en cours...";
+"destination_video_failed" = "Échec";
+"destination_video_not_generated" = "Vidéo non générée";
+"destination_video_generate" = "Générer";
+"destination_video_error_details" = "Détails de l'erreur";
+"destination_video_error_message" = "La génération de la vidéo a échoué. Détails de l'erreur :";
+"destination_video_retry" = "Réessayer";
+"journey_all_journeys" = "Tous les voyages";
+"destination_video_photos" = "photos";
 

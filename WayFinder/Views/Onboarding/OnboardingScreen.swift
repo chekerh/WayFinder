@@ -46,9 +46,15 @@ struct OnboardingScreen: View {
                             navigateToHome = true
                         }
                     case .error(let message):
-                        ErrorView(message: message) {
-                            viewModel.startOnboarding()
-                        }
+                        ErrorView(
+                            message: message,
+                            onRetry: {
+                                viewModel.startOnboarding()
+                            },
+                            onGoHome: {
+                                navigateToHome = true
+                            }
+                        )
                     }
                 }
             }
@@ -312,6 +318,12 @@ struct CompletionView: View {
 struct ErrorView: View {
     let message: String
     let onRetry: () -> Void
+    let onGoHome: () -> Void
+    
+    private var isAlreadyCompleted: Bool {
+        message.lowercased().contains("already completed") || 
+        message.lowercased().contains("déjà complété")
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -324,8 +336,14 @@ struct ErrorView: View {
                 .multilineTextAlignment(.center)
                 .padding()
             
-            Button(action: onRetry) {
-                Text(String(localized: "Retry"))
+            Button(action: {
+                if isAlreadyCompleted {
+                    onGoHome()
+                } else {
+                    onRetry()
+                }
+            }) {
+                Text(isAlreadyCompleted ? String(localized: "Continue to Home") : String(localized: "generic_retry"))
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()

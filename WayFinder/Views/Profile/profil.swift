@@ -179,63 +179,87 @@ struct ProfileView: View {
         }()
         
         return VStack(spacing: 18) {
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                ZStack {
-                    Circle()
-                        .fill(ThemeColors.surface(scheme))
-                        .frame(width: 132, height: 132)
-                        .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 18, x: 0, y: 8)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(scheme == .dark ? 0.4 : 0.9),
-                                            ThemeColors.accent()
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 3
-                                )
-                        )
-                    
-                    if let imageData = imageData, let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 120, height: 120)
-                            .clipShape(Circle())
-                    } else if let url = imageUrl {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
-                            case .failure, .empty:
-                                profilePlaceholder(for: scheme)
-                            @unknown default:
-                                profilePlaceholder(for: scheme)
-                            }
-                        }
-                    } else {
-                        profilePlaceholder(for: scheme)
-                    }
-                    
-                    if isUploading {
+            // Top row: Points (left) - Photo (center) - Lifetime (right)
+            HStack(spacing: 16) {
+                // Points (left)
+                CompactPointsView(
+                    totalPoints: 0, // TODO: Replace with viewModel.profile?.totalPoints ?? 0
+                    scheme: scheme
+                )
+                
+                // Photo (center)
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    ZStack {
                         Circle()
-                            .fill(Color.black.opacity(0.35))
-                            .frame(width: 120, height: 120)
-                        ProgressView()
-                            .tint(.white)
+                            .fill(ThemeColors.surface(scheme))
+                            .frame(width: 132, height: 132)
+                            .shadow(color: Color.black.opacity(scheme == .dark ? 0.25 : 0.08), radius: 18, x: 0, y: 8)
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(scheme == .dark ? 0.4 : 0.9),
+                                                ThemeColors.accent()
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 3
+                                    )
+                            )
+                        
+                        if let imageData = imageData, let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                        } else if let url = imageUrl {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                case .failure, .empty:
+                                    profilePlaceholder(for: scheme)
+                                @unknown default:
+                                    profilePlaceholder(for: scheme)
+                                }
+                            }
+                        } else {
+                            profilePlaceholder(for: scheme)
+                        }
+                        
+                        if isUploading {
+                            Circle()
+                                .fill(Color.black.opacity(0.35))
+                                .frame(width: 120, height: 120)
+                            ProgressView()
+                                .tint(.white)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isUploadingImage)
+                
+                // Lifetime (right)
+                CompactLifetimeView(
+                    lifetimePoints: 0, // TODO: Replace with viewModel.profile?.lifetimePoints ?? 0
+                    scheme: scheme
+                )
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isUploadingImage)
+            .frame(maxWidth: .infinity)
+            
+            // Day Streak (below photo)
+            CompactDayStreakView(
+                currentStreak: 0, // TODO: Replace with viewModel.profile?.currentStreak ?? 0
+                longestStreak: 0, // TODO: Replace with viewModel.profile?.longestStreak ?? 0
+                scheme: scheme
+            )
             
             VStack(spacing: 4) {
                 Text(viewModel.displayName)
@@ -478,6 +502,146 @@ struct SurveyScreenWithCompletionWrapper: View {
             .onDisappear {
                 SurveyCompletionHandler.shared.onComplete = nil
             }
+    }
+}
+
+// MARK: - Compact Points View (left of photo)
+struct CompactPointsView: View {
+    let totalPoints: Int
+    let scheme: ColorScheme
+    
+    @State private var sparkleScale: CGFloat = 1.0
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 1.0, green: 0.757, blue: 0.027), // #FFC107
+                                Color(red: 1.0, green: 0.596, blue: 0.0)    // #FF9800
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 20
+                        )
+                    )
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: "trophy.fill")
+                    .foregroundColor(.white)
+                    .font(.system(size: 20))
+                    .scaleEffect(sparkleScale)
+            }
+            
+            Text("\(totalPoints)")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(Color(red: 1.0, green: 0.757, blue: 0.027))
+            
+            Text("Points")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(ThemeColors.secondaryText(scheme))
+        }
+        .frame(width: 80)
+        .onAppear {
+            withAnimation(
+                Animation.easeInOut(duration: 1.5)
+                    .repeatForever(autoreverses: true)
+            ) {
+                sparkleScale = 1.15
+            }
+        }
+    }
+}
+
+// MARK: - Compact Lifetime View (right of photo)
+struct CompactLifetimeView: View {
+    let lifetimePoints: Int
+    let scheme: ColorScheme
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            Text("Lifetime")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(ThemeColors.secondaryText(scheme))
+            
+            Text("\(lifetimePoints)")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(ThemeColors.primaryText(scheme))
+            
+            Text("Available now")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(Color(red: 0.298, green: 0.686, blue: 0.314)) // #4CAF50
+        }
+        .frame(width: 80)
+    }
+}
+
+// MARK: - Compact Day Streak View (below photo)
+struct CompactDayStreakView: View {
+    let currentStreak: Int
+    let longestStreak: Int
+    let scheme: ColorScheme
+    
+    @State private var fireScale: CGFloat = 1.0
+    
+    private var progress: Double {
+        min(Double(currentStreak) / 30.0, 1.0)
+    }
+    
+    private var daysUntilMilestone: Int {
+        max(30 - currentStreak, 0)
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133)) // #FF5722
+                    .font(.system(size: 24))
+                    .scaleEffect(fireScale)
+                
+                Text("\(currentStreak)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133))
+                
+                Text("Day Streak")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(ThemeColors.secondaryText(scheme))
+            }
+            
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            Color(red: 1.0, green: 0.341, blue: 0.133)
+                                .opacity(scheme == .dark ? 0.25 : 0.2)
+                        )
+                        .frame(height: 6)
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(red: 1.0, green: 0.341, blue: 0.133))
+                        .frame(width: geometry.size.width * progress, height: 6)
+                }
+            }
+            .frame(height: 6)
+            .frame(maxWidth: 200)
+            
+            Text("\(daysUntilMilestone) days until next milestone!")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(Color(red: 1.0, green: 0.341, blue: 0.133))
+                .multilineTextAlignment(.center)
+        }
+        .onAppear {
+            withAnimation(
+                Animation.easeInOut(duration: 1.0)
+                    .repeatForever(autoreverses: true)
+            ) {
+                fireScale = 1.1
+            }
+        }
     }
 }
 

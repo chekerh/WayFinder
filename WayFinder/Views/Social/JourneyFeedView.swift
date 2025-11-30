@@ -8,9 +8,11 @@ struct JourneyFeedView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var journeyViewModel = JourneyViewModel()
     @StateObject private var profileViewModel = ProfileViewModel()
+    @StateObject private var destinationVideoViewModel = DestinationVideoViewModel()
     
     @State private var selectedJourney: Journey?
     @State private var showVideoPlayer = false
+    @State private var videoUrlForPlayer: String?
     @State private var journeyForComments: Journey?
     @State private var showDeleteConfirmation = false
     @State private var journeyToDelete: Journey?
@@ -86,12 +88,52 @@ struct JourneyFeedView: View {
     private var journeysListView: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
+                // Destination Videos Section (only for current user)
+                if let currentUserId = currentUserId,
+                   case .success(let destinations) = destinationVideoViewModel.uiState,
+                   !destinations.isEmpty {
+                    
+                    Text(String(localized: "destination_videos_title"))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                    
+                    ForEach(destinations) { destination in
+                        DestinationVideoCard(
+                            destination: destination,
+                            onGenerateClick: {
+                                Task {
+                                    await destinationVideoViewModel.generateVideo(userId: currentUserId, destination: destination.destination)
+                                }
+                            },
+                            onVideoClick: {
+                                if let videoUrl = destination.videoUrl {
+                                    videoUrlForPlayer = videoUrl
+                                    showVideoPlayer = true
+                                }
+                            }
+                        )
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    Divider()
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                    
+                    Text(String(localized: "journey_all_journeys"))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
+                }
+                
                 ForEach(journeyViewModel.journeys) { journey in
                     journeyCard(for: journey)
                         .id(journey.id)
+                        .padding(.horizontal, 20)
                 }
             }
-            .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .padding(.bottom, 140)
         }
@@ -115,6 +157,17 @@ struct JourneyFeedView: View {
             onVideoClick: {
                 selectedJourney = journey
                 showVideoPlayer = true
+            },
+            onGenerateVideoClick: {
+                Task {
+                    do {
+                        try await journeyViewModel.regenerateVideo(journeyId: journey.id)
+                        // Reload journeys to see updated video status (processing)
+                        await journeyViewModel.loadJourneys()
+                    } catch {
+                        print("❌ [JourneyFeedView] Error generating video: \(error.localizedDescription)")
+                    }
+                }
             },
             onDeleteClick: {
                 journeyToDelete = journey
@@ -155,12 +208,14 @@ struct JourneyFeedView: View {
                 Text("Êtes-vous sûr de vouloir supprimer ce voyage ? Cette action est irréversible.")
             }
             .fullScreenCover(isPresented: $showVideoPlayer) {
-                if let journey = selectedJourney, let videoUrl = journey.videoUrl, let url = URL(string: videoUrl) {
+                if let videoUrl = videoUrlForPlayer ?? selectedJourney?.videoUrl,
+                   let url = URL(string: videoUrl) {
                     VideoPlayer(player: AVPlayer(url: url))
                         .ignoresSafeArea()
                         .overlay(alignment: .topTrailing) {
                             Button("Fermer") {
                                 showVideoPlayer = false
+                                videoUrlForPlayer = nil
                             }
                             .padding()
                             .background(Color.black.opacity(0.5))
@@ -172,9 +227,20 @@ struct JourneyFeedView: View {
             .task {
                 await journeyViewModel.loadJourneys()
                 await profileViewModel.loadProfile()
+                
+                // Load destination videos for current user (after profile is loaded)
+                if let userId = profileViewModel.userId {
+                    await destinationVideoViewModel.loadUserDestinations(userId: userId)
+                    
+                    // Start polling for processing videos
+                    await startPollingForProcessingVideos(userId: userId)
+                }
             }
         .refreshable {
             await journeyViewModel.loadJourneys()
+            if let userId = currentUserId {
+                await destinationVideoViewModel.loadUserDestinations(userId: userId)
+            }
         }
         .sheet(item: $journeyForComments) { journey in
             JourneyCommentsSheet(
@@ -193,6 +259,39 @@ struct JourneyFeedView: View {
         // Réinitialiser la référence pour fermer l'alerte
         journeyToDelete = nil
     }
+    
+    private func startPollingForProcessingVideos(userId: String) async {
+        // Start polling task in background
+        Task {
+            while !Task.isCancelled {
+                // Wait 5 seconds before checking
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                
+                // Check if there are any processing videos
+                let destinations: [DestinationWithVideoStatus]
+                if case .success(let dests) = destinationVideoViewModel.uiState {
+                    destinations = dests
+                } else {
+                    break // Exit if state is not success
+                }
+                
+                let processingDestinations = destinations.filter { $0.videoStatus == "processing" }
+                
+                // If no processing videos, stop polling
+                if processingDestinations.isEmpty {
+                    break
+                }
+                
+                // Check status for each processing destination
+                for destination in processingDestinations {
+                    await destinationVideoViewModel.checkVideoStatus(userId: userId, destination: destination.destination)
+                }
+                
+                // Reload destinations to get updated list
+                await destinationVideoViewModel.loadUserDestinations(userId: userId)
+            }
+        }
+    }
 }
 
 private struct JourneyCard: View {
@@ -203,6 +302,7 @@ private struct JourneyCard: View {
     let onCommentClick: () -> Void
     let onImageClick: () -> Void
     let onVideoClick: () -> Void
+    let onGenerateVideoClick: () -> Void
     let onDeleteClick: () -> Void
     
     // Remove fixed height - let images adapt dynamically
@@ -213,51 +313,59 @@ private struct JourneyCard: View {
     
     @ViewBuilder
     private var videoStatusView: some View {
-        // Video status view removed - no longer showing video generation button
-        if journey.videoStatus == "completed", journey.videoUrl != nil {
-            videoCompletedButton
-        } else if journey.videoStatus == "processing" {
-            videoProcessingView
+        if isOwnJourney {
+            // For own journeys: show video if completed, or button if pending/failed
+            if journey.videoStatus == "completed", let videoUrl = journey.videoUrl, !videoUrl.isEmpty {
+                videoCompletedButton
+            } else if journey.videoStatus == "pending" || journey.videoStatus == "failed" {
+                // Show "Generate Video" button for own journeys when video is not yet generated or failed
+                generateVideoButton
+            }
+            // Do not show processing indicator - video will appear automatically when ready
+        } else {
+            // For other users' journeys: show video status only when video is fully ready
+            if journey.videoStatus == "completed", let videoUrl = journey.videoUrl, !videoUrl.isEmpty {
+                videoCompletedButton
+            }
+            // Do not show anything for processing, pending, or failed states
         }
-        // Removed: generateVideoButton and related logic
     }
     
     private var videoCompletedButton: some View {
         Button(action: onVideoClick) {
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "play.circle.fill")
                     .font(.system(size: 20))
                 Text("Vidéo AI générée")
                     .font(.system(size: 14, weight: .medium))
             }
-            .foregroundColor(ThemeColors.accent())
+            .foregroundColor(Color(red: 0.29, green: 0.56, blue: 0.89)) // Android: 0xFF4A90E2
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(ThemeColors.accent().opacity(0.1))
+                    .fill(Color(red: 0.29, green: 0.56, blue: 0.89).opacity(0.1)) // Android: 0xFF4A90E2 with alpha 0.1
             )
         }
     }
     
-    private var videoProcessingView: some View {
-        HStack {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 1.0, green: 0.65, blue: 0.15)))
-                .scaleEffect(0.8)
-            Text("Génération de la vidéo en cours...")
-                .font(.system(size: 14))
-                .foregroundColor(Color(red: 1.0, green: 0.65, blue: 0.15))
+    private var generateVideoButton: some View {
+        Button(action: onGenerateVideoClick) {
+            HStack(spacing: 8) {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 18))
+                Text(journey.videoStatus == "failed" ? "Régénérer la vidéo" : "Générer ma vidéo")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(red: 0.29, green: 0.56, blue: 0.89)) // Android: 0xFF4A90E2
+            )
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(red: 1.0, green: 0.65, blue: 0.15).opacity(0.1))
-        )
     }
-    
-    // Removed: generateVideoButton - no longer needed
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

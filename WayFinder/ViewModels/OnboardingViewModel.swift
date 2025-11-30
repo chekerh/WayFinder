@@ -49,8 +49,14 @@ class OnboardingViewModel: ObservableObject {
             } catch {
                 guard !isStaleOperation(operationId) else { return }
                 
-                // Handle "already completed" error
-                if let apiError = error as? APIError,
+                let errorDescription = error.localizedDescription.lowercased()
+                let isAlreadyCompleted = errorDescription.contains("already completed") || 
+                                        errorDescription.contains("déjà complété")
+                
+                // Handle "already completed" error - treat as completion, not error
+                if isAlreadyCompleted {
+                    uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
+                } else if let apiError = error as? APIError,
                    case .httpError(let statusCode, let data) = apiError,
                    statusCode == 400 {
                     // Extract message from data if available
@@ -59,13 +65,14 @@ class OnboardingViewModel: ObservableObject {
                        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let message = json["message"] as? String {
                         errorMessage = message
+                        let messageLower = message.lowercased()
+                        if messageLower.contains("already completed") || messageLower.contains("déjà complété") {
+                            uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
+                            return
+                        }
                     }
                     
-                    if let message = errorMessage, message.contains("already completed") {
-                        uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
-                    } else {
-                        uiState = .error(message: error.localizedDescription)
-                    }
+                    uiState = .error(message: error.localizedDescription)
                 } else {
                     uiState = .error(message: error.localizedDescription)
                 }

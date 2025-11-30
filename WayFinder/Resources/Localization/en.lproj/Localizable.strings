@@ -324,4 +324,15 @@
 "filter_no_airlines" = "No airlines available";
 "filter_reset" = "Reset";
 "filter_apply" = "Apply Filters";
+"destination_videos_title" = "Videos by destination";
+"destination_video_ready" = "Video ready";
+"destination_video_generating" = "Generating...";
+"destination_video_failed" = "Failure";
+"destination_video_not_generated" = "Video not generated";
+"destination_video_generate" = "Generate";
+"destination_video_error_details" = "Error details";
+"destination_video_error_message" = "Video generation failed. Error details:";
+"destination_video_retry" = "Retry";
+"journey_all_journeys" = "All journeys";
+"destination_video_photos" = "photos";
 

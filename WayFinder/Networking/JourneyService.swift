@@ -313,5 +313,31 @@ final class JourneyService {
         
         print("✅ [JourneyService] Journey deleted successfully")
     }
+    
+    // MARK: - Destination Videos
+    
+    func getUserDestinations(userId: String) async throws -> UserDestinationsResponse {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "users/\(userId)/destinations"
+        )
+        return try await APIService.shared.request(builder, decodeTo: UserDestinationsResponse.self)
+    }
+    
+    func generateDestinationVideo(userId: String, destination: String) async throws -> GenerateVideoResponse {
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "users/\(userId)/destinations/\(destination)/generate-video"
+        )
+        return try await APIService.shared.request(builder, decodeTo: GenerateVideoResponse.self)
+    }
+    
+    func getDestinationVideoStatus(userId: String, destination: String) async throws -> DestinationVideoStatus {
+        let builder = DefaultRequest(
+            method: "GET",
+            path: "users/\(userId)/destinations/\(destination)/video-status"
+        )
+        return try await APIService.shared.request(builder, decodeTo: DestinationVideoStatus.self)
+    }
 }
 
