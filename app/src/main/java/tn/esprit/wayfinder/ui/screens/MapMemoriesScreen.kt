@@ -60,6 +60,7 @@ fun MapMemoriesScreen(navController: NavController) {
     var selectedCountry by remember { mutableStateOf<CountryMemory?>(null) }
     var showMemoriesDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    var markerIcons by remember { mutableStateOf<Map<String, com.google.android.gms.maps.model.BitmapDescriptor>>(emptyMap()) }
     
     // Default camera position (Europe)
     val defaultLocation = remember { LatLng(50.0, 10.0) }
@@ -71,18 +72,51 @@ fun MapMemoriesScreen(navController: NavController) {
             socialViewModel.loadMapMemories()
             // Set initial camera position after a short delay to ensure map is ready
             kotlinx.coroutines.delay(500)
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(defaultLocation, 3f),
-                0
-            )
+            try {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(defaultLocation, 3f),
+                    /* durationMs = */ 1000
+                )
+            } catch (e: IllegalArgumentException) {
+                // Fallback without animation if duration value is rejected on some devices
+                cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(defaultLocation, 3f))
+            }
         } catch (e: Exception) {
             android.util.Log.e("MapMemoriesScreen", "Error initializing map", e)
         }
     }
     
-    // Log state changes for debugging
-    LaunchedEffect(mapMemoriesState) {
-        android.util.Log.d("MapMemoriesScreen", "Map memories state: isLoading=${mapMemoriesState.isLoading}, error=${mapMemoriesState.error}, countries=${mapMemoriesState.memories?.countries?.size ?: 0}")
+    // Prepare custom marker icons asynchronously when countries change
+    LaunchedEffect(mapMemoriesState.memories?.countries) {
+        val countries = mapMemoriesState.memories?.countries ?: emptyList()
+        if (countries.isNotEmpty()) {
+            val newIcons = mutableMapOf<String, com.google.android.gms.maps.model.BitmapDescriptor>()
+            countries.forEach { country ->
+                val markerImage = country.trips.firstOrNull()?.images?.firstOrNull()
+                if (markerImage != null) {
+                    try {
+                        // Format image URL (add base URL if needed, like in ProfileScreen)
+                        val imageUrl = if (markerImage.startsWith("http")) {
+                            markerImage
+                        } else {
+                            "https://wayfinder-api-w92x.onrender.com$markerImage"
+                        }
+                        Log.d("MapMemoriesScreen", "Loading marker icon for ${country.country} from $imageUrl")
+                        val icon = createCustomMarkerIcon(context, imageUrl, country.count)
+                        newIcons[country.country] = icon
+                        Log.d("MapMemoriesScreen", "Successfully created marker icon for ${country.country}")
+                    } catch (e: Exception) {
+                        Log.e("MapMemoriesScreen", "Error loading marker icon for ${country.country}: ${e.message}", e)
+                    }
+                } else {
+                    Log.d("MapMemoriesScreen", "No image found for ${country.country}, using default marker")
+                }
+            }
+            markerIcons = newIcons
+            Log.d("MapMemoriesScreen", "Loaded ${newIcons.size} custom marker icons out of ${countries.size} countries")
+        } else {
+            markerIcons = emptyMap()
+        }
     }
 
     Scaffold(
@@ -161,18 +195,12 @@ fun MapMemoriesScreen(navController: NavController) {
                             countries.forEach { country ->
                                 val position = LatLng(country.lat, country.lng)
                                 
-                                // Get first image from trips for marker
-                                val markerImage = country.trips.firstOrNull()?.images?.firstOrNull()
-                                
                                 Marker(
                                     state = MarkerState(position = position),
                                     title = country.country,
                                     snippet = "${country.count} ${StringTranslator.translate(context, "memories")}",
-                                    icon = if (markerImage != null) {
-                                        createCustomMarkerIcon(context, markerImage, country.count)
-                                    } else {
-                                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
-                                    },
+                                    icon = markerIcons[country.country]
+                                        ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET),
                                     onClick = {
                                         selectedCountry = country
                                         showMemoriesDialog = true
@@ -395,84 +423,96 @@ fun CountryMemoriesDialog(
     )
 }
 
-fun createCustomMarkerIcon(
+suspend fun createCustomMarkerIcon(
     context: android.content.Context,
     imageUrl: String,
     count: Int
 ): com.google.android.gms.maps.model.BitmapDescriptor {
-    return try {
-        val imageLoader = ImageLoader(context)
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .size(120, 120)
-            .build()
-        
-        val result = kotlinx.coroutines.runBlocking {
-            imageLoader.execute(request)
-        }
-        
-        if (result is SuccessResult) {
-            val drawable = result.drawable
-            val bitmap = if (drawable is BitmapDrawable) {
-                drawable.bitmap
-            } else {
-                val bitmap = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bitmap)
-                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                drawable.draw(canvas)
-                bitmap
-            }
-            
-            // Scale bitmap to 120x120 if needed
-            val scaledBitmap = if (bitmap.width != 120 || bitmap.height != 120) {
-                Bitmap.createScaledBitmap(bitmap, 120, 120, true)
-            } else {
-                bitmap
-            }
-            
-            val markerBitmap = Bitmap.createBitmap(140, 160, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(markerBitmap)
-            
-            // Draw rounded image with border
-            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-            borderPaint.color = Color(0xFF9C27B0).toArgb() // Purple border
-            borderPaint.style = Paint.Style.STROKE
-            borderPaint.strokeWidth = 4f
-            
-            // Draw border
-            canvas.drawRoundRect(10f, 10f, 130f, 130f, 12f, 12f, borderPaint)
-            
-            // Draw image
-            val roundedBitmap = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
-            val roundedCanvas = Canvas(roundedBitmap)
-            val roundedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-            roundedPaint.shader = android.graphics.BitmapShader(scaledBitmap, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
-            roundedCanvas.drawRoundRect(0f, 0f, 120f, 120f, 12f, 12f, roundedPaint)
-            canvas.drawBitmap(roundedBitmap, 10f, 10f, null)
-            
-            // Draw count badge
-            if (count > 1) {
-                val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                badgePaint.color = Color(0xFF9C27B0).toArgb()
-                val badgeRadius = 18f
-                canvas.drawCircle(130f, 30f, badgeRadius, badgePaint)
+    return withContext(Dispatchers.IO) {
+        try {
+            Log.d("MapMemoriesScreen", "Creating custom marker icon from URL: $imageUrl, count: $count")
+            val imageLoader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(imageUrl)
+                .size(120, 120)
+                .build()
+
+            val result = imageLoader.execute(request)
+
+            if (result is SuccessResult) {
+                val drawable = result.drawable
+                val bitmap = if (drawable is BitmapDrawable) {
+                    drawable.bitmap
+                } else {
+                    val bitmap = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(bitmap)
+                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                    drawable.draw(canvas)
+                    bitmap
+                }
                 
-                val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                textPaint.color = android.graphics.Color.WHITE
-                textPaint.textSize = 20f
-                textPaint.typeface = Typeface.DEFAULT_BOLD
-                textPaint.textAlign = Paint.Align.CENTER
-                val countText = if (count > 99) "99+" else count.toString()
-                canvas.drawText(countText, 130f, 36f, textPaint)
+                // Scale bitmap to 120x120 if needed
+                val scaledBitmap = if (bitmap.width != 120 || bitmap.height != 120) {
+                    Bitmap.createScaledBitmap(bitmap, 120, 120, true)
+                } else {
+                    bitmap
+                }
+                
+                // Create marker bitmap (140x160 to accommodate image + badge)
+                val markerBitmap = Bitmap.createBitmap(140, 160, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(markerBitmap)
+                
+                // Fill background with transparent
+                canvas.drawColor(android.graphics.Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR)
+                
+                // Draw rounded image with purple border (like iOS bubble)
+                val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                borderPaint.color = Color(0xFF9C27B0).toArgb() // Purple border
+                borderPaint.style = Paint.Style.STROKE
+                borderPaint.strokeWidth = 4f
+                
+                // Draw border circle (like iOS bubble)
+                canvas.drawCircle(70f, 70f, 60f, borderPaint)
+                
+                // Draw image in a circular shape
+                val roundedBitmap = Bitmap.createBitmap(120, 120, Bitmap.Config.ARGB_8888)
+                val roundedCanvas = Canvas(roundedBitmap)
+                val roundedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                roundedPaint.shader = android.graphics.BitmapShader(scaledBitmap, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+                roundedCanvas.drawCircle(60f, 60f, 60f, roundedPaint)
+                canvas.drawBitmap(roundedBitmap, 10f, 10f, null)
+                
+                // Draw count badge (top-right corner, like iOS)
+                if (count > 1) {
+                    val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    badgePaint.color = Color(0xFF9C27B0).toArgb()
+                    val badgeRadius = 18f
+                    val badgeX = 130f
+                    val badgeY = 30f
+                    canvas.drawCircle(badgeX, badgeY, badgeRadius, badgePaint)
+                    
+                    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    textPaint.color = android.graphics.Color.WHITE
+                    textPaint.textSize = 20f
+                    textPaint.typeface = Typeface.DEFAULT_BOLD
+                    textPaint.textAlign = Paint.Align.CENTER
+                    val countText = if (count > 99) "99+" else count.toString()
+                    // Adjust Y position for text centering
+                    val textY = badgeY + (textPaint.descent() + textPaint.ascent()) / 2
+                    canvas.drawText(countText, badgeX, textY, textPaint)
+                }
+                
+                val descriptor = BitmapDescriptorFactory.fromBitmap(markerBitmap)
+                Log.d("MapMemoriesScreen", "Successfully created custom marker icon")
+                descriptor
+            } else {
+                Log.w("MapMemoriesScreen", "Image load failed, using default marker")
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
             }
-            
-            BitmapDescriptorFactory.fromBitmap(markerBitmap)
-        } else {
+        } catch (e: Exception) {
+            Log.e("MapMemoriesScreen", "Error creating custom marker: ${e.message}", e)
             BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
         }
-    } catch (e: Exception) {
-        android.util.Log.e("MapMemoriesScreen", "Error creating custom marker", e)
-        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET)
     }
 }
 

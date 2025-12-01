@@ -76,11 +76,13 @@ import android.app.Activity
 import android.content.Intent
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.components.PointsDisplayCard
+import tn.esprit.wayfinder.ui.components.ProfileRewardsCard
 import tn.esprit.wayfinder.viewmodels.UserViewModel
 import tn.esprit.wayfinder.viewmodels.UserUiState
 import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 import tn.esprit.wayfinder.models.CanShareJourneyResponse
 import tn.esprit.wayfinder.utils.StringTranslator
+import tn.esprit.wayfinder.models.UserPointsResponse
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +92,7 @@ fun ProfileScreen(navController: NavController) {
     val userViewModel: UserViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val journeyViewModel: JourneyViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by userViewModel.uiState.collectAsState()
+    val pointsState by userViewModel.pointsState.collectAsState()
     val canShareState by journeyViewModel.canShareState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val themeManager = remember { ThemeManager(context) }
@@ -212,6 +215,7 @@ fun ProfileScreen(navController: NavController) {
                     },
                     canShareJourney = canShareState?.canShare ?: false,
                     canShareState = canShareState,
+                    pointsState = pointsState,
                     navController = navController,
                     context = context,
                     languageManager = languageManager,
@@ -274,6 +278,7 @@ fun ProfileContent(
     onShareJourneyClick: () -> Unit,
     canShareJourney: Boolean,
     canShareState: CanShareJourneyResponse?,
+    pointsState: UserPointsResponse?,
     navController: NavController,
     context: android.content.Context,
     languageManager: LanguageManager,
@@ -302,22 +307,22 @@ fun ProfileContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             // Profile Picture - Left side
-                        AsyncImage(
+            AsyncImage(
                 model = user.profileImageUrl?.let { url ->
                     if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
                 } ?: "https://i.pravatar.cc/150?img=${user.id.hashCode() % 70}",
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
+                contentDescription = "Profile Picture",
+                modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
                     .clickable { navController.navigate("edit_profile") },
-                            contentScale = ContentScale.Crop,
-                            placeholder = painterResource(id = R.drawable.europe),
-                            error = painterResource(id = R.drawable.europe)
-                        )
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.europe),
+                error = painterResource(id = R.drawable.europe)
+            )
             
             // Name, Username and Edit Button - Right side
             Column(
@@ -365,7 +370,19 @@ fun ProfileContent(
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        
+
+        // Unified rewards card moved directly under profile header (like iOS)
+        ProfileRewardsCard(
+            totalPoints = pointsState?.totalPoints ?: user.totalPoints,
+            lifetimePoints = pointsState?.lifetimePoints ?: user.lifetimePoints,
+            currentStreak = user.currentStreak,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Menu Items List
         Column(
             modifier = Modifier
@@ -470,28 +487,6 @@ fun ProfileContent(
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        
-        // Points Display Card (Starbucks/Starbucks-style)
-        PointsDisplayCard(
-            totalPoints = user.totalPoints,
-            lifetimePoints = user.lifetimePoints,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Travel Streak Card (Duolingo-inspired)
-        TravelStreakCard(
-            currentStreak = user.currentStreak,
-            longestStreak = user.longestStreak,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
     }
