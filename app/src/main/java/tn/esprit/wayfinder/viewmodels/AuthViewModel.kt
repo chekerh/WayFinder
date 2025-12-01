@@ -131,7 +131,7 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             try {
                 android.util.Log.d("AuthViewModel", "Google Sign-In: Starting authentication with ID token")
                 val response = authRepository.googleSignIn(idToken)
-                android.util.Log.d("AuthViewModel", "Google Sign-In: Success - User ID: ${response.user.id}, Email verified: ${response.emailVerified}, Onboarding: ${response.onboardingCompleted}")
+                android.util.Log.d("AuthViewModel", "Google Sign-In: Success - User ID: ${response.user.id}, Email: ${response.user.email}, Email verified: ${response.emailVerified}, Onboarding: ${response.onboardingCompleted}")
                 
                 val tokenManager = TokenManager(context)
                 tokenManager.saveToken(response.accessToken)
@@ -154,23 +154,38 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                 }
                 _googleSignInResult.value = GoogleSignInResult.Success(navigateTo, response.emailVerified)
             } catch (e: Exception) {
-                android.util.Log.e("AuthViewModel", "Google Sign-In: Error occurred", e)
-                val errorMessage = parseError(e)
-                android.util.Log.e("AuthViewModel", "Google Sign-In: Error message: $errorMessage")
+                android.util.Log.e("AuthViewModel", "Google Sign-In: Error occurred - ${e.javaClass.simpleName}", e)
+                android.util.Log.e("AuthViewModel", "Google Sign-In: Error message: ${e.message}")
                 
-                // Check if error is about user existing - this should be handled by backend
-                // but if it happens, provide better error message
-                if (errorMessage.contains("exists", ignoreCase = true) || 
+                val errorMessage = parseError(e)
+                android.util.Log.e("AuthViewModel", "Google Sign-In: Parsed error message: $errorMessage")
+                
+                // Provide more specific error messages based on the error type
+                val finalErrorMessage = when {
+                    // Check for specific conflict scenarios
+                    errorMessage.contains("exists", ignoreCase = true) || 
                     errorMessage.contains("déjà", ignoreCase = true) ||
-                    errorMessage.contains("already", ignoreCase = true)) {
-                    // User exists - backend should handle this, but if error occurs, 
-                    // it might mean the account needs to be linked or there's a conflict
-                    _googleSignInResult.value = GoogleSignInResult.Error(
-                        "Un compte existe déjà avec cet email. Veuillez vous connecter avec votre mot de passe ou utilisez un autre compte Google."
-                    )
-                } else {
-                    _googleSignInResult.value = GoogleSignInResult.Error(errorMessage)
+                    errorMessage.contains("already", ignoreCase = true) -> {
+                        // Check if it's a Google ID conflict or email conflict
+                        if (errorMessage.contains("google", ignoreCase = true) || 
+                            errorMessage.contains("google_id", ignoreCase = true)) {
+                            "Ce compte Google est déjà lié à un autre compte. Veuillez utiliser le compte associé ou contactez le support."
+                        } else {
+                            "Un compte existe déjà avec cet email. Le compte Google a été lié à votre compte existant. Veuillez réessayer."
+                        }
+                    }
+                    errorMessage.contains("invalid", ignoreCase = true) || 
+                    errorMessage.contains("token", ignoreCase = true) -> {
+                        "Le jeton Google est invalide ou a expiré. Veuillez réessayer."
+                    }
+                    errorMessage.contains("network", ignoreCase = true) || 
+                    errorMessage.contains("connection", ignoreCase = true) -> {
+                        "Erreur de connexion. Vérifiez votre connexion Internet et réessayez."
+                    }
+                    else -> errorMessage
                 }
+                
+                _googleSignInResult.value = GoogleSignInResult.Error(finalErrorMessage)
             }
         }
     }
@@ -198,7 +213,9 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             is HttpException -> {
                 val statusCode = throwable.code()
                 val errorBody = throwable.response()?.errorBody()?.string()
-                android.util.Log.e("AuthViewModel", "HTTP Error: Status $statusCode, Body: $errorBody")
+                android.util.Log.e("AuthViewModel", "HTTP Error: Status $statusCode")
+                android.util.Log.e("AuthViewModel", "HTTP Error Body: $errorBody")
+                android.util.Log.e("AuthViewModel", "HTTP Error Headers: ${throwable.response()?.headers()}")
                 
                 if (!errorBody.isNullOrBlank()) {
                     val parsedMessage = try {
@@ -212,35 +229,76 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                     }
                     
                     when {
-                        parsedMessage != null -> parsedMessage
-                        statusCode == 409 -> "Un compte existe déjà avec cet email. Veuillez vous connecter avec votre mot de passe."
-                        statusCode == 400 -> "Requête invalide. Veuillez réessayer."
-                        statusCode == 401 -> "Non autorisé. Veuillez vérifier vos identifiants."
-                        statusCode == 404 -> "Ressource non trouvée."
-                        statusCode >= 500 -> "Erreur serveur. Veuillez réessayer plus tard."
-                        else -> errorBody
+                        parsedMessage != null -> {
+                            android.util.Log.d("AuthViewModel", "Using parsed message: $parsedMessage")
+                            parsedMessage
+                        }
+                        statusCode == 409 -> {
+                            android.util.Log.w("AuthViewModel", "409 Conflict - User may already exist. Backend should handle account linking.")
+                            "Un compte existe déjà avec cet email. Le système devrait lier automatiquement votre compte Google. Si le problème persiste, veuillez vous connecter avec votre mot de passe."
+                        }
+                        statusCode == 400 -> {
+                            android.util.Log.w("AuthViewModel", "400 Bad Request")
+                            "Requête invalide. Veuillez réessayer."
+                        }
+                        statusCode == 401 -> {
+                            android.util.Log.w("AuthViewModel", "401 Unauthorized")
+                            "Non autorisé. Veuillez vérifier vos identifiants."
+                        }
+                        statusCode == 404 -> {
+                            android.util.Log.w("AuthViewModel", "404 Not Found")
+                            "Ressource non trouvée."
+                        }
+                        statusCode >= 500 -> {
+                            android.util.Log.e("AuthViewModel", "Server error: $statusCode")
+                            "Erreur serveur. Veuillez réessayer plus tard."
+                        }
+                        else -> {
+                            android.util.Log.w("AuthViewModel", "Unhandled status code: $statusCode")
+                            errorBody
+                        }
                     }
                 } else {
                     when (statusCode) {
-                        409 -> "Un compte existe déjà avec cet email."
-                        400 -> "Requête invalide."
-                        401 -> "Non autorisé."
-                        404 -> "Ressource non trouvée."
-                        in 500..599 -> "Erreur serveur. Veuillez réessayer plus tard."
-                        else -> throwable.message() ?: "Erreur HTTP $statusCode"
+                        409 -> {
+                            android.util.Log.w("AuthViewModel", "409 Conflict - No error body provided")
+                            "Un compte existe déjà avec cet email. Le système devrait lier automatiquement votre compte Google."
+                        }
+                        400 -> {
+                            android.util.Log.w("AuthViewModel", "400 Bad Request - No error body")
+                            "Requête invalide."
+                        }
+                        401 -> {
+                            android.util.Log.w("AuthViewModel", "401 Unauthorized - No error body")
+                            "Non autorisé."
+                        }
+                        404 -> {
+                            android.util.Log.w("AuthViewModel", "404 Not Found - No error body")
+                            "Ressource non trouvée."
+                        }
+                        in 500..599 -> {
+                            android.util.Log.e("AuthViewModel", "Server error: $statusCode - No error body")
+                            "Erreur serveur. Veuillez réessayer plus tard."
+                        }
+                        else -> {
+                            android.util.Log.w("AuthViewModel", "Unhandled status code: $statusCode - No error body")
+                            throwable.message() ?: "Erreur HTTP $statusCode"
+                        }
                     }
                 }
             }
             is UnknownHostException -> {
-                android.util.Log.e("AuthViewModel", "Network error: UnknownHostException")
+                android.util.Log.e("AuthViewModel", "Network error: UnknownHostException - ${throwable.message}")
                 "Impossible de se connecter au serveur. Vérifiez votre connexion Internet."
             }
             is SocketTimeoutException -> {
-                android.util.Log.e("AuthViewModel", "Network error: SocketTimeoutException")
+                android.util.Log.e("AuthViewModel", "Network error: SocketTimeoutException - ${throwable.message}")
                 "Le serveur met trop de temps à répondre. Réessayez dans un instant."
             }
             else -> {
                 android.util.Log.e("AuthViewModel", "Unexpected error: ${throwable.javaClass.simpleName}", throwable)
+                android.util.Log.e("AuthViewModel", "Error message: ${throwable.message}")
+                android.util.Log.e("AuthViewModel", "Error stack trace: ${throwable.stackTraceToString()}")
                 throwable.message ?: "Une erreur inattendue est survenue"
             }
         }

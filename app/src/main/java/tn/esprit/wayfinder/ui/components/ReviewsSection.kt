@@ -295,12 +295,12 @@ fun ReviewCard(
                 if (isUserReview) {
                     Row {
                         IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            Icons.Filled.Edit,
-                            contentDescription = "Edit",
-                            modifier = Modifier.size(16.dp),
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Edit",
+                                modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
-                        )
+                            )
                         }
                         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
                             Icon(

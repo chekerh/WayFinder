@@ -118,8 +118,8 @@ fun AccommodationTypeCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -133,8 +133,8 @@ fun AccommodationTypeCard(
         )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                 .padding(20.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically

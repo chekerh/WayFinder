@@ -74,7 +74,7 @@ class CatalogViewModel(
                 }
 
                 if (destinationLocationCode == null) {
-                    flightsCache.store(destinations, source = "network")
+                flightsCache.store(destinations, source = "network")
                 }
                 emitSuccess(destinations, showAll, fromCache = false, lastUpdated = System.currentTimeMillis(), source = "network")
             } catch (e: Exception) {
