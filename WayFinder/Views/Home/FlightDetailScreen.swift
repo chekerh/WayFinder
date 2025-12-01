@@ -25,6 +25,10 @@ struct FlightDetailScreen: View {
     
     var body: some View {
         GeometryReader { geometry in
+            // Responsive header height & overlap so it fits on all iPhone sizes
+            let headerHeight = min(max(geometry.size.height * 0.35, 260), 380)
+            let cardOverlap = min(headerHeight * 0.18, 60)
+            
             ZStack {
                 ThemeColors.background(colorScheme)
                     .ignoresSafeArea()
@@ -63,12 +67,12 @@ struct FlightDetailScreen: View {
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
-                                            .frame(height: 380)
+                                            .frame(height: headerHeight)
                                         case .success(let image):
                                             image
                                                 .resizable()
                                                 .scaledToFill()
-                                                .frame(height: 380)
+                                                .frame(height: headerHeight)
                                                 .clipped()
                                         case .failure:
                                             LinearGradient(
@@ -76,14 +80,14 @@ struct FlightDetailScreen: View {
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
-                                            .frame(height: 380)
+                                            .frame(height: headerHeight)
                                         @unknown default:
                                             LinearGradient(
                                                 colors: [Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0), Color(red: 0x2E/255.0, green: 0x5C/255.0, blue: 0x8A/255.0)],
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
-                                            .frame(height: 380)
+                                            .frame(height: headerHeight)
                                         }
                                     }
                                 } else {
@@ -93,7 +97,7 @@ struct FlightDetailScreen: View {
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
-                                    .frame(height: 380)
+                                    .frame(height: headerHeight)
                                 }
                                 
                                 // Navigation buttons overlay on image (en haut comme Android) - respect safe area
@@ -142,7 +146,7 @@ struct FlightDetailScreen: View {
                                 .padding(.trailing, geometry.safeAreaInsets.trailing + 16)
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 380)
+                            .frame(height: headerHeight)
                             .ignoresSafeArea(edges: .horizontal)
                                 
                                 // Content Card with rounded top corners (overlaps image)
@@ -383,7 +387,7 @@ struct FlightDetailScreen: View {
                                     RoundedRectangle(cornerRadius: 32, style: .continuous)
                                         .fill(ThemeColors.background(colorScheme))
                                 )
-                                .offset(y: -60) // Overlap image slightly
+                                .offset(y: -cardOverlap) // Overlap image slightly, responsive
                         }
                         .background(ThemeColors.background(colorScheme))
                     }
