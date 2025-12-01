@@ -148,7 +148,7 @@ final class AuthService {
     /// - Parameter idToken: Token d'identification Google obtenu via GoogleSignIn SDK
     /// - Note: Le backend Render doit avoir la variable d'environnement GOOGLE_CLIENT_ID_WEB configurée
     ///   pour valider le token Google. Le GOOGLE_CLIENT_ID dans Info.plist est utilisé côté iOS.
-    func loginWithGoogle(idToken: String) async throws -> UserProfile {
+    func loginWithGoogle(idToken: String) async throws -> LoginResponse {
         let encoder = JSONEncoder()
         // iOS uses web client ID, so we need to specify client_type as 'web'
         let data = try encoder.encode(GoogleLoginRequest(idToken: idToken, clientType: "web"))
@@ -170,19 +170,29 @@ final class AuthService {
             // Sauvegarder le profil avec l'email pour la persistance
             UserStorage.saveProfile(user)
             print("✅ [AuthService] Google profile saved with email: \(user.email ?? "nil")")
-            return user
+            print("✅ [AuthService] Google login - onboarding completed: \(response.onboardingCompleted ?? false)")
+            
+            // Restore profile image if available
+            if let email = user.email {
+                ProfileImageService.shared.restoreAfterLogin(email: email)
+                if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                    ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                }
+            }
+        } else {
+            // If user not in response, fetch profile
+            let profile = try await UserService.shared.fetchProfile()
+            UserStorage.saveProfile(profile)
+            print("✅ [AuthService] Google login - profile fetched")
         }
-
-        let profile = try await UserService.shared.fetchProfile()
-        // Sauvegarder le profil récupéré avec l'email
-        UserStorage.saveProfile(profile)
-        return profile
+        
+        return response
     }
 
     func loginWithApple(identityToken: String,
                         email: String?,
                         firstName: String?,
-                        lastName: String?) async throws -> UserProfile {
+                        lastName: String?) async throws -> LoginResponse {
         let requestBody = AppleLoginRequest(
             identityToken: identityToken,
             email: email,
@@ -210,13 +220,23 @@ final class AuthService {
             // Sauvegarder le profil avec l'email pour la persistance
             UserStorage.saveProfile(user)
             print("✅ [AuthService] Apple profile saved with email: \(user.email ?? "nil")")
-            return user
+            print("✅ [AuthService] Apple login - onboarding completed: \(response.onboardingCompleted ?? false)")
+            
+            // Restore profile image if available
+            if let email = user.email {
+                ProfileImageService.shared.restoreAfterLogin(email: email)
+                if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                    ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                }
+            }
+        } else {
+            // If user not in response, fetch profile
+            let profile = try await UserService.shared.fetchProfile()
+            UserStorage.saveProfile(profile)
+            print("✅ [AuthService] Apple login - profile fetched")
         }
-
-        let profile = try await UserService.shared.fetchProfile()
-        // Sauvegarder le profil récupéré avec l'email
-        UserStorage.saveProfile(profile)
-        return profile
+        
+        return response
     }
 
     func register(username: String,

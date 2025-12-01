@@ -409,9 +409,30 @@ private extension LoginView {
                 throw SocialLoginError.missingGoogleToken
             }
             
-            let user = try await AuthService.shared.loginWithGoogle(idToken: idToken)
-            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
-            completeLogin()
+            print("🔐 [LoginView] Google Sign-In successful, sending token to backend...")
+            let loginResult = try await AuthService.shared.loginWithGoogle(idToken: idToken)
+            
+            // Get user from response
+            guard let user = loginResult.user else {
+                print("❌ [LoginView] No user in Google login response")
+                loginError = "Erreur: Aucun utilisateur dans la réponse"
+                return
+            }
+            
+            print("✅ [LoginView] Google login successful for user: \(user.username ?? "unknown")")
+            loggedInUserName = user.displayNameValue
+            print("✅ [LoginView] Setting loggedInUserName: \(loggedInUserName)")
+            print("✅ [LoginView] Onboarding status - completed: \(loginResult.onboardingCompleted ?? false)")
+            
+            // Navigate to home (onboarding popup will show if needed)
+            let destination = "home"
+            print("✅ [LoginView] Navigating to: \(destination) (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
+            
+            await MainActor.run {
+                navigateToDestination = destination
+                isLoggedIn = true
+                print("✅ [LoginView] Google login navigation triggered")
+            }
         } catch {
             loginError = error.localizedDescription
         }
@@ -439,24 +460,34 @@ private extension LoginView {
             let firstName = credential.fullName?.givenName
             let lastName = credential.fullName?.familyName
             
-            let user = try await AuthService.shared.loginWithApple(
+            let loginResult = try await AuthService.shared.loginWithApple(
                 identityToken: identityToken,
                 email: email,
                 firstName: firstName,
                 lastName: lastName
             )
-            loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
-            completeLogin()
+            
+            // Get user from response
+            guard let user = loginResult.user else {
+                print("❌ [LoginView] No user in Apple login response")
+                loginError = "Erreur: Aucun utilisateur dans la réponse"
+                return
+            }
+            
+            print("✅ [LoginView] Apple login successful for user: \(user.username ?? "unknown")")
+            loggedInUserName = user.displayNameValue
+            print("✅ [LoginView] Onboarding status - completed: \(loginResult.onboardingCompleted ?? false)")
+            
+            // Navigate to home (onboarding popup will show if needed)
+            let destination = "home"
+            await MainActor.run {
+                navigateToDestination = destination
+                isLoggedIn = true
+                print("✅ [LoginView] Apple login navigation triggered")
+            }
         } catch {
             loginError = error.localizedDescription
         }
-    }
-    
-    @MainActor
-    func completeLogin() {
-        loginError = nil
-        isLoggedIn = true
-        print("✅ [LoginView] completeLogin() - isLoggedIn set to: \(isLoggedIn)")
     }
     
     func findPresentingViewController(base: UIViewController? = UIApplication.shared.connectedScenes
