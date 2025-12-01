@@ -90,7 +90,10 @@ data class RegisterWithOTPRequest(
 @Serializable
 data class RegisterWithOTPResponse(
     val message: String,
-    val user: User
+    val user: User,
+    @SerialName("access_token") val accessToken: String? = null, // For auto-login case
+    @SerialName("onboarding_completed") val onboardingCompleted: Boolean? = null, // For auto-login case
+    @SerialName("auto_login") val autoLogin: Boolean? = null // Flag to indicate auto-login
 )
 
 @Serializable

@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
@@ -90,6 +92,7 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     }
 
     fun registerWithOTP(
+        context: Context,
         email: String,
         firstName: String,
         lastName: String,
@@ -113,9 +116,49 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                     otp_code = otpCode
                 )
                 val response = authRepository.registerWithOTP(request)
-                _signUpResult.value = SignUpResult.Success(response.message)
+                
+                // Check if this is an auto-login response (user already existed)
+                if (response.accessToken != null && response.onboardingCompleted != null) {
+                    // User already exists and was auto-logged in - save token and user
+                    android.util.Log.d("AuthViewModel", "User already exists, auto-logged in: ${response.user.email}")
+                    val tokenManager = TokenManager(context)
+                    tokenManager.saveToken(response.accessToken)
+                    tokenManager.saveUser(response.user)
+                    _signUpResult.value = SignUpResult.Success("Connexion réussie")
+                } else {
+                    // New user created successfully
+                    _signUpResult.value = SignUpResult.Success(response.message)
+                }
             } catch (e: Exception) {
-                _signUpResult.value = SignUpResult.Error(parseError(e))
+                val errorMessage = parseError(e)
+                android.util.Log.e("AuthViewModel", "Registration error: $errorMessage", e)
+                
+                // If it's a 409 Conflict and message suggests user exists, try to login
+                if (e is HttpException && e.code() == 409 && 
+                    (errorMessage.contains("existe déjà", ignoreCase = true) || 
+                     errorMessage.contains("already exists", ignoreCase = true))) {
+                    android.util.Log.d("AuthViewModel", "User exists, attempting auto-login with password")
+                    // Try to login with the provided credentials
+                    try {
+                        val loginRequest = LoginRequest(email = email, password = password)
+                        val loginResponse = authRepository.login(loginRequest)
+                        
+                        // Save token and user data
+                        val tokenManager = TokenManager(context)
+                        tokenManager.saveToken(loginResponse.accessToken)
+                        tokenManager.saveUser(loginResponse.user)
+                        android.util.Log.d("AuthViewModel", "Auto-login successful for existing user")
+                        _signUpResult.value = SignUpResult.Success("Connexion réussie avec votre compte existant")
+                    } catch (loginError: Exception) {
+                        android.util.Log.e("AuthViewModel", "Auto-login failed", loginError)
+                        // If login fails, show the original error but suggest login
+                        _signUpResult.value = SignUpResult.Error(
+                            "Un compte existe déjà avec cet email. Veuillez vous connecter avec votre mot de passe."
+                        )
+                    }
+                } else {
+                    _signUpResult.value = SignUpResult.Error(errorMessage)
+                }
             }
         }
     }
@@ -220,9 +263,22 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                 if (!errorBody.isNullOrBlank()) {
                     val parsedMessage = try {
                         val element = Json.parseToJsonElement(errorBody)
-                        val message = element.jsonObject["message"]?.jsonPrimitive?.content
-                        android.util.Log.d("AuthViewModel", "Parsed error message: $message")
-                        message
+                        val messageElement = element.jsonObject["message"]
+                        when {
+                            messageElement is JsonArray -> {
+                                // Handle array of error messages
+                                val messages = messageElement.mapNotNull { 
+                                    if (it is JsonPrimitive) {
+                                        it.content
+                                    } else null
+                                }
+                                messages.joinToString(". ")
+                            }
+                            messageElement is JsonPrimitive -> {
+                                messageElement.content
+                            }
+                            else -> null
+                        }
                     } catch (e: Exception) {
                         android.util.Log.e("AuthViewModel", "Error parsing error body", e)
                         null

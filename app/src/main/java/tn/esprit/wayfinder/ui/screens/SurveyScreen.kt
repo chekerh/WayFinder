@@ -448,11 +448,18 @@ fun PinterestMultipleChoiceQuestion(
     ) {
         // Use grid layout for better visual appeal (Pinterest-style)
         if (options.size > 4) {
+            // Calculate approximate height needed (2 rows per item, ~100dp per item)
+            val rows = (options.size + 1) / 2
+            val estimatedHeightDp = rows * 100
+            val maxHeightDp = 500
+            val finalHeight = minOf(estimatedHeightDp, maxHeightDp).dp
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = finalHeight) // Max 500dp to prevent infinite constraints
             ) {
                 items(options.size) { index ->
                     val option = options[index]

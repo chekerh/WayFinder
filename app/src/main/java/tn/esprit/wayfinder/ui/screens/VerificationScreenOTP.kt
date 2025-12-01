@@ -56,8 +56,23 @@ fun VerificationScreenOTP(navController: NavController) {
             is SignUpResult.Success -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
                 authViewModel.clearMessages()
-                navController.navigate("login") {
-                    popUpTo(0) { inclusive = true }
+                
+                // Check if user is already logged in (auto-login case)
+                val tokenManager = tn.esprit.wayfinder.manager.TokenManager(context)
+                val currentUser = tokenManager.getUser()
+                val token = tokenManager.getToken()
+                
+                if (currentUser != null && token != null) {
+                    // User is logged in, navigate to home or onboarding
+                    val navigateTo = if (currentUser.onboardingCompleted) "home" else "onboarding"
+                    navController.navigate(navigateTo) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                } else {
+                    // User not logged in, navigate to login screen
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
             is SignUpResult.Error -> {
@@ -68,14 +83,20 @@ fun VerificationScreenOTP(navController: NavController) {
         }
     }
 
+    val colorScheme = MaterialTheme.colorScheme
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F8FF))
+            .background(colorScheme.background)
             .padding(16.dp)
     ) {
         IconButton(onClick = { navController.popBackStack() }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = colorScheme.onSurface
+            )
         }
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -107,7 +128,8 @@ fun VerificationScreenOTP(navController: NavController) {
             ) {
                 Text(
                     text = StringTranslator.translate(context, "Renvoyer le code"),
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = colorScheme.primary
                 )
             }
 
@@ -117,6 +139,7 @@ fun VerificationScreenOTP(navController: NavController) {
                 onClick = {
                     if (otpValue.length == 4 && email.isNotBlank() && firstName.isNotBlank() && lastName.isNotBlank() && password.isNotBlank()) {
                         authViewModel.registerWithOTP(
+                            context = context,
                             email = email,
                             firstName = firstName,
                             lastName = lastName,
@@ -133,18 +156,22 @@ fun VerificationScreenOTP(navController: NavController) {
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 enabled = signUpResult !is SignUpResult.Loading && otpValue.length == 4,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (signUpResult is SignUpResult.Loading) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 } else {
                     Text(
                         StringTranslator.translate(context, "Vérifier et créer le compte"),
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = colorScheme.onPrimary
                     )
                 }
             }
@@ -166,6 +193,8 @@ private fun OtpTextField(
     onOtpTextChange: (String) -> Unit,
     length: Int = 4
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    
     BasicTextField(
         value = otpText,
         onValueChange = {
@@ -178,26 +207,37 @@ private fun OtpTextField(
                 repeat(length) {
                     val char = otpText.getOrNull(it)
                     val isFocused = otpText.length == it
+                    val hasValue = char != null
                     Box(
                         modifier = Modifier
-                            .size(50.dp)
+                            .size(56.dp)
                             .padding(horizontal = 4.dp)
                             .border(
                                 width = if (isFocused) 2.dp else 1.dp,
-                                color = if (isFocused) Color(0xFF1976D2) else Color.LightGray,
-                                shape = RoundedCornerShape(8.dp)
+                                color = if (isFocused) 
+                                    colorScheme.primary 
+                                else 
+                                    colorScheme.outline.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(12.dp)
                             )
                             .background(
-                                color = Color.White,
-                                shape = RoundedCornerShape(8.dp)
+                                color = if (hasValue) 
+                                    colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                else 
+                                    colorScheme.surface,
+                                shape = RoundedCornerShape(12.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = char?.toString() ?: "-", 
-                            fontSize = 20.sp,
+                            text = char?.toString() ?: "", 
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
-                            color = Color.Gray
+                            color = if (hasValue) 
+                                colorScheme.onSurface 
+                            else 
+                                colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                         )
                     }
                 }
