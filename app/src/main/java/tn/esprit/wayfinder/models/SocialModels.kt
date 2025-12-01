@@ -82,3 +82,19 @@ data class LikeResponse(
     @SerialName("likesCount") val likesCount: Int
 )
 
+@Serializable
+data class CountryMemory(
+    val country: String,
+    val lat: Double,
+    val lng: Double,
+    val trips: List<SharedTrip> = emptyList(),
+    val count: Int = 0
+)
+
+@Serializable
+data class MapMemoriesResponse(
+    val countries: List<CountryMemory> = emptyList(),
+    @SerialName("totalCountries") val totalCountries: Int = 0,
+    @SerialName("totalMemories") val totalMemories: Int = 0
+)
+

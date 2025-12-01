@@ -18,6 +18,8 @@ import tn.esprit.wayfinder.MainActivity
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.screens.*
+import tn.esprit.wayfinder.ui.screens.MapMemoriesScreen
+import tn.esprit.wayfinder.ui.screens.FlightComparisonScreen
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 
 @Composable
@@ -153,6 +155,13 @@ fun AppNavigation() {
             FlightDetailsScreen(navController = navController, destinationId = destinationId)
         }
         composable(
+            "flight_comparison/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            FlightComparisonScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
             "booking/{destinationId}",
             arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -190,6 +199,17 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val destinationId = backStackEntry.arguments?.getString("destinationId")
             LodgingChoiceScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "accommodations/{destinationId}/{type}",
+            arguments = listOf(
+                navArgument("destinationId") { type = NavType.StringType },
+                navArgument("type") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            val type = backStackEntry.arguments?.getString("type") ?: ""
+            AccommodationsListScreen(navController = navController, destinationId = destinationId, accommodationType = type)
         }
         composable("during_travel") {
             DuringTravelScreen(navController = navController)
@@ -267,6 +287,26 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val journeyId = backStackEntry.arguments?.getString("journeyId") ?: ""
             JourneyDetailScreen(navController = navController, journeyId = journeyId)
+        }
+        composable("outfit_selection") {
+            OutfitSelectionScreen(navController = navController)
+        }
+        composable(
+            "outfit_upload/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+            OutfitUploadScreen(navController = navController, bookingId = bookingId)
+        }
+        composable(
+            "outfit_result/{outfitId}",
+            arguments = listOf(navArgument("outfitId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val outfitId = backStackEntry.arguments?.getString("outfitId") ?: ""
+            OutfitResultScreen(navController = navController, outfitId = outfitId)
+        }
+        composable("map_memories") {
+            MapMemoriesScreen(navController = navController)
         }
     }
 }

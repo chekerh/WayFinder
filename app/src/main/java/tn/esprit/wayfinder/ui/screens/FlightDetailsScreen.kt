@@ -47,6 +47,10 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.ReviewsSection
 import tn.esprit.wayfinder.ui.components.CreatePriceAlertDialog
 import tn.esprit.wayfinder.ui.components.TravelTipsSection
+import tn.esprit.wayfinder.ui.components.BookingDetailsDialog
+import tn.esprit.wayfinder.ui.components.BookingDetails
+import tn.esprit.wayfinder.ui.components.BookingDetailsDialog
+import tn.esprit.wayfinder.ui.components.BookingDetails
 import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
@@ -65,6 +69,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     
     var showPriceAlertDialog by remember { mutableStateOf(false) }
+    var showBookingDialog by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(false) }
     
     // Check if favorite on composition
@@ -482,7 +487,10 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 ) {
                     Button(
                         onClick = { 
-                            navController.navigate("all_flights/null")
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(SELECTED_DESTINATION_KEY, destination)
+                            navController.navigate("flight_comparison/${destination.id}")
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -499,10 +507,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                     Button(
                         onClick = {
-                            navController.currentBackStackEntry
-                                ?.savedStateHandle
-                                ?.set(SELECTED_DESTINATION_KEY, destination)
-                            navController.navigate("booking/${destination.id}")
+                            showBookingDialog = true
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -520,6 +525,42 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                 }
             }
+        }
+
+        // Airline Logo Buttons on Right Side
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 16.dp)
+                .statusBarsPadding()
+                .padding(top = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Airline 1 - Example: Air France
+            AirlineLogoButton(
+                logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Air-France-Logo.png",
+                airlineName = "Air France",
+                onClick = {
+                    // Navigate to airline page
+                    navController.navigate("airline/AirFrance")
+                }
+            )
+            // Airline 2 - Example: Lufthansa
+            AirlineLogoButton(
+                logoUrl = "https://logos-world.net/wp-content/uploads/2020/03/Lufthansa-Logo.png",
+                airlineName = "Lufthansa",
+                onClick = {
+                    navController.navigate("airline/Lufthansa")
+                }
+            )
+            // Airline 3 - Example: Emirates
+            AirlineLogoButton(
+                logoUrl = "https://logos-world.net/wp-content/uploads/2020/06/Emirates-Logo.png",
+                airlineName = "Emirates",
+                onClick = {
+                    navController.navigate("airline/Emirates")
+                }
+            )
         }
 
         // Buttons overlay - declared after Card to be on top and clickable
@@ -632,6 +673,57 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         // Show success message or navigate
                     }
                 }
+            )
+        }
+        
+        if (showBookingDialog) {
+            BookingDetailsDialog(
+                destinationName = destination.name,
+                onDismiss = { showBookingDialog = false },
+                onConfirm = { bookingDetails ->
+                    showBookingDialog = false
+                    // Navigate to accommodation selection instead of payment
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.apply {
+                            set(SELECTED_DESTINATION_KEY, destination)
+                            set("booking_details", bookingDetails)
+                        }
+                    navController.navigate("lodging_choice/${destination.id}")
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun AirlineLogoButton(
+    logoUrl: String,
+    airlineName: String,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier.size(56.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        onClick = onClick
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = logoUrl,
+                contentDescription = airlineName,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(8.dp),
+                contentScale = ContentScale.Fit,
+                error = painterResource(id = R.drawable.europe)
             )
         }
     }

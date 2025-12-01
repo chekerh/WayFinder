@@ -483,7 +483,7 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 setOnInfoListener { _, what, _ ->
                     when (what) {
                         android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
-                            isVideoReady = true
+                        isVideoReady = true
                             hasError = false
                         }
                         android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
@@ -497,18 +497,18 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 }
                 
                 try {
-                    setVideoURI(Uri.parse(videoUrl))
-                    setOnPreparedListener { player ->
-                        player.isLooping = true
-                        // Wait for rendering to start before playing
-                        player.setOnInfoListener { _, what, _ ->
-                            if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                                isVideoReady = true
+                setVideoURI(Uri.parse(videoUrl))
+                setOnPreparedListener { player ->
+                    player.isLooping = true
+                    // Wait for rendering to start before playing
+                    player.setOnInfoListener { _, what, _ ->
+                        if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                            isVideoReady = true
                                 hasError = false
-                            }
-                            false
                         }
-                        start()
+                        false
+                    }
+                    start()
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("JourneyVideoPlayer", "Error setting video URI: ${e.message}", e)
@@ -525,8 +525,8 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                 errorMessage = null
                 videoView.tag = videoUrl
                 try {
-                    videoView.setVideoURI(Uri.parse(videoUrl))
-                    videoView.start()
+                videoView.setVideoURI(Uri.parse(videoUrl))
+                videoView.start()
                 } catch (e: Exception) {
                     android.util.Log.e("JourneyVideoPlayer", "Error updating video: ${e.message}", e)
                     hasError = true
@@ -564,10 +564,10 @@ private fun JourneyVideoPlayer(videoUrl: String) {
                     )
                 }
             } else {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+            CircularProgressIndicator(
+                color = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
             }
         }
     }

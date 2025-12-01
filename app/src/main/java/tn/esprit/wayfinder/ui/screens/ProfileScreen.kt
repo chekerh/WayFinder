@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
@@ -98,7 +99,6 @@ fun ProfileScreen(navController: NavController) {
     
     // Dark mode state
     var isDarkModeEnabled by remember { mutableStateOf(themeManager.isDarkModeEnabled()) }
-    var followSystemTheme by remember { mutableStateOf(themeManager.isFollowingSystem()) }
     
     // Language state
     var selectedLanguage by remember { mutableStateOf(languageManager.getLanguage()) }
@@ -153,58 +153,6 @@ fun ProfileScreen(navController: NavController) {
                             expanded = isSettingsMenuExpanded,
                             onDismissRequest = { isSettingsMenuExpanded = false }
                         ) {
-                            // Dark/Light mode toggle with switch
-                            DropdownMenuItem(
-                                text = { 
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = if (isDarkModeEnabled) Icons.Filled.DarkMode else Icons.Filled.LightMode,
-                                                contentDescription = null,
-                                                tint = Color(0xFF1976D2)
-                                            )
-                                            Text(
-                                                text = if (isDarkModeEnabled) 
-                                                    StringTranslator.translate(context, "Mode sombre") 
-                                                else 
-                                                    StringTranslator.translate(context, "Mode clair")
-                                            )
-                                        }
-                                        Switch(
-                                            checked = isDarkModeEnabled,
-                                            onCheckedChange = {
-                                                isDarkModeEnabled = it
-                                                themeManager.setDarkModeEnabled(it)
-                                                themeManager.setFollowSystemTheme(false)
-                                                (context as? android.app.Activity)?.recreate()
-                                            },
-                                            colors = SwitchDefaults.colors(
-                                                checkedThumbColor = Color.White,
-                                                checkedTrackColor = Color(0xFF1976D2),
-                                                uncheckedThumbColor = Color.White,
-                                                uncheckedTrackColor = Color(0xFFCCCCCC)
-                                            )
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    // Allow clicking anywhere to toggle
-                                    isDarkModeEnabled = !isDarkModeEnabled
-                                    themeManager.setDarkModeEnabled(!isDarkModeEnabled)
-                                    themeManager.setFollowSystemTheme(false)
-                                    (context as? android.app.Activity)?.recreate()
-                                }
-                            )
-                            
-                            HorizontalDivider()
-                            
                             // Logout
                             DropdownMenuItem(
                                 text = { 
@@ -463,11 +411,18 @@ fun ProfileContent(
                 onClick = { onShowLanguageDialogChange(true) }
             )
             
-            // Location
+            // Carte (Map)
             ProfileMenuItem(
-                icon = Icons.Filled.LocationOn,
-                text = StringTranslator.translate(context, "Localisation"),
-                onClick = { /* Empty action */ }
+                icon = Icons.Filled.Map,
+                text = StringTranslator.translate(context, "Carte"),
+                onClick = { navController.navigate("map_memories") }
+            )
+            
+            // Vérifier ma tenue
+            ProfileMenuItem(
+                icon = Icons.Filled.CameraAlt,
+                text = StringTranslator.translate(context, "Vérifier ma tenue"),
+                onClick = { navController.navigate("outfit_selection") }
             )
             
             // Historique de réservations

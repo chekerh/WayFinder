@@ -79,8 +79,10 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
     val cardCvv = savedStateHandle?.get<String>(BOOKING_CARD_CVV_KEY)
 
     LaunchedEffect(reservationState) {
-        if (reservationState is ReservationUiState.Success) {
-            val booking = (reservationState as ReservationUiState.Success).booking
+        val currentState = reservationState
+        when (currentState) {
+            is ReservationUiState.Success -> {
+                val booking = currentState.booking
             navController.currentBackStackEntry?.savedStateHandle?.set(BOOKING_TOTAL_KEY, booking.totalPrice)
             navController.currentBackStackEntry?.savedStateHandle?.set(
                 BOOKING_DESTINATION_NAME_KEY,
@@ -116,6 +118,14 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 popUpTo("home") { inclusive = false }
             }
             bookingViewModel.resetReservationState()
+            }
+            is ReservationUiState.Error -> {
+                // Error is handled in UI below
+                android.util.Log.e("ReviewBookingScreen", "Booking confirmation error: ${currentState.message}")
+            }
+            else -> {
+                // Loading or Idle state - no action needed
+            }
         }
     }
 
@@ -166,10 +176,33 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 expiry = cardExpiry ?: ""
             )
 
+            // Display error message if booking confirmation failed
+            when (val errorState = reservationState) {
+                is ReservationUiState.Error -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            text = errorState.message,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                else -> {}
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = {
+                    // Prevent multiple clicks
+                    if (reservationState !is ReservationUiState.Loading && reservationState !is ReservationUiState.Success) {
                     bookingViewModel.confirmBooking(
                         offerId = destinationId,
                         cardNumber = cardNumber,
@@ -178,12 +211,13 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                         destination = destination.name,
                         destinationCountry = destination.country
                     )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                enabled = reservationState !is ReservationUiState.Loading
+                enabled = reservationState !is ReservationUiState.Loading && reservationState !is ReservationUiState.Success
             ) {
                 if (reservationState is ReservationUiState.Loading) {
                     CircularProgressIndicator(

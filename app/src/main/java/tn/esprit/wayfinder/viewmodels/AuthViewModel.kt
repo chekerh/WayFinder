@@ -29,6 +29,7 @@ sealed class SignUpResult {
     object Loading : SignUpResult()
     data class Success(val message: String) : SignUpResult()
     data class Error(val message: String) : SignUpResult()
+    data class OTPSent(val email: String) : SignUpResult() // OTP sent successfully
 }
 
 sealed class GoogleSignInResult {
@@ -75,11 +76,42 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun signup(request: SignUpRequest) {
+    fun sendOTPForRegistration(email: String) {
         viewModelScope.launch {
             _signUpResult.value = SignUpResult.Loading
             try {
-                val response = authRepository.register(request)
+                val response = authRepository.sendOTPForRegistration(email)
+                _signUpResult.value = SignUpResult.OTPSent(email)
+            } catch (e: Exception) {
+                _signUpResult.value = SignUpResult.Error(parseError(e))
+            }
+        }
+    }
+
+    fun registerWithOTP(
+        email: String,
+        firstName: String,
+        lastName: String,
+        password: String,
+        otpCode: String
+    ) {
+        viewModelScope.launch {
+            _signUpResult.value = SignUpResult.Loading
+            try {
+                // Generate username from email (take part before @ and add random number)
+                val emailPrefix = email.substringBefore("@")
+                val randomSuffix = (1000..9999).random()
+                val username = "${emailPrefix}_$randomSuffix"
+                
+                val request = RegisterWithOTPRequest(
+                    username = username,
+                    email = email,
+                    first_name = firstName,
+                    last_name = lastName,
+                    password = password,
+                    otp_code = otpCode
+                )
+                val response = authRepository.registerWithOTP(request)
                 _signUpResult.value = SignUpResult.Success(response.message)
             } catch (e: Exception) {
                 _signUpResult.value = SignUpResult.Error(parseError(e))

@@ -11,6 +11,12 @@ interface ApiService {
     @POST("auth/register")
     suspend fun register(@Body request: SignUpRequest): SignUpResponse
 
+    @POST("auth/send-otp-for-registration")
+    suspend fun sendOTPForRegistration(@Body request: SendOTPForRegistrationRequest): SendOTPForRegistrationResponse
+
+    @POST("auth/register-with-otp")
+    suspend fun registerWithOTP(@Body request: RegisterWithOTPRequest): RegisterWithOTPResponse
+
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
@@ -322,6 +328,13 @@ interface ApiService {
     @POST("social/share-trip/{id}/like")
     suspend fun likeSharedTrip(@Path("id") id: String): LikeResponse
 
+    @GET("social/map-memories")
+    suspend fun getMapMemories(): MapMemoriesResponse
+
+    // --- CONFIG --- //
+    @GET("config/google-maps-api-key")
+    suspend fun getGoogleMapsApiKey(): GoogleMapsApiKeyResponse
+
     // --- SEARCH HISTORY --- //
     @POST("search-history")
     suspend fun recordSearch(@Body request: CreateSearchHistoryRequest): SearchHistory
@@ -477,4 +490,27 @@ interface ApiService {
 
     @GET("chat/models")
     suspend fun getAvailableModels(): AvailableModelsResponse
+
+    // --- OUTFIT WEATHER --- //
+    @Multipart
+    @POST("outfit-weather/upload")
+    suspend fun uploadOutfitImage(
+        @Part image: MultipartBody.Part,
+        @Part("booking_id") bookingId: okhttp3.RequestBody
+    ): UploadOutfitResponse
+
+    @POST("outfit-weather/analyze")
+    suspend fun analyzeOutfit(@Body request: AnalyzeOutfitRequest): Outfit
+
+    @GET("outfit-weather/booking/{bookingId}")
+    suspend fun getOutfitsForBooking(@Path("bookingId") bookingId: String): List<Outfit>
+
+    @GET("outfit-weather/{outfitId}")
+    suspend fun getOutfit(@Path("outfitId") outfitId: String): Outfit
+
+    @POST("outfit-weather/{outfitId}/approve")
+    suspend fun approveOutfit(@Path("outfitId") outfitId: String): Outfit
+
+    @DELETE("outfit-weather/{outfitId}")
+    suspend fun deleteOutfit(@Path("outfitId") outfitId: String): Map<String, String>
 }

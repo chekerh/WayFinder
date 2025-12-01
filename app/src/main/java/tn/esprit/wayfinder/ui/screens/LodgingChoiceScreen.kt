@@ -1,18 +1,21 @@
 package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -21,6 +24,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.utils.StringTranslator
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,35 +33,41 @@ fun LodgingChoiceScreen(
     navController: NavController,
     destinationId: String? = null
 ) {
-    var lodgingType by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    var selectedLodgingType by remember { mutableStateOf<String?>(null) }
+    
+    val accommodationTypes = listOf(
+        AccommodationType("hotel", "Hôtel", Icons.Filled.Hotel, "Confort et service professionnel"),
+        AccommodationType("airbnb", "Airbnb", Icons.Filled.Home, "Expérience locale authentique"),
+        AccommodationType("hostel", "Auberge", Icons.Filled.People, "Économique et convivial"),
+        AccommodationType("resort", "Résort", Icons.Filled.BeachAccess, "Luxe et détente"),
+        AccommodationType("apartment", "Appartement", Icons.Filled.Apartment, "Indépendance et espace")
+    )
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = colorScheme.background,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = { 
                     Text(
-                        "Choix du Logement",
+                        StringTranslator.translate(context, "Choisir le type de logement"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ) 
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorScheme.surface
                 )
             )
         },
         bottomBar = {
-            // Progress indicator
-            LinearProgressIndicator(
-                progress = { 0.6f }, // 60% progress (step 3 of 5)
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFFFC107),
-                trackColor = Color(0xFFE0E0E0)
-            )
+            CustomBottomNavigationBar(navController = navController)
         }
     ) { paddingValues ->
         Column(
@@ -65,110 +76,102 @@ fun LodgingChoiceScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Globe Icon
-            Icon(
-                imageVector = Icons.Default.Public,
-                contentDescription = "Globe",
-                modifier = Modifier.size(80.dp),
-                tint = Color(0xFF1976D2)
+            Text(
+                text = StringTranslator.translate(context, "Sélectionnez le type de logement souhaité"),
+                fontSize = 16.sp,
+                color = colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Type Field
-            OutlinedTextField(
-                value = lodgingType,
-                onValueChange = { lodgingType = it },
-                label = { Text("Type") },
-                placeholder = { Text("Ex: Hôtel, Appartement, Villa") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                placeholder = { Text("votre@email.com") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Phone Field
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Téléphone") },
-                placeholder = { Text("+216 XX XXX XXX") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Address Field
-            OutlinedTextField(
-                value = address,
-                onValueChange = { address = it },
-                label = { Text("Adresse") },
-                placeholder = { Text("Adresse complète") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(12.dp),
-                maxLines = 4,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Validate Button
-            Button(
-                onClick = {
-                    // Navigate to reservation screen with lodging details
-                    navController.navigate("booking/${destinationId ?: ""}")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFC107)
-                )
-            ) {
-                Text(
-                    "Valider",
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+            accommodationTypes.forEach { type ->
+                AccommodationTypeCard(
+                    type = type,
+                    isSelected = selectedLodgingType == type.id,
+                    onClick = {
+                        selectedLodgingType = type.id
+                        // Navigate to accommodation listing screen
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("accommodation_type", type.id)
+                        navController.navigate("accommodations/${destinationId ?: ""}/${type.id}")
+                    }
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+data class AccommodationType(
+    val id: String,
+    val name: String,
+    val icon: ImageVector,
+    val description: String
+)
+
+@Composable
+fun AccommodationTypeCard(
+    type: AccommodationType,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) 
+                colorScheme.primaryContainer 
+            else 
+                colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 4.dp else 2.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.primary
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = type.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) 
+                        colorScheme.onPrimaryContainer 
+                    else 
+                        colorScheme.onSurface
+                )
+                Text(
+                    text = type.description,
+                    fontSize = 14.sp,
+                    color = if (isSelected) 
+                        colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    else 
+                        colorScheme.onSurfaceVariant
+                )
+            }
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

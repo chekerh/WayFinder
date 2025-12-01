@@ -10,6 +10,12 @@ class AuthRepository(private val apiService: ApiService) {
 
     suspend fun register(request: SignUpRequest) = apiService.register(request)
 
+    suspend fun sendOTPForRegistration(email: String) = apiService.sendOTPForRegistration(
+        SendOTPForRegistrationRequest(email = email)
+    )
+
+    suspend fun registerWithOTP(request: RegisterWithOTPRequest) = apiService.registerWithOTP(request)
+
     suspend fun googleSignIn(idToken: String) = apiService.googleSignIn(
         GoogleSignInRequest(idToken = idToken, clientType = "android")
     )

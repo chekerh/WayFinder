@@ -21,6 +21,12 @@ sealed class SocialUiState {
     data class Error(val message: String) : SocialUiState()
 }
 
+data class MapMemoriesState(
+    val isLoading: Boolean = false,
+    val memories: MapMemoriesResponse? = null,
+    val error: String? = null
+)
+
 class SocialViewModel(private val socialRepository: SocialRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SocialUiState>(SocialUiState.Idle)
@@ -28,6 +34,9 @@ class SocialViewModel(private val socialRepository: SocialRepository) : ViewMode
 
     private val _followStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val followStatus: StateFlow<Map<String, Boolean>> = _followStatus.asStateFlow()
+
+    private val _mapMemoriesState = MutableStateFlow<MapMemoriesState>(MapMemoriesState())
+    val mapMemoriesState: StateFlow<MapMemoriesState> = _mapMemoriesState.asStateFlow()
 
     fun loadSocialFeed(limit: Int = 20, skip: Int = 0) {
         viewModelScope.launch {
@@ -202,6 +211,26 @@ class SocialViewModel(private val socialRepository: SocialRepository) : ViewMode
                 )
             } catch (e: Exception) {
                 _uiState.value = SocialUiState.Error(e.message ?: "Failed to load user trips")
+            }
+        }
+    }
+
+    fun loadMapMemories() {
+        viewModelScope.launch {
+            _mapMemoriesState.value = MapMemoriesState(isLoading = true)
+            try {
+                val memories = socialRepository.getMapMemories()
+                _mapMemoriesState.value = MapMemoriesState(
+                    isLoading = false,
+                    memories = memories,
+                    error = null
+                )
+            } catch (e: Exception) {
+                _mapMemoriesState.value = MapMemoriesState(
+                    isLoading = false,
+                    memories = null,
+                    error = e.message ?: "Failed to load map memories"
+                )
             }
         }
     }

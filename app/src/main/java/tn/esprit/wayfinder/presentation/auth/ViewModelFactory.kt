@@ -40,6 +40,7 @@ import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel
 import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 import tn.esprit.wayfinder.viewmodels.ChatViewModel
+import tn.esprit.wayfinder.viewmodels.OutfitWeatherViewModel
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -137,6 +138,10 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = ChatRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 ChatViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(OutfitWeatherViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                OutfitWeatherViewModel(apiService) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

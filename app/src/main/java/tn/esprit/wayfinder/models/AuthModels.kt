@@ -30,7 +30,7 @@ data class User(
 
 @Serializable
 data class LoginRequest(
-    val username: String,
+    val email: String, // Changed from username to email
     val password: String
 )
 
@@ -61,11 +61,36 @@ data class UploadProfileImageResponse(
 
 @Serializable
 data class SignUpRequest(
-    val username: String,
     val email: String,
     @SerialName("first_name") val first_name: String,
     @SerialName("last_name") val last_name: String,
     val password: String
+)
+
+@Serializable
+data class SendOTPForRegistrationRequest(
+    val email: String
+)
+
+@Serializable
+data class SendOTPForRegistrationResponse(
+    val message: String
+)
+
+@Serializable
+data class RegisterWithOTPRequest(
+    val username: String, // Generated from email
+    val email: String,
+    @SerialName("first_name") val first_name: String,
+    @SerialName("last_name") val last_name: String,
+    val password: String,
+    @SerialName("otp_code") val otp_code: String
+)
+
+@Serializable
+data class RegisterWithOTPResponse(
+    val message: String,
+    val user: User
 )
 
 @Serializable
@@ -117,4 +142,9 @@ data class FcmTokenRequest(
 @Serializable
 data class FcmTokenResponse(
     val message: String
+)
+
+@Serializable
+data class GoogleMapsApiKeyResponse(
+    @SerialName("apiKey") val apiKey: String? = null
 )

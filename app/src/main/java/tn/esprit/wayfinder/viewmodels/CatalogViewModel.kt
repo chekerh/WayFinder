@@ -43,7 +43,11 @@ class CatalogViewModel(
         }
     }
 
-    fun loadRecommendedFlights(showAll: Boolean = false) {
+    fun loadRecommendedFlights(
+        showAll: Boolean = false,
+        destinationLocationCode: String? = null,
+        maxResults: Int? = null
+    ) {
         viewModelScope.launch {
             // Only show loading if we don't have cached data
             val cached = flightsCache.read()
@@ -51,12 +55,15 @@ class CatalogViewModel(
                 _uiState.value = CatalogUiState.Loading
             }
             
-            if (cached != null && cached.destinations.isNotEmpty()) {
+            if (cached != null && cached.destinations.isNotEmpty() && destinationLocationCode == null) {
                 emitCachedFlights(cached, showAll)
             }
 
             try {
-                val destinations = fetchDestinationsFromNetwork()
+                val destinations = fetchDestinationsFromNetwork(
+                    destinationLocationCode = destinationLocationCode,
+                    maxResults = maxResults
+                )
                 if (destinations.isEmpty()) {
                     if (cached == null) {
                         _uiState.value = CatalogUiState.Error(
@@ -66,12 +73,14 @@ class CatalogViewModel(
                     return@launch
                 }
 
-                flightsCache.store(destinations, source = "network")
+                if (destinationLocationCode == null) {
+                    flightsCache.store(destinations, source = "network")
+                }
                 emitSuccess(destinations, showAll, fromCache = false, lastUpdated = System.currentTimeMillis(), source = "network")
             } catch (e: Exception) {
                 // Always try to show cached data if available, even on error
                 val cachedOnError = flightsCache.read()
-                if (cachedOnError != null && cachedOnError.destinations.isNotEmpty()) {
+                if (cachedOnError != null && cachedOnError.destinations.isNotEmpty() && destinationLocationCode == null) {
                     emitCachedFlights(cachedOnError, showAll)
                 } else {
                     // Only show error if we have no cached data
@@ -93,9 +102,15 @@ class CatalogViewModel(
         }
     }
 
-    private suspend fun fetchDestinationsFromNetwork(): List<FlightDestination> {
+    private suspend fun fetchDestinationsFromNetwork(
+        destinationLocationCode: String? = null,
+        maxResults: Int? = null
+    ): List<FlightDestination> {
         val result = mutableListOf<FlightDestination>()
-        val flightsResponse = catalogRepository.getRecommendedFlights(maxResults = 30)
+        val flightsResponse = catalogRepository.getRecommendedFlights(
+            destinationLocationCode = destinationLocationCode,
+            maxResults = maxResults ?: 30
+        )
         flightsResponse.data?.forEach { flight ->
             val destination = convertFlightToDestination(flight)
             if (destination != null) {

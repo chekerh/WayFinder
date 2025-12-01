@@ -63,7 +63,7 @@ fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
 
-    var username by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") } // Changed from username to email
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -184,9 +184,10 @@ fun LoginScreen(navController: NavController) {
                     )
 
                      OutlinedTextField(
-                         value = username,
-                         onValueChange = { username = it },
-                         label = { Text(StringTranslator.translate(context, "Nom d'utilisateur ou email")) },
+                         value = email,
+                         onValueChange = { email = it },
+                         label = { Text(StringTranslator.translate(context, "Email")) },
+                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         singleLine = true
@@ -211,10 +212,12 @@ fun LoginScreen(navController: NavController) {
 
                     Button(
                         onClick = {
-                            if (username.isBlank() || password.isBlank()) {
-                                Toast.makeText(context, "Veuillez saisir votre identifiant et votre mot de passe.", Toast.LENGTH_SHORT).show()
+                            if (email.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Veuillez saisir votre email et votre mot de passe.", Toast.LENGTH_SHORT).show()
+                            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                Toast.makeText(context, "Veuillez saisir une adresse email valide.", Toast.LENGTH_SHORT).show()
                             } else {
-                                val request = LoginRequest(username.trim(), password)
+                                val request = LoginRequest(email.trim(), password)
                                 authViewModel.login(context, request)
                             }
                         },

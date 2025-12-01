@@ -48,7 +48,6 @@ fun SignUpScreen(navController: NavController) {
     val context = LocalContext.current
     val authViewModel: AuthViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
 
-    var username by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var firstName by rememberSaveable { mutableStateOf("") }
     var lastName by rememberSaveable { mutableStateOf("") }
@@ -56,6 +55,7 @@ fun SignUpScreen(navController: NavController) {
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
 
     val signUpResult by authViewModel.signUpResult.collectAsState()
     val googleSignInResult by authViewModel.googleSignInResult.collectAsState()
@@ -119,6 +119,20 @@ fun SignUpScreen(navController: NavController) {
 
     LaunchedEffect(signUpResult) {
         when (val result = signUpResult) {
+            is SignUpResult.OTPSent -> {
+                Toast.makeText(context, "Code OTP envoyé à ${result.email}", Toast.LENGTH_SHORT).show()
+                // Navigate to OTP verification screen with user data
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    set("signup_email", result.email)
+                    set("signup_firstName", firstName)
+                    set("signup_lastName", lastName)
+                    set("signup_password", password)
+                }
+                navController.navigate("otp_screen") {
+                    popUpTo("signup_screen") { inclusive = false }
+                }
+                authViewModel.clearMessages()
+            }
             is SignUpResult.Success -> {
                 Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
                 authViewModel.clearMessages()
@@ -154,7 +168,7 @@ fun SignUpScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F8FF))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -167,23 +181,23 @@ fun SignUpScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it.trimStart() },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
+            onValueChange = { 
+                email = it
+                emailError = null
+            },
+            label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            isError = emailError != null,
+            supportingText = emailError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -191,18 +205,30 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = firstName,
             onValueChange = { firstName = it },
-            label = { Text("First Name") },
+            label = { Text("First Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = lastName,
             onValueChange = { lastName = it },
-            label = { Text("Last Name") },
+            label = { Text("Last Name", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -210,11 +236,17 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         passwordError?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
@@ -225,11 +257,17 @@ fun SignUpScreen(navController: NavController) {
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
+            label = { Text("Confirm Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         )
         confirmPasswordError?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
@@ -245,24 +283,21 @@ fun SignUpScreen(navController: NavController) {
                     confirmPassword != password -> "Les mots de passe ne correspondent pas."
                     else -> null
                 }
+                emailError = when {
+                    email.isBlank() -> "Veuillez saisir votre adresse email."
+                    !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> "Veuillez saisir une adresse email valide."
+                    else -> null
+                }
 
                 when {
-                    username.isBlank() || email.isBlank() || firstName.isBlank() || lastName.isBlank() -> {
+                    email.isBlank() || firstName.isBlank() || lastName.isBlank() -> {
                         Toast.makeText(context, "Veuillez remplir tous les champs.", Toast.LENGTH_SHORT).show()
                     }
-                    !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
-                        Toast.makeText(context, "Veuillez saisir une adresse e-mail valide.", Toast.LENGTH_SHORT).show()
-                    }
+                    emailError != null -> Unit // Error already shown
                     passwordError != null || confirmPasswordError != null -> Unit
                     else -> {
-                        val request = SignUpRequest(
-                            username = username.trim(),
-                            email = email.trim(),
-                            first_name = firstName.trim(),
-                            last_name = lastName.trim(),
-                            password = password
-                        )
-                        authViewModel.signup(request)
+                        // Send OTP to email instead of registering directly
+                        authViewModel.sendOTPForRegistration(email.trim().lowercase())
                     }
                 }
             },
@@ -290,7 +325,7 @@ fun SignUpScreen(navController: NavController) {
                 "OU",
                 modifier = Modifier.padding(horizontal = 16.dp),
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             HorizontalDivider(modifier = Modifier.weight(1f))
         }
@@ -305,7 +340,7 @@ fun SignUpScreen(navController: NavController) {
         ) {
             Box(
                 modifier = Modifier
-                    .background(Color(0xFFF5F6F8), RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(50))
                     .clickable {
                         // Simplified like iOS - just check if Client ID is valid
                         if (googleClientId.isBlank() || !googleClientId.contains(".apps.googleusercontent.com")) {
@@ -340,7 +375,12 @@ fun SignUpScreen(navController: NavController) {
                             modifier = Modifier.size(22.dp)
                         )
                     }
-                    Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Google", 
+                        fontSize = 14.sp, 
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -348,7 +388,10 @@ fun SignUpScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
         
         TextButton(onClick = { navController.navigate("login") }) {
-            Text("Already have an account? Log In")
+            Text(
+                "Already have an account? Log In",
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
