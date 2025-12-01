@@ -336,6 +336,78 @@ final class AuthService {
         return profile
     }
 
+    /// Send OTP for registration - checks that email does NOT exist
+    func sendOTPForRegistration(email: String) async throws -> SendOTPForRegistrationResponse {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(SendOTPForRegistrationRequest(email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/send-otp-for-registration",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        return try await APIService.shared.request(builder, decodeTo: SendOTPForRegistrationResponse.self)
+    }
+
+    /// Register user with OTP verification
+    func registerWithOTP(email: String,
+                        firstName: String,
+                        lastName: String,
+                        password: String,
+                        otpCode: String) async throws -> RegisterWithOTPResponse {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(RegisterWithOTPRequest(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            firstName: firstName.trimmingCharacters(in: .whitespacesAndNewlines),
+            lastName: lastName.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password,
+            otpCode: otpCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        ))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/register-with-otp",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        let response = try await APIService.shared.request(builder, decodeTo: RegisterWithOTPResponse.self)
+        
+        print("✅ [AuthService] Registration with OTP successful: \(response.message)")
+        
+        // After successful registration with OTP, auto-login the user
+        do {
+            let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let loginResult = try await loginWithResponse(email: trimmedEmail, password: password)
+            
+            if let user = loginResult.user {
+                UserStorage.saveProfile(user)
+                print("✅ [AuthService] Registration with OTP successful, user auto-logged in")
+                
+                // Restore profile image if available
+                if let email = user.email {
+                    ProfileImageService.shared.restoreAfterLogin(email: email)
+                    if let imageUrl = user.resolvedProfileImageUrl ?? UserStorage.fetchProfileImageUrl() {
+                        ProfileImageService.shared.updateProfileImage(imageUrl, email: email)
+                    }
+                }
+            } else {
+                // If user not in response, fetch profile
+                let profile = try await UserService.shared.fetchProfile()
+                UserStorage.saveProfile(profile)
+                print("✅ [AuthService] Registration with OTP successful, profile fetched")
+            }
+        } catch {
+            print("⚠️ [AuthService] Registration successful but auto-login failed: \(error.localizedDescription)")
+            // Still return the response even if auto-login fails
+            // The user can login manually
+        }
+        
+        return response
+    }
+
     /// Enregistre le token FCM si disponible après la connexion
     private func registerFcmTokenIfAvailable() async {
         if let fcmToken = await FirebaseMessagingService.shared.fcmToken {

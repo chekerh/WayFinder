@@ -217,3 +217,42 @@ struct VerifyOTPResponse: Decodable {
     }
 }
 
+// Registration OTP Models
+struct SendOTPForRegistrationRequest: Encodable {
+    let email: String
+}
+
+struct SendOTPForRegistrationResponse: Decodable {
+    let message: String
+}
+
+struct RegisterWithOTPRequest: Encodable {
+    let email: String
+    let firstName: String
+    let lastName: String
+    let password: String
+    let otpCode: String
+    
+    enum CodingKeys: String, CodingKey {
+        case email
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case password
+        case otpCode = "otp_code"
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(email, forKey: .email)
+        try container.encode(firstName, forKey: .firstName)
+        try container.encode(lastName, forKey: .lastName)
+        try container.encode(password, forKey: .password)
+        try container.encode(otpCode, forKey: .otpCode)
+    }
+}
+
+struct RegisterWithOTPResponse: Decodable {
+    let message: String
+    let user: UserProfile?
+}
+
