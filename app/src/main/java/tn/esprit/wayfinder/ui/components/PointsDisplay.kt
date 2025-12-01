@@ -3,11 +3,15 @@ package tn.esprit.wayfinder.ui.components
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,11 +22,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.border
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -204,4 +207,193 @@ fun CompactPointsBadge(
         }
     }
 }
+
+@Composable
+fun ProfileRewardsCard(
+    totalPoints: Int,
+    lifetimePoints: Int,
+    currentStreak: Int,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background.luminance() < 0.5f
+
+    val cardGradient = if (isDark) {
+        listOf(
+            colorScheme.surfaceVariant.copy(alpha = 0.98f),
+            colorScheme.surface.copy(alpha = 0.96f)
+        )
+    } else {
+        listOf(
+            Color(0xFFFFFFFF),
+            Color(0xFFF7F9FC)
+        )
+    }
+
+    val borderBrush = Brush.linearGradient(
+        colors = if (isDark) {
+            listOf(
+                colorScheme.outlineVariant.copy(alpha = 0.6f),
+                colorScheme.outline.copy(alpha = 0.4f),
+                colorScheme.outlineVariant.copy(alpha = 0.6f)
+            )
+        } else {
+            listOf(
+                Color(0xFFE3E7EF),
+                Color(0xFFD5D9E3),
+                Color(0xFFE3E7EF)
+            )
+        }
+    )
+
+    // Simple UI-only level calculation similar to iOS card
+    val level = (totalPoints / 100).coerceAtLeast(1)
+    val levelProgress = ((totalPoints % 100) / 100f).coerceIn(0f, 1f)
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
+            }
+            .background(
+                brush = Brush.verticalGradient(cardGradient),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .border(
+                width = 1.dp,
+                brush = borderBrush,
+                shape = RoundedCornerShape(24.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Level & progress row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Level $level",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colorScheme.onSurface
+                    )
+                    LinearProgressIndicator(
+                        progress = { levelProgress },
+                        modifier = Modifier
+                            .width(190.dp)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = Color(0xFF3B82F6),
+                        trackColor = Color(0xFFE0EDFF)
+                    )
+                }
+                Text(
+                    text = "x10",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 18.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF3B82F6)
+                )
+            }
+
+            // Stats row (Points / Lifetime / Streak)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = "Points",
+                        tint = Color(0xFFFFC107),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "$totalPoints",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Points",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.AllInclusive,
+                        contentDescription = "Lifetime",
+                        tint = Color(0xFF6366F1),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "$lifetimePoints",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Lifetime",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = "Day Streak",
+                        tint = Color(0xFFFF5722),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "$currentStreak",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Day Streak",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // Info text similar to iOS screen
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF3B82F6),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(top = 2.dp)
+                )
+                Text(
+                    text = "Earn points by using the app: book a flight (+50), share a journey (+30), analyze an outfit (+20), and more. Use your points to unlock badges, access premium features, and get discounts on your bookings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
 

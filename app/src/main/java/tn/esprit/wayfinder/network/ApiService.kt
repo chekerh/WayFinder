@@ -507,4 +507,8 @@ interface ApiService {
 
     @DELETE("outfit-weather/{outfitId}")
     suspend fun deleteOutfit(@Path("outfitId") outfitId: String): Map<String, String>
+
+    // --- REWARDS / POINTS --- //
+    @GET("rewards/points")
+    suspend fun getUserPoints(): UserPointsResponse
 }

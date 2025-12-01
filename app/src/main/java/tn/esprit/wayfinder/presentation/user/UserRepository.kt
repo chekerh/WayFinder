@@ -3,6 +3,7 @@ package tn.esprit.wayfinder.presentation.user
 import okhttp3.MultipartBody
 import tn.esprit.wayfinder.models.UpdateProfileRequest
 import tn.esprit.wayfinder.models.User
+import tn.esprit.wayfinder.models.UserPointsResponse
 import tn.esprit.wayfinder.network.ApiService
 
 class UserRepository(private val apiService: ApiService) {
@@ -35,6 +36,10 @@ class UserRepository(private val apiService: ApiService) {
     suspend fun uploadProfileImage(imagePart: MultipartBody.Part): User {
         val response = apiService.uploadProfileImage(imagePart)
         return response.user
+    }
+
+    suspend fun getUserPoints(): UserPointsResponse {
+        return apiService.getUserPoints()
     }
 }
 
