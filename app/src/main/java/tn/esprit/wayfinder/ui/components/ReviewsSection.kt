@@ -40,6 +40,7 @@ fun ReviewsSection(
     itemId: String,
     reviewsViewModel: ReviewsViewModel
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val uiState by reviewsViewModel.uiState.collectAsState()
     var showReviewDialog by remember { mutableStateOf(false) }
 
@@ -47,42 +48,13 @@ fun ReviewsSection(
         reviewsViewModel.loadReviews(itemType, itemId)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
-            }
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                        Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                        Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                    )
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                    )
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                        Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                        Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                    )
-                ),
-                shape = RoundedCornerShape(16.dp)
-            )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -98,7 +70,8 @@ fun ReviewsSection(
                 Text(
                     text = "Avis",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
                 )
                 TextButton(onClick = { showReviewDialog = true }) {
                     Text("Ajouter un avis")
@@ -200,7 +173,7 @@ fun ReviewStatsDisplay(stats: ReviewStatsResponse) {
                     text = String.format("%.1f", stats.averageRating),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1976D2)
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 StarRating(
@@ -211,7 +184,7 @@ fun ReviewStatsDisplay(stats: ReviewStatsResponse) {
             Text(
                 text = "${stats.totalReviews} avis",
                 fontSize = 14.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -243,13 +216,13 @@ fun ReviewStatsDisplay(stats: ReviewStatsResponse) {
                             .weight(1f)
                             .height(8.dp),
                         color = Color(0xFFFFD700),
-                        trackColor = Color.LightGray
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "${stats.ratingDistribution[stars.toString()] ?: 0}",
                         fontSize = 12.sp,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.width(24.dp)
                     )
                 }
@@ -310,7 +283,8 @@ fun ReviewCard(
                                 }
                             },
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         StarRating(
                             rating = review.rating,
@@ -321,12 +295,12 @@ fun ReviewCard(
                 if (isUserReview) {
                     Row {
                         IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Edit",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color(0xFF1976D2)
-                            )
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         }
                         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
                             Icon(
@@ -343,13 +317,13 @@ fun ReviewCard(
                 Text(
                     text = it,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
                 text = formatTimestamp(review.createdAt),
                 fontSize = 12.sp,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -365,7 +339,7 @@ fun StarRating(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = null,
-                tint = if (index < rating) Color(0xFFFFD700) else Color.LightGray,
+                tint = if (index < rating) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                 modifier = Modifier.size(12.dp)
             )
         }
@@ -398,7 +372,7 @@ fun ReviewDialog(
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = "$star stars",
-                                tint = if (star <= rating) Color(0xFFFFD700) else Color.LightGray,
+                                tint = if (star <= rating) Color(0xFFFFD700) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                 modifier = Modifier.size(32.dp)
                             )
                         }

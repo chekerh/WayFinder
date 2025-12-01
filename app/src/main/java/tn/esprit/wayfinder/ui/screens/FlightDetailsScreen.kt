@@ -3,6 +3,7 @@ package tn.esprit.wayfinder.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +58,7 @@ import androidx.compose.material.icons.filled.Favorite
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     val reviewsViewModel: ReviewsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val priceAlertsViewModel: PriceAlertsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val travelTipsViewModel: TravelTipsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
@@ -156,13 +158,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Text(
                     text = destination.name,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onBackground
                 )
                 if (destination.country.isNotBlank()) {
                     Text(
                         text = destination.country,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray,
+                        color = colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -171,7 +174,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         text = "${destination.price.toInt()} ${destination.currency}",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1976D2),
+                        color = colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -239,7 +242,8 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Text(
                     text = StringTranslator.translate(context, "Extras recommandés"),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
@@ -262,7 +266,8 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Text(
                     text = StringTranslator.translate(context, "Équipements disponibles"),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
@@ -276,43 +281,13 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Flight Information - Glass Effect (Glassmorphism)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            // Enable compositing for glass effect
-                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
-                        }
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                                    Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                                    Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                                    Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                                    Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                                    Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -323,7 +298,8 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         Text(
                             text = StringTranslator.translate(context, "Informations du vol"),
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
                         )
 
                         Row(
@@ -335,26 +311,27 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 Text(
                                     text = StringTranslator.translate(context, "Départ"),
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = destination.departureDate?.substringBefore("T") ?: "N/A",
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
                                 )
                                 Text(
                                     text = destination.departureDate?.substringAfter("T")?.substringBefore(":")?.let {
                                         "${it}:${destination.departureDate.substringAfter(":").substringBefore(":")}"
                                     } ?: "N/A",
                                     fontSize = 16.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                             }
 
                             Icon(
                                 imageVector = Icons.Filled.Flight,
                                 contentDescription = null,
-                                tint = Color(0xFF1976D2),
+                                tint = colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
 
@@ -362,24 +339,27 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 Text(
                                     text = StringTranslator.translate(context, "Arrivée"),
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = destination.arrivalDate?.substringBefore("T") ?: "N/A",
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
                                 )
                                 Text(
                                     text = destination.arrivalDate?.substringAfter("T")?.substringBefore(":")?.let {
                                         "${it}:${destination.arrivalDate.substringAfter(":").substringBefore(":")}"
                                     } ?: "N/A",
                                     fontSize = 16.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        HorizontalDivider()
+                        HorizontalDivider(
+                            color = colorScheme.outline.copy(alpha = 0.3f)
+                        )
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -389,24 +369,26 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 Text(
                                     text = StringTranslator.translate(context, "Compagnie aérienne"),
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = destination.airline ?: "N/A",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    color = colorScheme.onSurface
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     text = StringTranslator.translate(context, "Durée"),
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = "~4h 30min",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    color = colorScheme.onSurface
                                 )
                             }
                         }
@@ -435,42 +417,13 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Price Alert Section - Glass Effect
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
-                        }
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                                    Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                                    Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                                    Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                                    Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                                    Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -494,14 +447,15 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 Text(
                                     text = StringTranslator.translate(context, "Alerte de prix"),
                                     fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.onSurface
                                 )
                             }
                         }
                         Text(
                             text = StringTranslator.translate(context, "Soyez notifié lorsque le prix de ce vol change"),
                             fontSize = 14.sp,
-                            color = Color.Gray
+                            color = colorScheme.onSurfaceVariant
                         )
                         Button(
                             onClick = { showPriceAlertDialog = true },
@@ -513,7 +467,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         ) {
                             Text(
                                 text = StringTranslator.translate(context, "Créer une alerte"),
-                                color = Color.Black,
+                                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -535,12 +489,12 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
+                            containerColor = colorScheme.primary
                         )
                     ) {
                         Text(
                             text = StringTranslator.translate(context, "Comparer les prix"),
-                            color = Color.White
+                            color = colorScheme.onPrimary
                         )
                     }
                     Button(
@@ -560,7 +514,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     ) {
                         Text(
                             text = StringTranslator.translate(context, "Réserver"),
-                            color = Color.Black,
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -576,6 +530,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(16.dp)
                     .align(Alignment.TopStart),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -588,7 +543,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            Color.Black.copy(alpha = 0.3f),
+                            if (isSystemInDarkTheme()) {
+                                Color.White.copy(alpha = 0.2f)
+                            } else {
+                                Color.Black.copy(alpha = 0.3f)
+                            },
                             shape = RoundedCornerShape(24.dp)
                         )
                 ) {
@@ -606,7 +565,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                Color.Black.copy(alpha = 0.3f),
+                                if (isSystemInDarkTheme()) {
+                                    Color.White.copy(alpha = 0.2f)
+                                } else {
+                                    Color.Black.copy(alpha = 0.3f)
+                                },
                                 shape = RoundedCornerShape(24.dp)
                             )
                     ) {
@@ -640,7 +603,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier
                             .size(48.dp)
                             .background(
-                                Color.Black.copy(alpha = 0.3f),
+                                if (isSystemInDarkTheme()) {
+                                    Color.White.copy(alpha = 0.2f)
+                                } else {
+                                    Color.Black.copy(alpha = 0.3f)
+                                },
                                 shape = RoundedCornerShape(24.dp)
                             )
                     ) {
@@ -696,12 +663,28 @@ private fun FlightTimeline(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(text = "Départ", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                Text(text = originLabel, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Départ", 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = originLabel, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = "Arrivée", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                Text(text = destinationLabel, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Arrivée", 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = destinationLabel, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
         Box(
@@ -749,7 +732,11 @@ private fun FlightAddOnChip(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(text = title, fontWeight = FontWeight.Bold)
+            Text(
+                text = title, 
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,

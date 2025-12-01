@@ -169,7 +169,7 @@ fun HomeScreen(navController: NavController) {
                     Text(
                         text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                 }
@@ -431,7 +431,7 @@ fun TopBar(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.6f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
                 .clickable { 
                     HapticFeedbackHelper.triggerButtonPress(context)
                     navController.navigate("notifications") 
@@ -492,10 +492,11 @@ fun RegionChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
             .background(
-                if (isSelected) Color(0xFF1976D2) else Color.White,
+                if (isSelected) Color(0xFF1976D2) else colorScheme.surface,
                 RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)
@@ -522,7 +523,7 @@ fun RegionChip(
             text = region.name,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) Color.White else Color.Black
+            color = if (isSelected) Color.White else colorScheme.onSurface
         )
     }
 }
@@ -535,17 +536,23 @@ fun DestinationsSection(
     favoritesViewModel: FavoritesViewModel
 ) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     if (destinations.isEmpty()) {
         Text(
             text = StringTranslator.translate(context, "Aucune destination disponible"),
-            color = Color.Gray,
+            color = colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp)
         )
         return
     }
 
     // Show all destinations - user wants to see multiple flights
-    val pagerState = rememberPagerState(pageCount = { destinations.size })
+    // Start at index 1 (second card) if there are at least 2 destinations, otherwise start at 0
+    val initialPage = if (destinations.size >= 2) 1 else 0
+    val pagerState = rememberPagerState(
+        pageCount = { destinations.size },
+        initialPage = initialPage
+    )
 
     HorizontalPager(
         state = pagerState,
@@ -590,17 +597,23 @@ fun EnhancedDestinationsSection(
     favoritesViewModel: FavoritesViewModel
 ) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     if (destinations.isEmpty()) {
         Text(
             text = StringTranslator.translate(context, "Aucune destination disponible"),
-            color = Color.Gray,
+            color = colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(16.dp)
         )
         return
     }
 
     // Show all destinations - user wants to see multiple flights
-    val pagerState = rememberPagerState(pageCount = { destinations.size })
+    // Start at index 1 (second card) if there are at least 2 destinations, otherwise start at 0
+    val initialPage = if (destinations.size >= 2) 1 else 0
+    val pagerState = rememberPagerState(
+        pageCount = { destinations.size },
+        initialPage = initialPage
+    )
 
     HorizontalPager(
         state = pagerState,
@@ -772,6 +785,7 @@ fun DestinationCardContent(
 @Composable
 fun DiscussionCard(navController: NavController) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -779,7 +793,7 @@ fun DiscussionCard(navController: NavController) {
                 navController.navigate("discussions")
             },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -807,13 +821,13 @@ fun DiscussionCard(navController: NavController) {
                         text = StringTranslator.translate(context, "Discussions de la communauté"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = StringTranslator.translate(context, "Partagez vos expériences et découvrez les conseils des voyageurs"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
+                        color = colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
                     )
                 }
@@ -833,6 +847,7 @@ fun DiscussionCard(navController: NavController) {
 @Composable
 fun InstagramReelsCard(navController: NavController) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -840,7 +855,7 @@ fun InstagramReelsCard(navController: NavController) {
                 navController.navigate("journey_feed")
             },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -868,13 +883,13 @@ fun InstagramReelsCard(navController: NavController) {
                         text = StringTranslator.translate(context, "Créez vos Reels WayFinder"),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = StringTranslator.translate(context, "Transformez vos voyages en Reels captivants et publiez-les automatiquement sur Instagram"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
+                        color = colorScheme.onSurfaceVariant,
                         lineHeight = 18.sp
                     )
                 }

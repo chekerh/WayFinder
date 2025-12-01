@@ -39,6 +39,7 @@ fun TravelTipsSection(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     val uiState by travelTipsViewModel.uiState.collectAsState()
 
     LaunchedEffect(destinationId) {
@@ -48,42 +49,13 @@ fun TravelTipsSection(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.ModulateAlpha
-            }
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFF5F5F5).copy(alpha = 0.9f),
-                        Color(0xFFE8E8E8).copy(alpha = 0.85f),
-                        Color(0xFFF5F5F5).copy(alpha = 0.9f)
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFFFFFFF).copy(alpha = 0.6f),
-                        Color(0xFFFFFFFF).copy(alpha = 0.5f)
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .border(
-                width = 1.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFFCCCCCC).copy(alpha = 0.5f),
-                        Color(0xFFDDDDDD).copy(alpha = 0.4f),
-                        Color(0xFFCCCCCC).copy(alpha = 0.5f)
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -107,7 +79,8 @@ fun TravelTipsSection(
                     Text(
                         text = StringTranslator.translate(context, "Conseils de voyage"),
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = colorScheme.onSurface
                     )
                 }
                 TextButton(
@@ -158,7 +131,7 @@ fun TravelTipsSection(
                         ) {
                             Text(
                                 text = StringTranslator.translate(context, "Génération des conseils..."),
-                                color = Color.Gray
+                                color = colorScheme.onSurfaceVariant
                             )
                         }
                     } else {
@@ -187,7 +160,7 @@ fun TravelTipsSection(
                     ) {
                         Text(
                             text = StringTranslator.translate(context, "Impossible de charger les conseils"),
-                            color = Color.Gray,
+                            color = colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                         TextButton(onClick = {
@@ -255,12 +228,13 @@ fun TravelTipCard(
                 text = tip.title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                maxLines = 2
+                maxLines = 2,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = tip.content,
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 3
             )
             if (tip.helpfulCount > 0) {
@@ -272,12 +246,12 @@ fun TravelTipCard(
                         imageVector = Icons.Filled.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = "${tip.helpfulCount}",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

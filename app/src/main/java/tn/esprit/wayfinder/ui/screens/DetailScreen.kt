@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +37,7 @@ import tn.esprit.wayfinder.utils.StringTranslator
 @Composable
 fun DetailScreen(navController: NavController) {
     val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
     val title = "World Trade Center"
     val description =
         "Le Bahrain World Trade Center est un complexe de deux tours jumelles de 240 mètres..."
@@ -51,10 +53,14 @@ fun DetailScreen(navController: NavController) {
         // Header Image with buttons
         Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
             // Image(painter = painterResource(id = R.drawable.your_image_here), ...)
-            Box(modifier = Modifier.fillMaxSize().background(Color.Gray)) // Placeholder
+            Box(modifier = Modifier.fillMaxSize().background(colorScheme.surfaceVariant)) // Placeholder - uses theme color
             
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp).align(Alignment.TopCenter), // FIX: Removed parentheses
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(16.dp)
+                    .align(Alignment.TopCenter),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -80,11 +86,25 @@ fun DetailScreen(navController: NavController) {
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
-                Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.headlineMedium, 
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(description, style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                Text(
+                    text = description, 
+                    style = MaterialTheme.typography.bodyLarge, 
+                    color = colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(StringTranslator.translate(context, "Équipements disponibles"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = StringTranslator.translate(context, "Équipements disponibles"), 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onBackground
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -103,9 +123,14 @@ fun DetailScreen(navController: NavController) {
                         },
                         modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.primary
+                        )
                     ) {
-                        Text(text = StringTranslator.translate(context, "Comparer les prix"))
+                        Text(
+                            text = StringTranslator.translate(context, "Comparer les prix"),
+                            color = colorScheme.onPrimary
+                        )
                     }
                     Button(
                         onClick = { 
@@ -114,9 +139,14 @@ fun DetailScreen(navController: NavController) {
                         },
                         modifier = Modifier.weight(1f).height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107))
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFC107)
+                        )
                     ) {
-                        Text(text = StringTranslator.translate(context, "Réserver"), color = Color.Black)
+                        Text(
+                            text = StringTranslator.translate(context, "Réserver"), 
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black
+                        )
                     }
                 }
             }
@@ -131,18 +161,38 @@ fun CircularButton(icon: ImageVector, onClick: () -> Unit) {
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.3f))
+            .background(
+                if (isSystemInDarkTheme()) {
+                    Color.White.copy(alpha = 0.2f)
+                } else {
+                    Color.Black.copy(alpha = 0.3f)
+                }
+            )
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Color.White)
+        Icon(
+            imageVector = icon, 
+            contentDescription = null, 
+            tint = Color.White
+        )
     }
 }
 
 @Composable
 fun FeatureItem(name: String, icon: ImageVector) {
+    val colorScheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(imageVector = icon, contentDescription = name, tint = Color.Gray, modifier = Modifier.size(28.dp))
+        Icon(
+            imageVector = icon, 
+            contentDescription = name, 
+            tint = colorScheme.onSurfaceVariant, 
+            modifier = Modifier.size(28.dp)
+        )
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = name, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Text(
+            text = name, 
+            style = MaterialTheme.typography.bodySmall, 
+            color = colorScheme.onSurfaceVariant
+        )
     }
 }
 
