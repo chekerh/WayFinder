@@ -55,13 +55,16 @@ fun FlightComparisonScreen(
         }
     }
     
-    val flights = when (uiState) {
-        is CatalogUiState.Success -> uiState.destinations.filter { 
-            // Filter flights to the same destination city
-            it.city?.lowercase() == destination?.city?.lowercase() ||
-            it.name.lowercase().contains(destination?.name?.lowercase() ?: "")
+    // Calculate flights list with proper smart casting
+    val flights = remember(uiState, destination) {
+        when (val state = uiState) {
+            is CatalogUiState.Success -> state.destinations.filter { 
+                // Filter flights to the same destination city
+                it.city?.lowercase() == destination?.city?.lowercase() ||
+                it.name.lowercase().contains(destination?.name?.lowercase() ?: "")
+            }
+            else -> emptyList()
         }
-        else -> emptyList()
     }
     
     Scaffold(
@@ -88,7 +91,8 @@ fun FlightComparisonScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        when (uiState) {
+        val currentState = uiState // Store in local variable for smart casting
+        when (currentState) {
             is CatalogUiState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -100,6 +104,7 @@ fun FlightComparisonScreen(
                 }
             }
             is CatalogUiState.Error -> {
+                val errorMessage = currentState.message // Extract message for smart cast
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -109,7 +114,7 @@ fun FlightComparisonScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = uiState.message,
+                        text = errorMessage,
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(16.dp))

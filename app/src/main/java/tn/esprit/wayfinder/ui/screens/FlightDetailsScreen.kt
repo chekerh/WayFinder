@@ -49,8 +49,6 @@ import tn.esprit.wayfinder.ui.components.CreatePriceAlertDialog
 import tn.esprit.wayfinder.ui.components.TravelTipsSection
 import tn.esprit.wayfinder.ui.components.BookingDetailsDialog
 import tn.esprit.wayfinder.ui.components.BookingDetails
-import tn.esprit.wayfinder.ui.components.BookingDetailsDialog
-import tn.esprit.wayfinder.ui.components.BookingDetails
 import tn.esprit.wayfinder.viewmodels.ReviewsViewModel
 import tn.esprit.wayfinder.viewmodels.PriceAlertsViewModel
 import tn.esprit.wayfinder.viewmodels.TravelTipsViewModel

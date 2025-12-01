@@ -15,6 +15,7 @@ import java.net.UnknownHostException
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.LoginRequest
 import tn.esprit.wayfinder.models.SignUpRequest
+import tn.esprit.wayfinder.models.RegisterWithOTPRequest
 import tn.esprit.wayfinder.presentation.auth.AuthRepository
 
 sealed class LoginResult {
