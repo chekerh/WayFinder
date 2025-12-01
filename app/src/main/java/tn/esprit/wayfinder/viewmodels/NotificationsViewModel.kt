@@ -59,8 +59,14 @@ class NotificationsViewModel(
                     _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
                 }
             } catch (e: Exception) {
-                android.util.Log.e("NotificationsViewModel", "Error loading notifications: ${e.message}", e)
-                _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to load notifications")
+                // Handle 401 Unauthorized gracefully - user may not be logged in yet
+                if (e.message?.contains("401") == true || e.message?.contains("Unauthorized") == true) {
+                    android.util.Log.d("NotificationsViewModel", "User not authenticated, returning empty notifications list")
+                    _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+                } else {
+                    android.util.Log.e("NotificationsViewModel", "Error loading notifications: ${e.message}", e)
+                    _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to load notifications")
+                }
             }
         }
     }
@@ -145,10 +151,22 @@ class NotificationsViewModel(
                     }
                 }
             } catch (e: Exception) {
-                // On error, ensure we have a Success state (even with 0 count) so UI doesn't break
-                val currentState = _uiState.value
-                if (currentState !is NotificationsUiState.Success) {
-                    _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+                // Handle 401 Unauthorized gracefully - user may not be logged in
+                if (e.message?.contains("401") == true || e.message?.contains("Unauthorized") == true) {
+                    android.util.Log.d("NotificationsViewModel", "User not authenticated, setting unread count to 0")
+                    val currentState = _uiState.value
+                    if (currentState !is NotificationsUiState.Success) {
+                        _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+                    } else {
+                        _uiState.value = currentState.copy(unreadCount = 0)
+                    }
+                } else {
+                    // On other errors, ensure we have a Success state (even with 0 count) so UI doesn't break
+                    android.util.Log.e("NotificationsViewModel", "Error refreshing unread count: ${e.message}", e)
+                    val currentState = _uiState.value
+                    if (currentState !is NotificationsUiState.Success) {
+                        _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+                    }
                 }
             }
         }

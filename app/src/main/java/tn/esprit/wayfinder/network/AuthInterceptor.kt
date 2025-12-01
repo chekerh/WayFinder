@@ -1,6 +1,7 @@
 package tn.esprit.wayfinder.network
 
 import android.content.Context
+import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.Response
 import tn.esprit.wayfinder.manager.TokenManager
@@ -8,14 +9,26 @@ import tn.esprit.wayfinder.manager.TokenManager
 class AuthInterceptor(context: Context) : Interceptor {
 
     private val tokenManager = TokenManager(context)
+    private val TAG = "AuthInterceptor"
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val requestBuilder = chain.request().newBuilder()
 
-        tokenManager.getToken()?.let {
-            requestBuilder.addHeader("Authorization", "Bearer $it")
+        val token = tokenManager.getToken()
+        if (token != null) {
+            requestBuilder.addHeader("Authorization", "Bearer $token")
+            Log.d(TAG, "Added Authorization header to request: ${chain.request().url}")
+        } else {
+            Log.w(TAG, "No token found for authenticated request: ${chain.request().url}")
         }
 
-        return chain.proceed(requestBuilder.build())
+        val response = chain.proceed(requestBuilder.build())
+        
+        // Log 401 errors for debugging
+        if (response.code == 401) {
+            Log.w(TAG, "401 Unauthorized for ${chain.request().url} - Token may be expired or invalid")
+        }
+        
+        return response
     }
 }
