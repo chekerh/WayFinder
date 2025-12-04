@@ -6,10 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.*
@@ -143,8 +141,6 @@ fun PinterestQuestionCard(
         modifier = modifier
     ) {
         // Foreground card that contains ONLY the icon, question and answers
-        val scrollState = rememberScrollState()
-        
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -164,7 +160,6 @@ fun PinterestQuestionCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(scrollState)
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -10,10 +10,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,6 +29,7 @@ import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.AuthViewModel
 import tn.esprit.wayfinder.viewmodels.SignUpResult
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerificationScreenOTP(navController: NavController) {
     val context = LocalContext.current
@@ -85,22 +86,33 @@ fun VerificationScreenOTP(navController: NavController) {
 
     val colorScheme = MaterialTheme.colorScheme
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorScheme.background)
-            .padding(16.dp)
-    ) {
-        IconButton(onClick = { navController.popBackStack() }) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colorScheme.onSurface
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("") }, // Empty title
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = colorScheme.onSurface
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        },
+        containerColor = colorScheme.background
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = StringTranslator.translate(context, "Vérification Email"),
                 fontSize = 24.sp,

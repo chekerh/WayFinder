@@ -452,51 +452,42 @@ fun PinterestMultipleChoiceQuestion(
             val rows = (options.size + 1) / 2
             val estimatedHeightDp = rows * 100
             val maxHeightDp = 500
-            val finalHeight = minOf(estimatedHeightDp, maxHeightDp).dp
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            val finalHeight = minOf(estimatedHeightDp, maxHeightDp)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = finalHeight) // Max 500dp to prevent infinite constraints
+                    .height(finalHeight.dp)
             ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
                 items(options.size) { index ->
                     val option = options[index]
                     val isSelected = selectedOptions.contains(option.value)
                     
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = slideInVertically(
-                            initialOffsetY = { it / 2 },
-                            animationSpec = tween(
-                                durationMillis = 300 + (index * 30),
-                                easing = FastOutSlowInEasing
-                            )
-                        ) + fadeIn(
-                            animationSpec = tween(300 + (index * 30))
-                        )
-                    ) {
-                        PinterestInterestCard(
-                            label = option.label,
-                            icon = getIconForInterest(option.label),
-                            isSelected = isSelected,
-                            onClick = {
-                                selectedOptions = if (isSelected) {
-                                    selectedOptions - option.value
+                    PinterestInterestCard(
+                        label = option.label,
+                        icon = getIconForInterest(option.label),
+                        isSelected = isSelected,
+                        onClick = {
+                            selectedOptions = if (isSelected) {
+                                selectedOptions - option.value
+                            } else {
+                                val newSelection = selectedOptions + option.value
+                                if (maxSelections != null && newSelection.size > maxSelections) {
+                                    // Remove oldest selection if max reached
+                                    selectedOptions.drop(1).toSet() + option.value
                                 } else {
-                                    val newSelection = selectedOptions + option.value
-                                    if (maxSelections != null && newSelection.size > maxSelections) {
-                                        // Remove oldest selection if max reached
-                                        selectedOptions.drop(1).toSet() + option.value
-                        } else {
-                                        newSelection
-                                    }
+                                    newSelection
                                 }
                             }
-                        )
-                    }
+                        }
+                    )
                 }
+            }
             }
         } else {
             // For fewer options, use column layout

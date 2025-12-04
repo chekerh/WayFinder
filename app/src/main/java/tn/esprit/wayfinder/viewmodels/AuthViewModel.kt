@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -263,24 +264,30 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                 if (!errorBody.isNullOrBlank()) {
                     val parsedMessage = try {
                         val element = Json.parseToJsonElement(errorBody)
-                        val messageElement = element.jsonObject["message"]
-                        when {
-                            messageElement is JsonArray -> {
-                                // Handle array of error messages
-                                val messages = messageElement.mapNotNull { 
-                                    if (it is JsonPrimitive) {
-                                        it.content
-                                    } else null
+                        // Check if element is an object
+                        if (element is JsonObject) {
+                            val messageElement = element["message"]
+                            when {
+                                messageElement is JsonArray -> {
+                                    // Handle array of error messages
+                                    val messages = messageElement.mapNotNull { item ->
+                                        if (item is JsonPrimitive) {
+                                            item.content
+                                        } else null
+                                    }
+                                    messages.joinToString(". ")
                                 }
-                                messages.joinToString(". ")
+                                messageElement is JsonPrimitive -> {
+                                    messageElement.content
+                                }
+                                else -> null
                             }
-                            messageElement is JsonPrimitive -> {
-                                messageElement.content
-                            }
-                            else -> null
+                        } else {
+                            null
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("AuthViewModel", "Error parsing error body", e)
+                        android.util.Log.e("AuthViewModel", "Error details: ${e.message}", e)
                         null
                     }
                     

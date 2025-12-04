@@ -165,14 +165,18 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Spacer(modifier = Modifier.height(32.dp))
         Spacer(modifier = Modifier.height(140.dp))
         Spacer(modifier = Modifier.height(32.dp))
@@ -392,6 +396,7 @@ fun SignUpScreen(navController: NavController) {
                 "Already have an account? Log In",
                 color = MaterialTheme.colorScheme.primary
             )
+        }
         }
     }
 }
