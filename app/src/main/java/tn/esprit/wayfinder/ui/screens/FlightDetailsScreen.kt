@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.outlined.*
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
@@ -479,50 +480,85 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // Action Buttons
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
-                        onClick = { 
-                            navController.currentBackStackEntry
-                                ?.savedStateHandle
-                                ?.set(SELECTED_DESTINATION_KEY, destination)
-                            navController.navigate("flight_comparison/${destination.id}")
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorScheme.primary
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = StringTranslator.translate(context, "Comparer les prix"),
-                            color = colorScheme.onPrimary
-                        )
+                        Button(
+                            onClick = { 
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set(SELECTED_DESTINATION_KEY, destination)
+                                navController.navigate("flight_comparison/${destination.id}")
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colorScheme.primary
+                            )
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Comparer les prix"),
+                                color = colorScheme.onPrimary
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                // Navigate to airline selection first
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.set(SELECTED_DESTINATION_KEY, destination)
+                                navController.navigate("airline_selection/${destination.id}")
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFC107)
+                            )
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Réserver"),
+                                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                    Button(
+                    
+                    // Organize Group Flight Button
+                    OutlinedButton(
                         onClick = {
-                            // Navigate to airline selection first
                             navController.currentBackStackEntry
                                 ?.savedStateHandle
                                 ?.set(SELECTED_DESTINATION_KEY, destination)
                             navController.navigate("airline_selection/${destination.id}")
                         },
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFFC107)
+                        border = androidx.compose.foundation.BorderStroke(
+                            2.dp,
+                            colorScheme.primary
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Group,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = StringTranslator.translate(context, "Réserver"),
-                            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                            fontWeight = FontWeight.Bold
+                            text = StringTranslator.translate(context, "Organiser un vol de groupe"),
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.primary
                         )
                     }
                 }
