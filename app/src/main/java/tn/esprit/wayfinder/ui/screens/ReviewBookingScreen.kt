@@ -23,6 +23,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -167,18 +170,31 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 return@Column
             }
 
+            // Check if this is a group flight booking
+            val isGroupFlight = groupFlightId != null
+            
             // Calculate commission breakdown
-            val priceBreakdown = remember(totalPrice) {
-                CommissionCalculator.calculateBreakdown(
-                    basePrice = totalPrice,
-                    bookingType = "flight"
-                )
+            val priceBreakdown = remember(totalPrice, isGroupFlight) {
+                if (isGroupFlight) {
+                    // For group flights, the price already includes shared costs
+                    // Just add commission on top
+                    CommissionCalculator.calculateBreakdown(
+                        basePrice = totalPrice,
+                        bookingType = "flight"
+                    )
+                } else {
+                    CommissionCalculator.calculateBreakdown(
+                        basePrice = totalPrice,
+                        bookingType = "flight"
+                    )
+                }
             }
             
             SummaryCard(
                 destination = destination,
                 priceBreakdown = priceBreakdown,
-                currency = currency
+                currency = currency,
+                isGroupFlight = isGroupFlight
             )
 
             PaymentCard(
@@ -259,7 +275,8 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
 private fun SummaryCard(
     destination: FlightDestination,
     priceBreakdown: tn.esprit.wayfinder.utils.PriceBreakdown,
-    currency: String
+    currency: String,
+    isGroupFlight: Boolean = false
 ) {
     val context = LocalContext.current
     Card(
@@ -272,13 +289,42 @@ private fun SummaryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(text = destination.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                text = destination.country,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            HorizontalDivider()
+                    Text(
+                        text = destination.country,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    if (isGroupFlight) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Group,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = StringTranslator.translate(context, "Réservation de groupe - Coûts partagés"),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    
+                    HorizontalDivider()
             
             // Price breakdown
             Row(
