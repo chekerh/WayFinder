@@ -308,5 +308,15 @@ fun AppNavigation() {
         composable("map_memories") {
             MapMemoriesScreen(navController = navController)
         }
+        composable(
+            "reels_viewer/{initialIndex}",
+            arguments = listOf(navArgument("initialIndex") { 
+                type = NavType.IntType
+                defaultValue = 0
+            })
+        ) { backStackEntry ->
+            val initialIndex = backStackEntry.arguments?.getInt("initialIndex") ?: 0
+            ReelsViewerScreen(navController = navController, initialIndex = initialIndex)
+        }
     }
 }

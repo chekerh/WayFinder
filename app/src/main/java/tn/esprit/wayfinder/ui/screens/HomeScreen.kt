@@ -72,6 +72,7 @@ import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
+import tn.esprit.wayfinder.ui.components.TravelReelsFeed
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -93,14 +94,15 @@ fun HomeScreen(navController: NavController) {
         notificationsViewModel.refreshUnreadCount()
     }
     
-    // Load flights on first composition and when region changes
-    // Only load if not already loading/loaded to avoid redundant requests
+    // Load flights on first composition
+    LaunchedEffect(Unit) {
+        catalogViewModel.loadRecommendedFlights(showAll = false)
+    }
+    
+    // Reload flights when region changes to ensure fresh data for filtering
     LaunchedEffect(selectedRegion) {
-        val currentState = catalogViewModel.uiState.value
-        if (currentState is CatalogUiState.Idle || 
-            (currentState is CatalogUiState.Success && currentState.fromCache)) {
-            catalogViewModel.loadRecommendedFlights(showAll = false)
-        }
+        // Always reload when region changes to get fresh data for filtering
+        catalogViewModel.loadRecommendedFlights(showAll = false)
     }
 
     // Regions data with country filters
@@ -225,13 +227,16 @@ fun HomeScreen(navController: NavController) {
                         }
                         is CatalogUiState.Success -> {
                             // Filter destinations based on selected region
-                            val filteredDestinations = if (selectedRegion != null && selectedRegion != "Préférences") {
+                            val filteredDestinations = if (selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
                                 val selectedRegionData = regions.find { it.name == selectedRegion }
                                 val filterCountries = selectedRegionData?.filterCountries ?: emptyList()
                                 if (filterCountries.isNotEmpty()) {
                                     state.destinations.filter { destination ->
                                         filterCountries.any { country ->
-                                            destination.country.contains(country, ignoreCase = true)
+                                            // More robust country matching
+                                            destination.country.equals(country, ignoreCase = true) ||
+                                            destination.country.contains(country, ignoreCase = true) ||
+                                            country.contains(destination.country, ignoreCase = true)
                                         }
                                     }
                                 } else {
@@ -242,10 +247,40 @@ fun HomeScreen(navController: NavController) {
                                 state.destinations
                             }
                             
-                            // Show at least 5-6 flights on home screen
-                            val displayDestinations = filteredDestinations.take(6)
-
-                            if (state.fromCache) {
+                            // Show at least 5-6 flights on home screen, or all if filtered results are fewer
+                            val displayDestinations = if (filteredDestinations.isEmpty() && selectedRegion != null) {
+                                // If no results after filtering, show loading or message
+                                emptyList()
+                            } else {
+                                filteredDestinations.take(6)
+                            }
+                            
+                            // Show message if no flights found for selected region
+                            if (displayDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(340.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        Text(
+                                            text = StringTranslator.translate(context, "Aucun vol trouvé pour cette région"),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Text(
+                                            text = StringTranslator.translate(context, "Essayez une autre région ou consultez tous les vols"),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            } else {
+                                if (state.fromCache) {
                                 AssistChip(
                                     onClick = { catalogViewModel.loadRecommendedFlights(showAll = false) },
                                     label = { Text(StringTranslator.translate(context, "Affichage hors ligne (cache)")) },
@@ -263,11 +298,12 @@ fun HomeScreen(navController: NavController) {
                                 )
                             }
                             
-                            EnhancedDestinationsSection(
-                                destinations = displayDestinations,
-                                navController = navController,
-                                favoritesViewModel = favoritesViewModel
-                            )
+                                EnhancedDestinationsSection(
+                                    destinations = displayDestinations,
+                                    navController = navController,
+                                    favoritesViewModel = favoritesViewModel
+                                )
+                            }
                         }
                         is CatalogUiState.Error -> {
                             Box(
@@ -294,14 +330,8 @@ fun HomeScreen(navController: NavController) {
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Discussion Section - Placed after Comparateur avec Gemini section
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                DiscussionCard(navController = navController)
-                InstagramReelsCard(navController = navController)
-            }
+            // Travel Reels Feed Section - Modern reels/posts feed
+            TravelReelsFeed(navController = navController)
             
             Spacer(modifier = Modifier.height(32.dp))
             }

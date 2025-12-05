@@ -4,8 +4,11 @@ import android.app.Application
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,12 +21,15 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -35,10 +41,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
+import tn.esprit.wayfinder.ui.theme.WayFinderBackground
+import tn.esprit.wayfinder.ui.theme.WayFinderSurface
+import android.widget.Toast
 import coil.compose.AsyncImage
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -70,11 +81,8 @@ fun EditProfileScreen(navController: NavController) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var currentProfileImageUrl by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
-    
-    val availablePreferences = listOf(
-        "Beach", "Mountain", "City", "Culture", "Adventure", "Relaxation",
-        "Food", "Nightlife", "Shopping", "Nature", "History", "Art"
-    )
+    var showSuccessAnimation by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
     
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -85,15 +93,12 @@ fun EditProfileScreen(navController: NavController) {
             // Upload image immediately when selected
             try {
                 val inputStream = context.contentResolver.openInputStream(it)
-                // Get the actual MIME type from the content resolver
                 val mimeType = context.contentResolver.getType(it) ?: "image/jpeg"
-                // Ensure we have a valid image MIME type
                 val validMimeType = when {
                     mimeType.startsWith("image/") -> mimeType
-                    else -> "image/jpeg" // Default fallback
+                    else -> "image/jpeg"
                 }
                 
-                // Determine file extension from MIME type
                 val extension = when (validMimeType) {
                     "image/png" -> "png"
                     "image/jpeg", "image/jpg" -> "jpg"
@@ -113,7 +118,7 @@ fun EditProfileScreen(navController: NavController) {
                     userViewModel.uploadProfileImage(imagePart)
                 }
             } catch (e: Exception) {
-                // Handle error - could show a snackbar
+                // Handle error
             }
         }
     }
@@ -139,13 +144,30 @@ fun EditProfileScreen(navController: NavController) {
         }
     }
     
-    // Handle successful update
+    // Handle successful update and navigate back
     LaunchedEffect(uiState) {
-        if (uiState is UserUiState.Success && firstName.isNotBlank()) {
-            // Could show a snackbar or navigate back
+        if (uiState is UserUiState.Success && isSaving) {
+            showSuccessAnimation = true
+            isSaving = false
+            Toast.makeText(context, StringTranslator.translate(context, "Profile updated successfully!"), Toast.LENGTH_SHORT).show()
+            delay(1500) // Show success animation briefly
+            showSuccessAnimation = false
+            // Navigate back to profile screen after successful save
+            navController.popBackStack()
         }
     }
-
+    
+    // Handle errors
+    LaunchedEffect(uiState) {
+        if (uiState is UserUiState.Error && isSaving) {
+            isSaving = false
+            Toast.makeText(context, (uiState as UserUiState.Error).message, Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    val colorScheme = MaterialTheme.colorScheme
+    val isValid = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -162,8 +184,12 @@ fun EditProfileScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    IconButton(
+                    AnimatedSaveButton(
+                        enabled = isValid && !isSaving,
+                        isSaving = isSaving,
+                        showSuccess = showSuccessAnimation,
                         onClick = {
+                            isSaving = true
                             userViewModel.updateProfile(
                                 firstName = firstName,
                                 lastName = lastName,
@@ -173,230 +199,427 @@ fun EditProfileScreen(navController: NavController) {
                                 bio = bio.ifBlank { null },
                                 preferences = selectedPreferences.toList()
                             )
-                        },
-                        enabled = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
-                    ) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = "Save",
-                            tint = if (firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()) 
-                                Color(0xFF4CAF50) else Color.Gray
-                        )
-                    }
+                        }
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = colorScheme.surface
                 )
             )
         },
         bottomBar = {
             CustomBottomNavigationBar(navController = navController)
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = WayFinderBackground
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            when (uiState) {
-                is UserUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+        when (uiState) {
+            is UserUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            is UserUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        CircularProgressIndicator()
+                        Text(
+                            text = (uiState as UserUiState.Error).message,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Button(onClick = { userViewModel.loadProfile() }) {
+                            Text(StringTranslator.translate(context, "Réessayer"))
+                        }
                     }
                 }
-                is UserUiState.Error -> {
-                    Text(
-                        text = (uiState as UserUiState.Error).message,
-                        color = Color.Red
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // Profile Picture Section with Animation
+                    AnimatedProfilePictureSection(
+                        selectedImageUri = selectedImageUri,
+                        currentProfileImageUrl = currentProfileImageUrl,
+                        onImageClick = { imagePickerLauncher.launch("image/*") }
                     )
-                }
-                else -> {
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    // Personal Information Card
+                    ProfileSectionCard(
+                        title = StringTranslator.translate(context, "Personal Information")
+                    ) {
+                        // Name Field
+                        ModernTextField(
+                            value = "$firstName $lastName".trim(),
+                            onValueChange = { 
+                                val names = it.trim().split(" ")
+                                firstName = names.firstOrNull() ?: ""
+                                lastName = names.drop(1).joinToString(" ")
+                            },
+                            label = StringTranslator.translate(context, "Name"),
+                            leadingIcon = null
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Email Field
+                        ModernTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = StringTranslator.translate(context, "E mail address"),
+                            keyboardType = KeyboardType.Email,
+                            leadingIcon = null
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Username Field
+                        ModernTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            label = StringTranslator.translate(context, "User name"),
+                            leadingIcon = {
+                                Text(
+                                    text = "@",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        )
+                    }
+                    
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Profile Image Section - Centered
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
+                    // Security Card
+                    ProfileSectionCard(
+                        title = StringTranslator.translate(context, "Security")
                     ) {
-                        Box {
-                            // Profile Image
-                            val imageToShow = selectedImageUri ?: currentProfileImageUrl?.let { url ->
-                                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
-                            }
-                            if (imageToShow != null) {
-                                AsyncImage(
-                                    model = imageToShow.toString(),
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop,
-                                    placeholder = painterResource(id = R.drawable.europe),
-                                    error = painterResource(id = R.drawable.europe)
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.europe),
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            
-                            // Camera Icon Overlay
-                            IconButton(
-                                onClick = { imagePickerLauncher.launch("image/*") },
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .size(36.dp)
-                                    .background(Color(0xFF1976D2), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.CameraAlt,
-                                    contentDescription = "Change Profile Picture",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        ModernTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = StringTranslator.translate(context, "Password"),
+                            keyboardType = KeyboardType.Password,
+                            isPassword = true,
+                            passwordVisible = passwordVisible,
+                            onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
+                            leadingIcon = null
+                        )
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Name Field (Combined first and last name or separate)
-                    OutlinedTextField(
-                        value = "$firstName $lastName".trim(),
-                        onValueChange = { 
-                            val names = it.trim().split(" ")
-                            firstName = names.firstOrNull() ?: ""
-                            lastName = names.drop(1).joinToString(" ")
-                        },
-                        label = { Text(StringTranslator.translate(context, "Name")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.LightGray
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Email Address
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text(StringTranslator.translate(context, "E mail address")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Email
-                        ),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.LightGray
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // User name
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text(StringTranslator.translate(context, "User name")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.LightGray
-                        ),
-                        leadingIcon = {
-                            Text(
-                                text = "@",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(start = 16.dp)
-                            )
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Password
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text(StringTranslator.translate(context, "Password")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Password
-                        ),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = Color.Gray
+                    // Contact Information Card
+                    ProfileSectionCard(
+                        title = StringTranslator.translate(context, "Contact Information")
+                    ) {
+                        ModernTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = StringTranslator.translate(context, "Phone number"),
+                            keyboardType = KeyboardType.Phone,
+                            leadingIcon = {
+                                Text(
+                                    text = "+216",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 4.dp, end = 8.dp)
                                 )
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.LightGray
+                            },
+                            placeholder = "20722076"
                         )
-                    )
+                    }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Phone number
-                    OutlinedTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = { Text(StringTranslator.translate(context, "Phone number")) },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Phone
-                        ),
-                        singleLine = true,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.LightGray
-                        ),
-                        leadingIcon = {
-                            Text(
-                                text = "+91",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(start = 16.dp, end = 8.dp)
-                            )
-                        },
-                        placeholder = { Text("6895312") }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(80.dp)) // Space for bottom nav
+                    Spacer(modifier = Modifier.height(100.dp)) // Space for bottom nav
                 }
             }
         }
     }
+}
+
+@Composable
+fun AnimatedProfilePictureSection(
+    selectedImageUri: Uri?,
+    currentProfileImageUrl: String?,
+    onImageClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val imageToShow = selectedImageUri ?: currentProfileImageUrl?.let { url ->
+        if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+    }
+    
+    // Animation for profile picture
+    val scale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "profile_scale"
+    )
+    
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .scale(scale)
+                .zIndex(1f)
+        ) {
+            // Profile Image with gradient border - using app's blue theme
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                tn.esprit.wayfinder.ui.theme.WayFinderBlue,
+                                tn.esprit.wayfinder.ui.theme.WayFinderBlueLight,
+                                tn.esprit.wayfinder.ui.theme.WayFinderBlue
+                            )
+                        ),
+                        shape = CircleShape
+                    )
+                    .padding(4.dp)
+                    .background(WayFinderSurface, CircleShape)
+                    .clickable(onClick = onImageClick)
+            ) {
+                if (imageToShow != null) {
+                    AsyncImage(
+                        model = imageToShow.toString(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.europe),
+                        error = painterResource(id = R.drawable.europe)
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.europe),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+            
+            // Camera Icon Overlay with animation
+            val cameraScale by animateFloatAsState(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "camera_scale"
+            )
+            
+            FloatingActionButton(
+                onClick = onImageClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(40.dp)
+                    .scale(cameraScale),
+                containerColor = colorScheme.primary,
+                contentColor = Color.White
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CameraAlt,
+                    contentDescription = "Change Profile Picture",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileSectionCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = WayFinderSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colorScheme.primary,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+fun ModernTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onPasswordVisibilityToggle: (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    placeholder: String? = null
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { 
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            ) 
+        },
+        placeholder = placeholder?.let { { Text(it) } },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            keyboardType = keyboardType
+        ),
+        visualTransformation = if (isPassword && !passwordVisible) 
+            PasswordVisualTransformation() 
+        else 
+            VisualTransformation.None,
+        leadingIcon = leadingIcon,
+        trailingIcon = if (isPassword && onPasswordVisibilityToggle != null) {
+            {
+                IconButton(onClick = onPasswordVisibilityToggle) {
+                    Icon(
+                        imageVector = if (passwordVisible) 
+                            Icons.Filled.Visibility 
+                        else 
+                            Icons.Filled.VisibilityOff,
+                        contentDescription = if (passwordVisible) 
+                            "Hide password" 
+                        else 
+                            "Show password",
+                        tint = colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else null,
+        shape = RoundedCornerShape(16.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = colorScheme.primary,
+            unfocusedBorderColor = colorScheme.outline.copy(alpha = 0.5f),
+            focusedLabelColor = colorScheme.primary,
+            unfocusedLabelColor = colorScheme.onSurfaceVariant
+        )
+    )
+}
+
+@Composable
+fun AnimatedSaveButton(
+    enabled: Boolean,
+    isSaving: Boolean,
+    showSuccess: Boolean,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // Success animation
+    val successScale by animateFloatAsState(
+        targetValue = if (showSuccess) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "success_scale"
+    )
+    
+    IconButton(
+        onClick = onClick,
+        enabled = enabled
+    ) {
+        AnimatedContent(
+            targetState = when {
+                showSuccess -> SaveButtonState.Success
+                isSaving -> SaveButtonState.Saving
+                else -> SaveButtonState.Idle
+            },
+            transitionSpec = {
+                fadeIn() + scaleIn() togetherWith fadeOut() + scaleOut()
+            },
+            label = "save_button_state"
+        ) { state ->
+            when (state) {
+                SaveButtonState.Success -> {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = "Saved",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.scale(successScale)
+                    )
+                }
+                SaveButtonState.Saving -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = colorScheme.primary,
+                        strokeWidth = 2.dp
+                    )
+                }
+                SaveButtonState.Idle -> {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = "Save",
+                        tint = if (enabled) 
+                            Color(0xFF4CAF50) 
+                        else 
+                            colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+enum class SaveButtonState {
+    Idle, Saving, Success
 }
 
 @Preview(showBackground = true)
@@ -406,4 +629,3 @@ fun EditProfileScreenPreview() {
         EditProfileScreen(rememberNavController())
     }
 }
-

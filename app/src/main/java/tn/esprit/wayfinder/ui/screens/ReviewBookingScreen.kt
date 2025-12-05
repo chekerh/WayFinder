@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,6 +54,7 @@ import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.NotificationHelper
 import tn.esprit.wayfinder.utils.StringTranslator
+import tn.esprit.wayfinder.utils.CommissionCalculator
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.ReservationUiState
@@ -164,9 +166,17 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 return@Column
             }
 
+            // Calculate commission breakdown
+            val priceBreakdown = remember(totalPrice) {
+                CommissionCalculator.calculateBreakdown(
+                    basePrice = totalPrice,
+                    bookingType = "flight"
+                )
+            }
+            
             SummaryCard(
                 destination = destination,
-                total = totalPrice,
+                priceBreakdown = priceBreakdown,
                 currency = currency
             )
 
@@ -203,11 +213,12 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 onClick = {
                     // Prevent multiple clicks
                     if (reservationState !is ReservationUiState.Loading && reservationState !is ReservationUiState.Success) {
+                    // Use total price with commission
                     bookingViewModel.confirmBooking(
                         offerId = destinationId,
                         cardNumber = cardNumber,
                         cardHolderName = cardHolder,
-                        totalPrice = totalPrice,
+                        totalPrice = priceBreakdown.totalPrice, // Total includes commission
                         destination = destination.name,
                         destinationCountry = destination.country
                     )
@@ -246,9 +257,10 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
 @Composable
 private fun SummaryCard(
     destination: FlightDestination,
-    total: Double,
+    priceBreakdown: tn.esprit.wayfinder.utils.PriceBreakdown,
     currency: String
 ) {
+    val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -256,7 +268,7 @@ private fun SummaryCard(
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(text = destination.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
@@ -264,12 +276,55 @@ private fun SummaryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            
+            HorizontalDivider()
+            
+            // Price breakdown
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Total", fontWeight = FontWeight.SemiBold)
-                Text(text = String.format("%.2f %s", total, currency), fontWeight = FontWeight.Bold)
+                Text(
+                    text = StringTranslator.translate(context, "Prix de base"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = String.format("%.2f %s", priceBreakdown.basePrice, currency),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Commission WayFinder (${priceBreakdown.commissionPercentage}%)"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = String.format("%.2f %s", priceBreakdown.commission, currency),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            HorizontalDivider()
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Total"),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = String.format("%.2f %s", priceBreakdown.totalPrice, currency),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
