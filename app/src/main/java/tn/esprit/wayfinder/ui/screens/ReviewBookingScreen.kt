@@ -79,6 +79,7 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
     val cardHolder = savedStateHandle?.get<String>(BOOKING_CARD_NAME_KEY)
     val cardExpiry = savedStateHandle?.get<String>(BOOKING_CARD_EXPIRY_KEY)
     val cardCvv = savedStateHandle?.get<String>(BOOKING_CARD_CVV_KEY)
+    val groupFlightId = savedStateHandle?.get<String>("group_flight_id")
 
     LaunchedEffect(reservationState) {
         val currentState = reservationState

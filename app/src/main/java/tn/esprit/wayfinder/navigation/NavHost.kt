@@ -155,6 +155,27 @@ fun AppNavigation() {
             FlightDetailsScreen(navController = navController, destinationId = destinationId)
         }
         composable(
+            "airline_selection/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            AirlineSelectionScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "organize_flight/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            OrganizeFlightScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "group_flight_detail/{groupId}",
+            arguments = listOf(navArgument("groupId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
+            GroupFlightDetailScreen(navController = navController, groupId = groupId)
+        }
+        composable(
             "flight_comparison/{destinationId}",
             arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
         ) { backStackEntry ->

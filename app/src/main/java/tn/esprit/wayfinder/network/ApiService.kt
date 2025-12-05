@@ -446,6 +446,40 @@ interface ApiService {
     @POST("journey/{id}/comments")
     suspend fun addJourneyComment(@Path("id") id: String, @Body request: CreateJourneyCommentRequest): JourneyComment
 
+    // --- GROUP FLIGHTS --- //
+    @POST("group-flight")
+    suspend fun createGroupFlight(@Body request: CreateGroupFlightRequest): GroupFlight
+    
+    @GET("group-flight")
+    suspend fun getGroupFlights(): List<GroupFlight>
+    
+    @GET("group-flight/my-groups")
+    suspend fun getMyGroupFlights(): List<GroupFlight>
+    
+    @GET("group-flight/{id}")
+    suspend fun getGroupFlightById(@Path("id") id: String): GroupFlight
+    
+    @POST("group-flight/{id}/join")
+    suspend fun joinGroupFlight(@Path("id") id: String, @Body request: JoinGroupFlightRequest): GroupFlight
+    
+    @POST("group-flight/{id}/invite")
+    suspend fun inviteToGroupFlight(@Path("id") id: String, @Body request: Map<String, List<String>>): GroupFlight
+    
+    @DELETE("group-flight/{id}")
+    suspend fun cancelGroupFlight(@Path("id") id: String): Map<String, String>
+    
+    @GET("group-flight/invitations")
+    suspend fun getGroupFlightInvitations(): List<GroupFlightInvitation>
+    
+    @POST("group-flight/invitation/{id}/accept")
+    suspend fun acceptGroupFlightInvitation(@Path("id") id: String): GroupFlight
+    
+    @POST("group-flight/invitation/{id}/decline")
+    suspend fun declineGroupFlightInvitation(@Path("id") id: String): Map<String, String>
+    
+    @GET("group-flight/{id}/cost-breakdown")
+    suspend fun getGroupFlightCostBreakdown(@Path("id") id: String): GroupFlightCostBreakdown
+    
     @GET("journey/{id}/comments")
     suspend fun getJourneyComments(
         @Path("id") id: String,

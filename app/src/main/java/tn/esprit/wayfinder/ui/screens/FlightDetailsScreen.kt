@@ -505,7 +505,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                     Button(
                         onClick = {
-                            showBookingDialog = true
+                            // Navigate to airline selection first
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set(SELECTED_DESTINATION_KEY, destination)
+                            navController.navigate("airline_selection/${destination.id}")
                         },
                         modifier = Modifier
                             .weight(1f)

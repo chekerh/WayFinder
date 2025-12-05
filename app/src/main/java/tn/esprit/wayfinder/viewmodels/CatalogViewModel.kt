@@ -18,6 +18,7 @@ sealed class CatalogUiState {
     object Loading : CatalogUiState()
     data class Success(
         val destinations: List<FlightDestination>,
+        val flightOffers: List<FlightOffer>? = null,
         val fromCache: Boolean = false,
         val lastUpdated: Long? = null,
         val source: String? = null
@@ -45,8 +46,15 @@ class CatalogViewModel(
 
     fun loadRecommendedFlights(
         showAll: Boolean = false,
+        originLocationCode: String? = null,
         destinationLocationCode: String? = null,
-        maxResults: Int? = null
+        departureDate: String? = null,
+        returnDate: String? = null,
+        adults: Int? = null,
+        travelClass: String? = null,
+        currencyCode: String? = null,
+        maxResults: Int? = null,
+        maxPrice: Double? = null
     ) {
         viewModelScope.launch {
             // Only show loading if we don't have cached data
@@ -60,11 +68,22 @@ class CatalogViewModel(
             }
 
             try {
-                val destinations = fetchDestinationsFromNetwork(
+                val response = catalogRepository.getRecommendedFlights(
+                    originLocationCode = originLocationCode,
                     destinationLocationCode = destinationLocationCode,
-                    maxResults = maxResults
+                    departureDate = departureDate,
+                    returnDate = returnDate,
+                    adults = adults,
+                    travelClass = travelClass,
+                    currencyCode = currencyCode,
+                    maxResults = maxResults,
+                    maxPrice = maxPrice
                 )
-                if (destinations.isEmpty()) {
+                
+                val flightOffers = response.data ?: emptyList()
+                val destinations = flightOffers.mapNotNull { convertFlightToDestination(it) }
+                
+                if (destinations.isEmpty() && flightOffers.isEmpty()) {
                     if (cached == null) {
                         _uiState.value = CatalogUiState.Error(
                             "No flights available. Please ensure Amadeus API keys are configured in the backend."
@@ -74,9 +93,16 @@ class CatalogViewModel(
                 }
 
                 if (destinationLocationCode == null) {
-                flightsCache.store(destinations, source = "network")
+                    flightsCache.store(destinations, source = "network")
                 }
-                emitSuccess(destinations, showAll, fromCache = false, lastUpdated = System.currentTimeMillis(), source = "network")
+                emitSuccess(
+                    destinations = destinations,
+                    flightOffers = flightOffers,
+                    showAll = showAll,
+                    fromCache = false,
+                    lastUpdated = System.currentTimeMillis(),
+                    source = "network"
+                )
             } catch (e: Exception) {
                 // Always try to show cached data if available, even on error
                 val cachedOnError = flightsCache.read()
@@ -102,23 +128,6 @@ class CatalogViewModel(
         }
     }
 
-    private suspend fun fetchDestinationsFromNetwork(
-        destinationLocationCode: String? = null,
-        maxResults: Int? = null
-    ): List<FlightDestination> {
-        val result = mutableListOf<FlightDestination>()
-        val flightsResponse = catalogRepository.getRecommendedFlights(
-            destinationLocationCode = destinationLocationCode,
-            maxResults = maxResults ?: 30
-        )
-        flightsResponse.data?.forEach { flight ->
-            val destination = convertFlightToDestination(flight)
-            if (destination != null) {
-                result.add(destination)
-            }
-        }
-        return result
-    }
 
     private fun emitCachedFlights(cached: CachedFlights, showAll: Boolean) {
         emitSuccess(
@@ -132,18 +141,20 @@ class CatalogViewModel(
 
     private fun emitSuccess(
         destinations: List<FlightDestination>,
+        flightOffers: List<FlightOffer>? = null,
         showAll: Boolean,
         fromCache: Boolean,
         lastUpdated: Long?,
         source: String?
     ) {
         val prepared = prepareDestinations(destinations, showAll)
-        if (prepared.isEmpty()) {
+        if (prepared.isEmpty() && flightOffers.isNullOrEmpty()) {
             _uiState.value = CatalogUiState.Error("No flights available for the selected filters.")
             return
         }
         _uiState.value = CatalogUiState.Success(
             destinations = prepared,
+            flightOffers = flightOffers,
             fromCache = fromCache,
             lastUpdated = lastUpdated,
             source = source

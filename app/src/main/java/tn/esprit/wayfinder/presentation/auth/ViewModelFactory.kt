@@ -42,6 +42,8 @@ import tn.esprit.wayfinder.viewmodels.JourneyViewModel
 import tn.esprit.wayfinder.viewmodels.ChatViewModel
 import tn.esprit.wayfinder.viewmodels.OutfitWeatherViewModel
 import tn.esprit.wayfinder.viewmodels.ReelsViewModel
+import tn.esprit.wayfinder.viewmodels.GroupFlightViewModel
+import tn.esprit.wayfinder.presentation.groupflight.GroupFlightRepository
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -149,6 +151,11 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val journeyRepository = JourneyRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 ReelsViewModel(discussionRepository, journeyRepository) as T
+            }
+            modelClass.isAssignableFrom(GroupFlightViewModel::class.java) -> {
+                val repository = GroupFlightRepository(apiService)
+                @Suppress("UNCHECKED_CAST")
+                GroupFlightViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
