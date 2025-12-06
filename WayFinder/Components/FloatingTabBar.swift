@@ -6,13 +6,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
     case activity
 
-    case favorites
+    case mapMemories
 
     case explore
 
     case alerts
-
-    case profile
 
     
 
@@ -26,13 +24,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .activity: return "house.fill"
 
-        case .favorites: return "heart"
+        case .mapMemories: return "map.fill"
 
         case .explore: return "bubble.left.and.bubble.right"
 
         case .alerts: return "airplane"
-
-        case .profile: return "person"
 
         }
 
@@ -46,13 +42,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .activity: return "tab_activity"
 
-        case .favorites: return "tab_favorites"
+        case .mapMemories: return "map_memories_title"
 
         case .explore: return "tab_explore"
 
         case .alerts: return "tab_bookings"
-
-        case .profile: return "tab_profile"
 
         }
 

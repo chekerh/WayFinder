@@ -19,6 +19,8 @@ struct HomeScreen: View {
     @State private var selectedTab: FloatingTab = .activity
     @State private var selectedRegion: String? = nil
     @State private var showNotifications = false
+    @State private var showFavorites = false
+    @State private var showProfile = false
     @State private var navigateToPostId: String? = nil // Pour naviguer vers un post spécifique
     @State private var showDiscussionView = false // Pour afficher DiscussionView au lieu de ChatView
     @State private var navigateToOnboarding = false // Pour naviguer vers l'onboarding
@@ -45,19 +47,10 @@ struct HomeScreen: View {
                     NavigationStack {
                         VStack(spacing: 0) {
                         TopBar(
-                            name: {
-                                // Utiliser initialName en priorité, sinon greetingName du viewModel
-                                let name = initialName ?? viewModel.greetingName
-                                if let initialName = initialName {
-                                    print("🏠 [HomeScreen] Using initialName: \(initialName)")
-                                } else {
-                                    print("🏠 [HomeScreen] Using viewModel.greetingName: \(viewModel.greetingName)")
-                                }
-                                return name
-                            }(),
                             profileImageUrl: viewModel.profileImageUrl,
                             onNotificationsTap: { showNotifications = true },
-                            onProfileTap: { selectedTab = .profile }
+                            onProfileTap: { showProfile = true },
+                            onFavoritesTap: { showFavorites = true }
                         )
                         .background(
                             ThemeColors.background(colorScheme)
@@ -267,10 +260,8 @@ struct HomeScreen: View {
                         }
                     }
                     }
-                case .favorites:
-                    NavigationStack {
-                        FavoritesView(viewModel: favoritesViewModel)
-                    }
+                case .mapMemories:
+                    MapMemoriesView()
                 case .explore:
                     NavigationStack {
                         if showDiscussionView {
@@ -290,10 +281,6 @@ struct HomeScreen: View {
                             selectedTab = .activity
                         })
                     }
-                case .profile:
-                    NavigationStack {
-                        ProfileView()
-                    }
                 }
             }
         }
@@ -308,13 +295,6 @@ struct HomeScreen: View {
             // Recharger l'image quand on change d'onglet et qu'on revient à activity
             if newValue == .activity {
                 viewModel.reloadProfileImage()
-            }
-            // Recharger les favoris quand on navigue vers l'onglet favoris
-            if newValue == .favorites {
-                Task {
-                    await favoritesViewModel.loadFavorites()
-                    await favoritesViewModel.loadFavoriteCount()
-                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserProfileImageDidUpdate"))) { _ in
@@ -349,6 +329,16 @@ struct HomeScreen: View {
         .sheet(isPresented: $showNotifications) {
             NavigationStack {
                 NotificationView()
+            }
+        }
+        .sheet(isPresented: $showFavorites) {
+            NavigationStack {
+                FavoritesView(viewModel: favoritesViewModel)
+            }
+        }
+        .sheet(isPresented: $showProfile) {
+            NavigationStack {
+                ProfileView()
             }
         }
         .onAppear {
@@ -529,26 +519,10 @@ struct HomeScreen: View {
 // MARK: - TopBar
 struct TopBar: View {
     @Environment(\.colorScheme) private var colorScheme
-    let name: String
     let profileImageUrl: String?
     let onNotificationsTap: () -> Void
     let onProfileTap: () -> Void
-    
-    // Helper function for greeting based on time of day (like Android)
-    private func getGreeting() -> String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let key: String
-        switch hour {
-        case 0..<12:
-            key = "greeting_morning"
-        case 12..<18:
-            key = "greeting_afternoon"
-        default:
-            key = "greeting_evening"
-        }
-        // Use Bundle.main which is modified by LanguageManager
-        return Bundle.main.localizedString(forKey: key, value: nil, table: nil)
-    }
+    let onFavoritesTap: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -558,12 +532,16 @@ struct TopBar: View {
             }
             .buttonStyle(.plain)
             
-            Text("\(getGreeting()), \(name)! 👋")
-                .font(.headline)
-                .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                .lineLimit(1)
-            
             Spacer()
+            
+            // Favorite button (left of notification button)
+            Button(action: onFavoritesTap) {
+                Image(systemName: "heart")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    .frame(width: 40, height: 40)
+            }
+            .buttonStyle(.plain)
             
             Button(action: onNotificationsTap) {
                 Image(systemName: "bell")
