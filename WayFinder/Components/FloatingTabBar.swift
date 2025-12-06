@@ -8,9 +8,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
     case mapMemories
 
-    case explore
+    case outfit
 
     case alerts
+
+    case explore
 
     
 
@@ -26,9 +28,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .mapMemories: return "map.fill"
 
-        case .explore: return "bubble.left.and.bubble.right"
+        case .outfit: return "camera.fill"
 
         case .alerts: return "airplane"
+
+        case .explore: return "bubble.left.and.bubble.right"
 
         }
 
@@ -44,9 +48,11 @@ enum FloatingTab: String, CaseIterable, Identifiable {
 
         case .mapMemories: return "map_memories_title"
 
-        case .explore: return "tab_explore"
+        case .outfit: return "tab_outfit"
 
         case .alerts: return "tab_bookings"
+
+        case .explore: return "tab_explore"
 
         }
 

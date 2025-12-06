@@ -24,6 +24,7 @@ struct HomeScreen: View {
     @State private var navigateToPostId: String? = nil // Pour naviguer vers un post spécifique
     @State private var showDiscussionView = false // Pour afficher DiscussionView au lieu de ChatView
     @State private var navigateToOnboarding = false // Pour naviguer vers l'onboarding
+    @State private var showReelsViewer = false // Pour naviguer vers ReelsViewerScreen
     @State private var personalizedDestinations: [FlightDestination] = []
     @State private var isLoadingPersonalized = false
     @State private var toastMessage: String?
@@ -208,15 +209,14 @@ struct HomeScreen: View {
                                 Spacer()
                                     .frame(height: 16)
                                 
-                                // Discussion Card
-                                DiscussionCard()
-                                    .padding(.horizontal, 24)
+                                // Travel Reels Feed
+                                TravelReelsFeed(navigateToReels: $showReelsViewer)
                                 
                                 Spacer()
                                     .frame(height: 16)
                                 
-                                // Instagram Reels Card
-                                InstagramReelsCard()
+                                // Discussion Card
+                                DiscussionCard()
                                     .padding(.horizontal, 24)
                                 
                                 Spacer()
@@ -261,7 +261,19 @@ struct HomeScreen: View {
                     }
                     }
                 case .mapMemories:
-                    MapMemoriesView()
+                    NavigationStack {
+                        MapMemoriesView()
+                    }
+                case .outfit:
+                    NavigationStack {
+                        OutfitSelectionView()
+                    }
+                case .alerts:
+                    NavigationStack {
+                        BookingHistoryView(onBackToHome: {
+                            selectedTab = .activity
+                        })
+                    }
                 case .explore:
                     NavigationStack {
                         if showDiscussionView {
@@ -274,12 +286,6 @@ struct HomeScreen: View {
                                 selectedTab = .activity
                             })
                         }
-                    }
-                case .alerts:
-                    NavigationStack {
-                        BookingHistoryView(onBackToHome: {
-                            selectedTab = .activity
-                        })
                     }
                 }
             }
@@ -340,6 +346,9 @@ struct HomeScreen: View {
             NavigationStack {
                 ProfileView()
             }
+        }
+        .fullScreenCover(isPresented: $showReelsViewer) {
+            ReelsViewerScreen(initialIndex: 0)
         }
         .onAppear {
             // Activer le polling des notifications quand on arrive dans l'interface principale

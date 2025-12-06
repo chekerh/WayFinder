@@ -10,6 +10,7 @@ struct DiscussionPost: Codable, Identifiable {
     var likesCount: Int
     var likedBy: [String]
     var commentsCount: Int
+    var viewsCount: Int
     let imageUrl: String?
     let createdAt: Date?
     let updatedAt: Date?
@@ -24,6 +25,7 @@ struct DiscussionPost: Codable, Identifiable {
         case likesCount = "likes_count"
         case likedBy = "liked_by"
         case commentsCount = "comments_count"
+        case viewsCount = "views_count"
         case imageUrl = "image_url"
         case createdAt = "createdAt"
         case updatedAt = "updatedAt"
@@ -65,6 +67,7 @@ struct DiscussionPost: Codable, Identifiable {
         likesCount = try container.decodeIfPresent(Int.self, forKey: .likesCount) ?? 0
         likedBy = DiscussionDecodingHelper.decodeObjectIdArray(from: container, forKey: .likedBy)
         commentsCount = try container.decodeIfPresent(Int.self, forKey: .commentsCount) ?? 0
+        viewsCount = try container.decodeIfPresent(Int.self, forKey: .viewsCount) ?? 0
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
         
         // Décoder createdAt - le JSONDecoder avec .iso8601 devrait le gérer automatiquement

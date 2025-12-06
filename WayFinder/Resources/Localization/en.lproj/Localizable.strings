@@ -89,6 +89,7 @@
 "tab_favorites" = "Favorites";
 "tab_explore" = "Explore";
 "tab_bookings" = "My Bookings";
+"tab_outfit" = "Outfit";
 "tab_profile" = "Profile";
 "survey_title" = "Welcome to Wayfindr";
 "survey_intro" = "This short quiz helps us tailor the app to your travel vibes!";
@@ -390,4 +391,11 @@
 "outfit_delete_message" = "This action cannot be undone.";
 "outfit_delete_cancel" = "Cancel";
 "outfit_delete_confirm" = "Delete";
+"reels_discover_travels" = "Discover travels";
+"reels_see_all" = "See all";
+"reels_no_content" = "No content available at the moment";
+"reels_retry" = "Retry";
+"reels_no_content_available" = "No content available";
+"reels_share_travels_message" = "Share your travels to see content here";
+"reels_see_more" = "See more";
 

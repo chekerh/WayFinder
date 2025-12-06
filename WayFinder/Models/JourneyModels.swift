@@ -16,6 +16,7 @@ struct Journey: Decodable, Identifiable {
     let tags: [String]
     var likesCount: Int
     var commentsCount: Int
+    var viewsCount: Int
     let isPublic: Bool
     var isLiked: Bool
     let createdAt: String?
@@ -38,6 +39,7 @@ struct Journey: Decodable, Identifiable {
         case tags
         case likesCount = "likes_count"
         case commentsCount = "comments_count"
+        case viewsCount = "views_count"
         case isPublic = "is_public"
         case isLiked = "is_liked"
         case createdAt
@@ -72,6 +74,7 @@ struct Journey: Decodable, Identifiable {
         tags = (try? container.decode([String].self, forKey: .tags)) ?? []
         likesCount = (try? container.decode(Int.self, forKey: .likesCount)) ?? 0
         commentsCount = (try? container.decode(Int.self, forKey: .commentsCount)) ?? 0
+        viewsCount = (try? container.decode(Int.self, forKey: .viewsCount)) ?? 0
         isPublic = (try? container.decode(Bool.self, forKey: .isPublic)) ?? true
         isLiked = (try? container.decode(Bool.self, forKey: .isLiked)) ?? false
         createdAt = try? container.decode(String.self, forKey: .createdAt)
