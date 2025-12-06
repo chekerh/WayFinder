@@ -12,6 +12,26 @@ struct MapMemoriesView: View {
         span: MKCoordinateSpan(latitudeDelta: 60.0, longitudeDelta: 60.0)
     )
     
+    // Calculate zoom emoji based on latitudeDelta
+    // Smaller latitudeDelta = closer zoom, larger = farther zoom
+    // Using different emojis with same meaning (close to far) - not copying Snapchat
+    private var zoomEmoji: String {
+        let delta = region.span.latitudeDelta
+        if delta < 0.1 {
+            return "🐛" // Very close - insect on ground (very close to terrain)
+        } else if delta < 1.0 {
+            return "🦋" // Close but a bit far - butterfly flying low
+        } else if delta < 10.0 {
+            return "🪁" // A bit far - kite flying at medium altitude
+        } else if delta < 50.0 {
+            return "☁️" // Far - cloud in the sky
+        } else if delta < 180.0 {
+            return "🌙" // Very far - moon in space
+        } else {
+            return "🌍" // Entire planet - Earth view
+        }
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -34,6 +54,29 @@ struct MapMemoriesView: View {
                     }
                 }
                 .ignoresSafeArea()
+                
+                // Zoom indicator emoji (top right)
+                // Made more visible with larger size and better contrast
+                VStack {
+                    HStack {
+                        Spacer()
+                        Text(zoomEmoji)
+                            .font(.system(size: 40))
+                            .frame(width: 56, height: 56)
+                            .background(
+                                Circle()
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 4)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                            )
+                            .padding(.top, 60) // Below status bar
+                            .padding(.trailing, 16)
+                    }
+                    Spacer()
+                }
                 
                 // Loading state
                 if viewModel.isLoading {
@@ -116,14 +159,7 @@ struct MapMemoriesView: View {
             }
             .navigationTitle(String(localized: "map_memories_title"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                    }
-                }
-            }
+            .navigationBarBackButtonHidden(true)
             .sheet(isPresented: $showCountryMemories) {
                 if let country = selectedCountry {
                     CountryMemoriesSheet(
@@ -163,12 +199,12 @@ struct CountryMarker: View {
                     .clipShape(Circle())
                     .overlay(
                         Circle()
-                            .stroke(Color.purple, lineWidth: 3)
+                            .stroke(ThemeColors.accent(), lineWidth: 3)
                     )
                     .shadow(radius: 4)
             } else {
                 Circle()
-                    .fill(Color.purple)
+                    .fill(ThemeColors.accent())
                     .frame(width: 60, height: 60)
                     .overlay(
                         Image(systemName: "location.fill")
@@ -184,7 +220,7 @@ struct CountryMarker: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(.white)
                     .padding(6)
-                    .background(Color.purple)
+                    .background(ThemeColors.accent())
                     .clipShape(Circle())
                     .offset(x: 8, y: -8)
             }
@@ -257,7 +293,7 @@ struct CountriesBottomSheet: View {
         .background(ThemeColors.surface(colorScheme))
         .cornerRadius(20, corners: [.topLeft, .topRight])
         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
-        .frame(height: 180)
+        .frame(height: 260)
     }
 }
 
@@ -268,28 +304,29 @@ struct CountryChip: View {
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 14))
+                    .font(.system(size: 16))
                     .foregroundColor(ThemeColors.accent())
                 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(country.country)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.black)
                     
                     Text(String(format: String(localized: "map_memories_memory_count"), country.count))
-                        .font(.system(size: 12))
-                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(ThemeColors.surface(colorScheme))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(Color.white)
             .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(ThemeColors.secondaryText(colorScheme).opacity(0.2), lineWidth: 1)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
         }
     }
