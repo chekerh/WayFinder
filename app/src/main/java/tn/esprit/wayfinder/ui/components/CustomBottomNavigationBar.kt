@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,9 +40,9 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
         mutableStateOf(
             when (currentRoute) {
                 "home" -> 0
-                "favorites" -> 1
-                "chat" -> 2
-                "profile" -> 3
+                "chat" -> 1
+                "outfit_selection" -> 2
+                "map_memories" -> 3
                 else -> 0
             }
         )
@@ -52,9 +52,9 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
     LaunchedEffect(currentRoute) {
         selectedIndex = when (currentRoute) {
             "home" -> 0
-            "favorites" -> 1
-            "chat" -> 2
-            "profile" -> 3
+            "chat" -> 1
+            "outfit_selection" -> 2
+            "map_memories" -> 3
             else -> 0
         }
     }
@@ -99,37 +99,37 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
                 }
             )
             
-            // Favorites
-            NavBarIcon(
-                icon = Icons.Filled.FavoriteBorder,
-                isSelected = selectedIndex == 1,
-                onClick = {
-                    selectedIndex = 1
-                    navController?.navigate("favorites") {
-                        popUpTo("home") { inclusive = false }
-                    }
-                }
-            )
-            
             // Chat
             NavBarIcon(
                 icon = Icons.Outlined.ChatBubbleOutline,
-                isSelected = selectedIndex == 2,
+                isSelected = selectedIndex == 1,
                 onClick = {
-                    selectedIndex = 2
+                    selectedIndex = 1
                     navController?.navigate("chat") {
                         popUpTo("home") { inclusive = false }
                     }
                 }
             )
             
-            // Profile
+            // Vérifier ma tenue (Outfit Weather)
             NavBarIcon(
-                icon = Icons.Filled.PersonOutline,
+                icon = Icons.Filled.CameraAlt,
+                isSelected = selectedIndex == 2,
+                onClick = {
+                    selectedIndex = 2
+                    navController?.navigate("outfit_selection") {
+                        popUpTo("home") { inclusive = false }
+                    }
+                }
+            )
+            
+            // Carte (Map)
+            NavBarIcon(
+                icon = Icons.Filled.Map,
                 isSelected = selectedIndex == 3,
                 onClick = {
                     selectedIndex = 3
-                    navController?.navigate("profile") {
+                    navController?.navigate("map_memories") {
                         popUpTo("home") { inclusive = false }
                     }
                 }

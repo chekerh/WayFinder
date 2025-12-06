@@ -61,7 +61,10 @@ interface ApiService {
     suspend fun confirmBooking(@Body request: ConfirmBookingRequest): Booking
 
     @GET("booking/history")
-    suspend fun getBookingHistory(): List<Booking>
+    suspend fun getBookingHistory(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): PaginatedResponse<Booking>
 
     @GET("booking")
     suspend fun getBookings(): List<Booking>

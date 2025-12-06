@@ -30,6 +30,7 @@ import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.CommissionCalculator
 import tn.esprit.wayfinder.utils.SharedCostCalculator
+import tn.esprit.wayfinder.utils.GroupCostBreakdown
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.GroupFlightViewModel
 import tn.esprit.wayfinder.viewmodels.CreateGroupFlightUiState
@@ -426,7 +427,7 @@ fun FlightInfoCard(
 }
 
 @Composable
-fun CostBreakdownCard(breakdown: SharedCostCalculator.GroupCostBreakdown) {
+fun CostBreakdownCard(breakdown: GroupCostBreakdown) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),

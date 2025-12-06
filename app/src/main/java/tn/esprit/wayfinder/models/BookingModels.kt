@@ -95,3 +95,19 @@ enum class BookingStatus {
     @SerialName("cancelled")
     CANCELLED
 }
+
+@Serializable
+data class PaginationInfo(
+    val page: Int,
+    val limit: Int,
+    val total: Int,
+    @SerialName("totalPages") val totalPages: Int,
+    @SerialName("hasNext") val hasNext: Boolean,
+    @SerialName("hasPrev") val hasPrev: Boolean
+)
+
+@Serializable
+data class PaginatedResponse<T>(
+    val data: List<T>,
+    val pagination: PaginationInfo
+)

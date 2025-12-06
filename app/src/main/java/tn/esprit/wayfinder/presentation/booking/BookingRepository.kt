@@ -11,7 +11,8 @@ import tn.esprit.wayfinder.network.ApiService
 class BookingRepository(private val apiService: ApiService) {
     
     suspend fun getBookingHistory(): List<Booking> {
-        return apiService.getBookingHistory()
+        val response = apiService.getBookingHistory(page = 1, limit = 100)
+        return response.data
     }
     
     suspend fun confirmBooking(

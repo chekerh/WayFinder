@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
@@ -426,20 +425,6 @@ fun ProfileContent(
                 icon = Icons.Filled.Language,
                 text = StringTranslator.translate(context, "Language"),
                 onClick = { onShowLanguageDialogChange(true) }
-            )
-            
-            // Carte (Map)
-            ProfileMenuItem(
-                icon = Icons.Filled.Map,
-                text = StringTranslator.translate(context, "Carte"),
-                onClick = { navController.navigate("map_memories") }
-            )
-            
-            // Vérifier ma tenue
-            ProfileMenuItem(
-                icon = Icons.Filled.CameraAlt,
-                text = StringTranslator.translate(context, "Vérifier ma tenue"),
-                onClick = { navController.navigate("outfit_selection") }
             )
             
             // Historique de réservations
