@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -138,6 +139,9 @@ fun MapMemoriesScreen(navController: NavController) {
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        bottomBar = {
+            CustomBottomNavigationBar(navController = navController)
         }
     ) { paddingValues ->
         Box(

@@ -87,8 +87,7 @@ fun NotificationsScreen(navController: NavController) {
                                 TextButton(
                                     onClick = { showDeleteAllDialog = true }
                                 ) {
-                                    Text(
-                                        StringTranslator.translate(context, "Supprimer toutes les notifications"),
+                                    Text(StringTranslator.translate(context, "Supprimer toutes les notifications"),
                                         fontSize = 12.sp,
                                         color = Color.Red
                                     )
