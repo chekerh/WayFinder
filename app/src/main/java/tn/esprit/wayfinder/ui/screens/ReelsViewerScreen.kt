@@ -25,6 +25,18 @@ import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.style.TextAlign
+import java.text.SimpleDateFormat
+import java.util.*
+import tn.esprit.wayfinder.models.DiscussionComment
+import tn.esprit.wayfinder.models.JourneyComment
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,6 +53,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +70,9 @@ import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.ReelContentItem
 import tn.esprit.wayfinder.viewmodels.ReelsViewModel
 import tn.esprit.wayfinder.viewmodels.ReelsUiState
+import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
+import tn.esprit.wayfinder.viewmodels.JourneyViewModel
+import tn.esprit.wayfinder.models.DiscussionUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +84,12 @@ fun ReelsViewerScreen(
     val reelsViewModel: ReelsViewModel = viewModel(
         factory = ViewModelFactory(context.applicationContext as Application)
     )
+    val discussionViewModel: DiscussionViewModel = viewModel(
+        factory = ViewModelFactory(context.applicationContext as Application)
+    )
+    val journeyViewModel: JourneyViewModel = viewModel(
+        factory = ViewModelFactory(context.applicationContext as Application)
+    )
     val uiState by reelsViewModel.uiState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val currentUser = remember { tokenManager.getUser() }
@@ -75,19 +97,29 @@ fun ReelsViewerScreen(
     val scope = rememberCoroutineScope()
     val colorScheme = MaterialTheme.colorScheme
     
+    // State for comment dialog
+    var showCommentDialog by remember { mutableStateOf(false) }
+    var commentItem by remember { mutableStateOf<ReelContentItem?>(null) }
+    var commentText by remember { mutableStateOf("") }
+    var isSubmittingComment by remember { mutableStateOf(false) }
+    
     // Load reels on first composition
     LaunchedEffect(Unit) {
         reelsViewModel.loadReelsFeed(refresh = true)
     }
     
-    // Scroll to initial index when data loads
+    // Track if we've already scrolled to initial position
+    var hasScrolledToInitial by remember { mutableStateOf(false) }
+    
+    // Scroll to initial index only once when data first loads
     LaunchedEffect(uiState) {
         val successState = uiState as? ReelsUiState.Success
-        if (successState != null && successState.items.isNotEmpty()) {
+        if (successState != null && successState.items.isNotEmpty() && !hasScrolledToInitial) {
             scope.launch {
                 listState.animateScrollToItem(
                     initialIndex.coerceIn(0, successState.items.size - 1)
                 )
+                hasScrolledToInitial = true
             }
         }
     }
@@ -173,15 +205,10 @@ fun ReelsViewerScreen(
                                     currentUserId = currentUser?.id,
                                     onLike = { reelsViewModel.likeItem(item, currentUser?.id) },
                                     onComment = {
-                                        // Navigate to comments
-                                        when (item) {
-                                            is ReelContentItem.PostItem -> {
-                                                navController.navigate("post_detail/${item.post.id}")
-                                            }
-                                            is ReelContentItem.JourneyItem -> {
-                                                navController.navigate("journey_detail/${item.journey.id}")
-                                            }
-                                        }
+                                        // Open comment dialog
+                                        commentItem = item
+                                        commentText = ""
+                                        showCommentDialog = true
                                     },
                                     onShare = {
                                         // Share functionality
@@ -248,6 +275,23 @@ fun ReelsViewerScreen(
                     )
                 )
         )
+        
+        // Comments Bottom Sheet
+        if (showCommentDialog && commentItem != null) {
+            CommentsBottomSheet(
+                item = commentItem!!,
+                onDismiss = {
+                    showCommentDialog = false
+                    commentText = ""
+                    commentItem = null
+                },
+                discussionViewModel = discussionViewModel,
+                journeyViewModel = journeyViewModel,
+                reelsViewModel = reelsViewModel,
+                currentUser = currentUser,
+                scope = scope
+            )
+        }
     }
 }
 
@@ -262,13 +306,27 @@ fun ReelItem(
     onProfileClick: () -> Unit
 ) {
     val context = LocalContext.current
-    var isLiked by remember { mutableStateOf(false) }
     var showFullCaption by remember { mutableStateOf(false) }
     
-    // Determine if liked
-    isLiked = when (item) {
-        is ReelContentItem.PostItem -> currentUserId != null && item.post.likedBy.contains(currentUserId)
-        is ReelContentItem.JourneyItem -> item.journey.isLiked
+    // Initialize liked state from item data, but maintain local state for immediate UI updates
+    val initialIsLiked = remember(item.id) {
+        when (item) {
+            is ReelContentItem.PostItem -> currentUserId != null && item.post.likedBy.contains(currentUserId)
+            is ReelContentItem.JourneyItem -> item.journey.isLiked
+        }
+    }
+    
+    var isLiked by remember(item.id) { mutableStateOf(initialIsLiked) }
+    var likesCount by remember(item.id) { mutableStateOf(item.likesCount) }
+    
+    // Sync with item data when item ID changes (new item), but preserve local optimistic updates
+    LaunchedEffect(item.id) {
+        val currentIsLiked = when (item) {
+            is ReelContentItem.PostItem -> currentUserId != null && item.post.likedBy.contains(currentUserId)
+            is ReelContentItem.JourneyItem -> item.journey.isLiked
+        }
+        isLiked = currentIsLiked
+        likesCount = item.likesCount
     }
     
     // Get content details
@@ -327,8 +385,8 @@ fun ReelItem(
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                placeholder = androidx.compose.ui.res.painterResource(id = R.drawable.europe),
-                error = androidx.compose.ui.res.painterResource(id = R.drawable.europe)
+                    placeholder = painterResource(id = R.drawable.europe),
+                    error = painterResource(id = R.drawable.europe)
             )
         } else {
             Box(
@@ -385,42 +443,50 @@ fun ReelItem(
             verticalArrangement = Arrangement.spacedBy(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile picture
-            if (creatorAvatar != null && creatorAvatar.isNotBlank()) {
-                val avatarUrl = if (creatorAvatar.startsWith("http")) {
+            // Profile picture - Display only the actual profile photo
+            val avatarUrl = if (creatorAvatar != null && creatorAvatar.isNotBlank()) {
+                if (creatorAvatar.startsWith("http")) {
                     creatorAvatar
                 } else {
                     "https://wayfinder-api-w92x.onrender.com$creatorAvatar"
                 }
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Creator",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onProfileClick)
-                        .border(2.dp, Color.White, CircleShape),
-                    contentScale = ContentScale.Crop,
-                    placeholder = androidx.compose.ui.res.painterResource(id = R.drawable.europe),
-                    error = androidx.compose.ui.res.painterResource(id = R.drawable.europe)
-                )
             } else {
-                // Placeholder circle
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.3f))
-                        .clickable(onClick = onProfileClick)
-                        .border(2.dp, Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
+                null
+            }
+            
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onProfileClick)
+                    .border(2.dp, Color.White, CircleShape)
+            ) {
+                if (avatarUrl != null) {
+                    AsyncImage(
+                        model = avatarUrl,
                         contentDescription = "Creator",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.europe),
+                        error = painterResource(id = R.drawable.europe)
                     )
+                } else {
+                    // Only show placeholder icon if no image URL is available
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Creator",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
             
@@ -441,6 +507,11 @@ fun ReelItem(
                 IconButton(
                     onClick = {
                         HapticFeedbackHelper.triggerButtonPress(context)
+                        // Update UI immediately (optimistic update)
+                        val wasLiked = isLiked
+                        isLiked = !isLiked
+                        likesCount = if (wasLiked) likesCount - 1 else likesCount + 1
+                        // Then trigger the actual like action
                         onLike()
                     },
                     modifier = Modifier
@@ -456,7 +527,7 @@ fun ReelItem(
                     )
                 }
                 Text(
-                    text = formatCount(item.likesCount),
+                    text = formatCount(likesCount),
                     color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -601,19 +672,6 @@ fun ReelItem(
             }
         }
         
-        // Double tap to like
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onDoubleTap = { offset ->
-                            HapticFeedbackHelper.triggerButtonPress(context)
-                            onLike()
-                        }
-                    )
-                }
-        )
     }
 }
 
@@ -734,6 +792,668 @@ fun reelsNestedScrollConnection(
                 }
             }
             return Velocity.Zero
+        }
+    }
+}
+
+@Composable
+fun InstagramStyleCommentCard(
+    comment: DiscussionComment,
+    currentUserId: String?,
+    onLikeClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    val isLiked = currentUserId != null && comment.likedBy.contains(currentUserId)
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        // Profile Picture
+        val userImageUrl = comment.userId.profileImageUrl?.let { url ->
+            if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+        }
+        AsyncImage(
+            model = userImageUrl ?: "",
+            contentDescription = "User Avatar",
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.europe),
+            error = painterResource(id = R.drawable.europe)
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // Comment Content
+        Column(modifier = Modifier.weight(1f)) {
+            // User Name and Comment Text (inline)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "${comment.userId.firstName} ${comment.userId.lastName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+                Text(
+                    text = comment.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurface
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Date, Like, Reply (second line)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = formatDate(comment.createdAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant
+                )
+                TextButton(
+                    onClick = onLikeClick,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.height(24.dp)
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, if (isLiked) "J'aime" else "Aimer"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isLiked) Color(0xFFFF1744) else colorScheme.onSurfaceVariant,
+                        fontWeight = if (isLiked) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+                if (comment.likesCount > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = "Likes",
+                            tint = Color(0xFFFF1744),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "${comment.likesCount}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InstagramStyleJourneyCommentCard(
+    comment: JourneyComment,
+    currentUserId: String?,
+    onLikeClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        // Profile Picture
+        val userImageUrl = comment.user?.profileImageUrl?.let { url ->
+            if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+        }
+        AsyncImage(
+            model = userImageUrl ?: "",
+            contentDescription = "User Avatar",
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.europe),
+            error = painterResource(id = R.drawable.europe)
+        )
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // Comment Content
+        Column(modifier = Modifier.weight(1f)) {
+            // User Name and Comment Text (inline)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = comment.user?.let { "${it.firstName ?: ""} ${it.lastName ?: ""}".trim().ifEmpty { it.username } } ?: "User",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+                Text(
+                    text = comment.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurface
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Date (second line)
+            if (comment.createdAt != null) {
+                Text(
+                    text = formatDate(comment.createdAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+private fun formatDate(dateString: String?): String {
+    if (dateString == null) return ""
+    return try {
+        val formats = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss"
+        )
+        var parsedDate: Date? = null
+        for (format in formats) {
+            try {
+                val parser = SimpleDateFormat(format, Locale.getDefault())
+                parsedDate = parser.parse(dateString)
+                if (parsedDate != null) break
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        parsedDate?.let {
+            val formatter = SimpleDateFormat("dd MMM", Locale.getDefault())
+            formatter.format(it)
+        } ?: dateString
+    } catch (_: Exception) {
+        dateString
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CommentsBottomSheet(
+    item: ReelContentItem,
+    onDismiss: () -> Unit,
+    discussionViewModel: DiscussionViewModel,
+    journeyViewModel: JourneyViewModel,
+    reelsViewModel: ReelsViewModel,
+    currentUser: tn.esprit.wayfinder.models.User?,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var commentText by remember { mutableStateOf("") }
+    var isSubmittingComment by remember { mutableStateOf(false) }
+    
+    // Get comments based on item type
+    val postDetailState by discussionViewModel.postDetailState.collectAsState()
+    val journeyComments by journeyViewModel.comments.collectAsState()
+    
+    // Load comments based on item type - ensure they're loaded when sheet opens
+    LaunchedEffect(item.id) {
+        when (item) {
+            is ReelContentItem.PostItem -> {
+                android.util.Log.d("CommentsBottomSheet", "Loading post detail for post ID: ${item.post.id}")
+                discussionViewModel.loadPostDetail(item.post.id)
+            }
+            is ReelContentItem.JourneyItem -> {
+                android.util.Log.d("CommentsBottomSheet", "Loading comments for journey ID: ${item.journey.id}")
+                journeyViewModel.loadComments(item.journey.id)
+            }
+        }
+    }
+    
+    // Check if the loaded post matches the current item
+    val postComments = when (item) {
+        is ReelContentItem.PostItem -> {
+            val successState = postDetailState as? tn.esprit.wayfinder.viewmodels.PostDetailUiState.Success
+            if (successState != null && successState.post.id == item.post.id) {
+                android.util.Log.d("CommentsBottomSheet", "Post ID matches! Comments count: ${successState.comments.size}")
+                successState.comments
+            } else {
+                android.util.Log.d("CommentsBottomSheet", "Post ID doesn't match or state is not Success. State: ${postDetailState::class.simpleName}, Post ID in state: ${(successState?.post?.id)}, Item post ID: ${item.post.id}")
+                emptyList()
+            }
+        }
+        else -> emptyList<DiscussionComment>()
+    }
+    
+    val journeyCommentsList = when (item) {
+        is ReelContentItem.JourneyItem -> journeyComments
+        else -> emptyList<JourneyComment>()
+    }
+    
+    // Debug: Log state for troubleshooting
+    LaunchedEffect(postDetailState, item.id) {
+        when (item) {
+            is ReelContentItem.PostItem -> {
+                android.util.Log.d("CommentsBottomSheet", "Post ID: ${item.post.id}, State: ${postDetailState::class.simpleName}, Comments count: ${
+                    (postDetailState as? tn.esprit.wayfinder.viewmodels.PostDetailUiState.Success)?.comments?.size ?: 0
+                }")
+            }
+            is ReelContentItem.JourneyItem -> {
+                android.util.Log.d("CommentsBottomSheet", "Journey ID: ${item.journey.id}, Comments count: ${journeyComments.size}")
+            }
+        }
+    }
+    
+    val commentsCount = when (item) {
+        is ReelContentItem.PostItem -> postComments.size
+        is ReelContentItem.JourneyItem -> journeyCommentsList.size
+    }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colorScheme.surface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .padding(vertical = 12.dp)
+                    .background(
+                        colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 600.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Commentaires"),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Fermer",
+                        tint = colorScheme.onSurface
+                    )
+                }
+            }
+            
+            HorizontalDivider()
+            
+            // Comments List
+            when (item) {
+                is ReelContentItem.PostItem -> {
+                    val currentPostState = postDetailState
+                    when (currentPostState) {
+                        is tn.esprit.wayfinder.viewmodels.PostDetailUiState.Loading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is tn.esprit.wayfinder.viewmodels.PostDetailUiState.Error -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = currentPostState.message,
+                                    color = colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        is tn.esprit.wayfinder.viewmodels.PostDetailUiState.Success -> {
+                            // Verify post ID matches
+                            val postIdMatches = currentPostState.post.id == item.post.id
+                            
+                            // If post ID doesn't match, reload for the correct post
+                            if (!postIdMatches) {
+                                LaunchedEffect(item.post.id) {
+                                    discussionViewModel.loadPostDetail(item.post.id)
+                                }
+                            }
+                            
+                            // Use postComments which already has the correct filtering logic
+                            val actualComments = postComments
+                            
+                            if (actualComments.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
+                                        color = colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(actualComments) { comment ->
+                                        InstagramStyleCommentCard(
+                                            comment = comment,
+                                            currentUserId = currentUser?.id,
+                                            onLikeClick = {
+                                                discussionViewModel.likeComment(
+                                                    comment.id,
+                                                    item.post.id,
+                                                    currentUser?.id
+                                                )
+                                            }
+                                        )
+                                        
+                                        // Display replies if any
+                                        if (comment.replies.isNotEmpty()) {
+                                            comment.replies.forEach { reply ->
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                InstagramStyleCommentCard(
+                                                    comment = reply,
+                                                    currentUserId = currentUser?.id,
+                                                    onLikeClick = {
+                                                        discussionViewModel.likeComment(
+                                                            reply.id,
+                                                            item.post.id,
+                                                            currentUser?.id
+                                                        )
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        is tn.esprit.wayfinder.viewmodels.PostDetailUiState.Idle -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+                }
+                is ReelContentItem.JourneyItem -> {
+                    if (journeyCommentsList.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
+                                color = colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(journeyCommentsList) { comment ->
+                                InstagramStyleJourneyCommentCard(
+                                    comment = comment,
+                                    currentUserId = currentUser?.id,
+                                    onLikeClick = {
+                                        // Handle journey comment like if needed
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            HorizontalDivider()
+            
+            // Comment Input (Instagram style)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Current User Profile Picture
+                val currentUserImageUrl = currentUser?.profileImageUrl?.let { url ->
+                    if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                }
+                if (currentUserImageUrl != null) {
+                    AsyncImage(
+                        model = currentUserImageUrl,
+                        contentDescription = "Your Avatar",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.europe),
+                        error = painterResource(id = R.drawable.europe)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(colorScheme.surfaceVariant, CircleShape)
+                            .padding(8.dp),
+                        tint = colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Text Input
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(StringTranslator.translate(context, "Ajoutez un commentaire..."))
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    trailingIcon = {
+                        if (commentText.isNotBlank()) {
+                            TextButton(
+                                onClick = {
+                                    if (!isSubmittingComment) {
+                                        isSubmittingComment = true
+                                        val currentUserObj = currentUser?.let {
+                                            DiscussionUser(
+                                                id = it.id,
+                                                username = it.username ?: "",
+                                                firstName = it.firstName ?: "",
+                                                lastName = it.lastName ?: "",
+                                                profileImageUrl = it.profileImageUrl
+                                            )
+                                        }
+                                        
+                                        scope.launch {
+                                            val textToSubmit = commentText
+                                            try {
+                                                commentText = "" // Clear immediately for better UX
+                                                reelsViewModel.incrementCommentCount(item.id)
+                                                
+                                                when (item) {
+                                                    is ReelContentItem.PostItem -> {
+                                                        // Create comment (has optimistic update if state is loaded)
+                                                        discussionViewModel.createComment(
+                                                            item.post.id,
+                                                            textToSubmit,
+                                                            null,
+                                                            currentUserObj
+                                                        )
+                                                        // Reload after a short delay to sync with server
+                                                        kotlinx.coroutines.delay(500)
+                                                        discussionViewModel.loadPostDetail(item.post.id)
+                                                    }
+                                                    is ReelContentItem.JourneyItem -> {
+                                                        // Add comment
+                                                        journeyViewModel.addComment(
+                                                            item.journey.id,
+                                                            textToSubmit,
+                                                            null
+                                                        )
+                                                        // Reload after delay to sync
+                                                        kotlinx.coroutines.delay(1000)
+                                                        journeyViewModel.loadComments(item.journey.id)
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                // On error, restore text and reload to get current state
+                                                commentText = textToSubmit
+                                                when (item) {
+                                                    is ReelContentItem.PostItem -> {
+                                                        discussionViewModel.loadPostDetail(item.post.id)
+                                                    }
+                                                    is ReelContentItem.JourneyItem -> {
+                                                        journeyViewModel.loadComments(item.journey.id)
+                                                    }
+                                                }
+                                            } finally {
+                                                isSubmittingComment = false
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = !isSubmittingComment
+                            ) {
+                                if (isSubmittingComment) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = StringTranslator.translate(context, "Publier"),
+                                        color = Color(0xFF1976D2),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            if (commentText.isNotBlank() && !isSubmittingComment) {
+                                // Trigger the same action as the button
+                                val currentUserObj = currentUser?.let {
+                                    DiscussionUser(
+                                        id = it.id,
+                                        username = it.username ?: "",
+                                        firstName = it.firstName ?: "",
+                                        lastName = it.lastName ?: "",
+                                        profileImageUrl = it.profileImageUrl
+                                    )
+                                }
+                                
+                                scope.launch {
+                                    val textToSubmit = commentText
+                                    try {
+                                        commentText = ""
+                                        reelsViewModel.incrementCommentCount(item.id)
+                                        
+                                        when (item) {
+                                            is ReelContentItem.PostItem -> {
+                                                discussionViewModel.createComment(
+                                                    item.post.id,
+                                                    textToSubmit,
+                                                    null,
+                                                    currentUserObj
+                                                )
+                                                kotlinx.coroutines.delay(1500)
+                                                discussionViewModel.loadPostDetail(item.post.id)
+                                            }
+                                            is ReelContentItem.JourneyItem -> {
+                                                journeyViewModel.addComment(
+                                                    item.journey.id,
+                                                    textToSubmit,
+                                                    null
+                                                )
+                                                kotlinx.coroutines.delay(1500)
+                                                journeyViewModel.loadComments(item.journey.id)
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        commentText = textToSubmit
+                                        when (item) {
+                                            is ReelContentItem.PostItem -> {
+                                                discussionViewModel.loadPostDetail(item.post.id)
+                                            }
+                                            is ReelContentItem.JourneyItem -> {
+                                                journeyViewModel.loadComments(item.journey.id)
+                                            }
+                                        }
+                                    } finally {
+                                        isSubmittingComment = false
+                                    }
+                                }
+                            }
+                        }
+                    )
+                )
+            }
         }
     }
 }

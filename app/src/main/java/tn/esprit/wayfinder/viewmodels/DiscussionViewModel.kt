@@ -191,7 +191,9 @@ class DiscussionViewModel(
     fun createComment(postId: String, content: String, parentId: String? = null, currentUser: DiscussionUser?) {
         // Optimistic update: add comment immediately to UI
         val currentDetailState = _postDetailState.value
-        if (currentDetailState is PostDetailUiState.Success && currentUser != null) {
+        if (currentDetailState is PostDetailUiState.Success && 
+            currentDetailState.post.id == postId && 
+            currentUser != null) {
             // Create a temporary comment object for optimistic update
             val tempCommentId = "temp_${System.currentTimeMillis()}"
             val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
@@ -241,7 +243,7 @@ class DiscussionViewModel(
                 val newComment = discussionRepository.createComment(postId, content, parentId)
                 // Replace temporary comment with real one
                 val updatedState = _postDetailState.value
-                if (updatedState is PostDetailUiState.Success) {
+                if (updatedState is PostDetailUiState.Success && updatedState.post.id == postId) {
                     val finalComments = if (parentId != null) {
                         // For replies, find and replace the temp comment in replies
                         updatedState.comments.map { comment ->
@@ -274,6 +276,9 @@ class DiscussionViewModel(
                         }
                     }
                     _postDetailState.value = updatedState.copy(comments = finalComments)
+                } else {
+                    // If state doesn't match, reload to get fresh data
+                    loadPostDetail(postId)
                 }
             } catch (e: Exception) {
                 // Rollback on error - remove temporary comment
