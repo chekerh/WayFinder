@@ -84,7 +84,7 @@ struct WelcomeView: View {
                 HStack {
                     Spacer()
                     
-                    Image("LogoWayFinder.png")
+                    Image("LogoWayFinder")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 44, height: 44)

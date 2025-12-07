@@ -19,12 +19,14 @@ final class FirebaseMessagingService: NSObject, ObservableObject {
     func initialize() {
         guard !isInitialized else { return }
         
-        // Configure Firebase if not already configured
+        // Firebase should already be configured in app init or AppDelegate
+        // Just verify it's configured
         if FirebaseApp.app() == nil {
-            // Firebase will be configured via GoogleService-Info.plist
-            // Make sure the file is added to the project
+            print("⚠️ [FCM] Firebase not configured yet, configuring now...")
             FirebaseApp.configure()
             print("✅ [FCM] Firebase configured")
+        } else {
+            print("✅ [FCM] Firebase already configured")
         }
         
         // Set messaging delegate

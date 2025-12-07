@@ -8,11 +8,20 @@
 
 
 import SwiftUI
+import FirebaseCore
 
 @main // Cela marque le point d'entrée principal de l'application
 struct WayFinderApp: App {
     @StateObject private var languageManager = LanguageManager()
     @UIApplicationDelegateAdaptor(WayFinderAppDelegate.self) var delegate
+    
+    init() {
+        // Configure Firebase early in app initialization (before any views load)
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ [WayFinderApp] Firebase configured in app init")
+        }
+    }
     
     var body: some Scene {
         WindowGroup {
