@@ -7,6 +7,7 @@ struct ReservationScreen: View {
     @StateObject private var rewardsViewModel = RewardsViewModel()
     let destinationId: String
     let destination: FlightDestination?
+    var selectedAccommodation: Accommodation? = nil
     var onBackToHome: (() -> Void)? = nil
     
     @State private var cardNumber = ""
@@ -16,7 +17,9 @@ struct ReservationScreen: View {
     @State private var showConfirmation = false
     @State private var confirmationNumber: String?
     @State private var navigateToConfirmation = false
+    @State private var navigateToLodgingChoice = false
     @State private var usePoints = false
+    @State private var currentAccommodation: Accommodation? = nil
     
     var body: some View {
         ZStack {
@@ -53,8 +56,15 @@ struct ReservationScreen: View {
         .navigationDestination(isPresented: $navigateToConfirmation) {
             confirmationScreen
         }
+        .navigationDestination(isPresented: $navigateToLodgingChoice) {
+            LodgingChoiceView(
+                destinationId: destinationId,
+                destination: destination
+            )
+        }
         .task {
             await rewardsViewModel.loadUserPoints()
+            currentAccommodation = selectedAccommodation
         }
     }
     
@@ -98,6 +108,95 @@ struct ReservationScreen: View {
                         )
                         .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     }
+                    
+                    // Accommodation Choice Card
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "bed.double.fill")
+                                .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
+                            Text("Hébergement")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        }
+                        .padding(.bottom, 8)
+                        
+                        if let accommodation = currentAccommodation {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(accommodation.name)
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                        
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "star.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.yellow)
+                                            Text(String(format: "%.1f", accommodation.rating))
+                                                .font(.caption)
+                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                            
+                                            Text("•")
+                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                            
+                                            Text(accommodation.location)
+                                                .font(.caption)
+                                                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(String(format: "%.2f %@/nuit", accommodation.price, accommodation.currency))
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                }
+                                
+                                Button {
+                                    navigateToLodgingChoice = true
+                                } label: {
+                                    Text("Changer d'hébergement")
+                                        .font(.subheadline)
+                                        .foregroundColor(ThemeColors.accent())
+                                }
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(fieldBackground)
+                            )
+                        } else {
+                            Button {
+                                navigateToLodgingChoice = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(ThemeColors.accent())
+                                    Text("Choisir un hébergement")
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                }
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(fieldBackground)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(ThemeColors.accent().opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(cardBackground)
+                    )
+                    .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     
                     // Payment Information Card
                     VStack(alignment: .leading, spacing: 16) {
@@ -318,6 +417,25 @@ struct ReservationScreen: View {
                                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             }
                             
+                            // Accommodation line if selected
+                            if let accommodation = currentAccommodation {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Hébergement")
+                                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                        Text(accommodation.name)
+                                            .font(.caption)
+                                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                    }
+                                    Spacer()
+                                    // Calculate accommodation price (7 nights default)
+                                    let accommodationPrice = accommodation.price * 7
+                                    Text(String(format: "%.2f %@", accommodationPrice, accommodation.currency))
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                }
+                            }
+                            
                             // Discount line if using points
                             if usePoints, rewardsViewModel.userPoints != nil {
                                 let basePrice = destination?.price ?? 0
@@ -348,7 +466,8 @@ struct ReservationScreen: View {
                             let basePrice = destination?.price ?? 0
                             let taxes = 30.0
                             let baggage = 30.0
-                            let subtotal = basePrice + taxes + baggage
+                            let accommodationPrice = currentAccommodation != nil ? (currentAccommodation!.price * 7) : 0.0
+                            let subtotal = basePrice + taxes + baggage + accommodationPrice
                             let discount = usePoints && rewardsViewModel.userPoints != nil ? rewardsViewModel.calculateDiscount(pointsToUse: rewardsViewModel.getMaxUsablePoints(for: subtotal), currency: destination?.currency ?? "TND") : 0.0
                             let total = max(0, subtotal - discount)
                             Text(String(format: "%.2f %@", total, destination?.currency ?? "EUR"))
@@ -380,7 +499,8 @@ struct ReservationScreen: View {
                                 let basePrice = destination?.price ?? 0
                                 let taxes = 30.0
                                 let baggage = 30.0
-                                let subtotal = basePrice + taxes + baggage
+                                let accommodationPrice = currentAccommodation != nil ? (currentAccommodation!.price * 7) : 0.0
+                                let subtotal = basePrice + taxes + baggage + accommodationPrice
                                 
                                 var finalPrice = subtotal
                                 var pointsToRedeem = 0
