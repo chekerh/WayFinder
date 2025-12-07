@@ -252,6 +252,11 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
     private fun parseError(throwable: Throwable): String {
         return when (throwable) {
             is HttpException -> {
+                // Handle rate limiting (429) with user-friendly message
+                if (throwable.code() == 429) {
+                    return "Trop de requêtes. Veuillez patienter quelques instants avant de réessayer."
+                }
+                
                 val errorBody = throwable.response()?.errorBody()?.string()
                 if (!errorBody.isNullOrBlank()) {
                     val parsedMessage = try {

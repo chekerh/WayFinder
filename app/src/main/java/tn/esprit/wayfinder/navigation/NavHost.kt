@@ -91,9 +91,9 @@ fun AppNavigation() {
             delay(2000)
             notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
             
-            // Then check every 5 seconds
+            // Then check every 30 seconds (reduced from 5 seconds to prevent rate limiting)
             while (true) {
-                delay(5000) // Check every 5 seconds
+                delay(30000) // Check every 30 seconds
                 notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
             }
         }
@@ -203,6 +203,13 @@ fun AppNavigation() {
             val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
             BookingConfirmationScreen(navController = navController, bookingId = bookingId)
         }
+        composable(
+            "tickets/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+            TicketsScreen(navController = navController, bookingId = bookingId)
+        }
         composable("onboarding") {
             // FIX: Pointing to SurveyScreen which contains the onboarding logic
             SurveyScreen(onComplete = {
@@ -231,6 +238,13 @@ fun AppNavigation() {
             val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
             val type = backStackEntry.arguments?.getString("type") ?: ""
             AccommodationsListScreen(navController = navController, destinationId = destinationId, accommodationType = type)
+        }
+        composable(
+            "upsells/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            UpsellScreen(navController = navController, destinationId = destinationId)
         }
         composable("during_travel") {
             DuringTravelScreen(navController = navController)
@@ -338,6 +352,63 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val initialIndex = backStackEntry.arguments?.getInt("initialIndex") ?: 0
             ReelsViewerScreen(navController = navController, initialIndex = initialIndex)
+        }
+        // Personalized Results Screen - for showing search/recommendation results
+        composable("personalized_results") {
+            PersonalizedResultsScreen(navController = navController)
+        }
+        // PayPal Payment Screen - for processing PayPal payments
+        composable(
+            "paypal_payment",
+            arguments = listOf(
+                navArgument("approvalUrl") { type = NavType.StringType },
+                navArgument("bookingId") { type = NavType.StringType; nullable = true }
+            )
+        ) { backStackEntry ->
+            val approvalUrl = backStackEntry.arguments?.getString("approvalUrl") ?: ""
+            val bookingId = backStackEntry.arguments?.getString("bookingId")
+            PaypalPaymentScreen(
+                navController = navController,
+                approvalUrl = approvalUrl,
+                onPaymentSuccess = { paymentId ->
+                    // Navigate to booking confirmation after successful payment
+                    if (bookingId != null) {
+                        navController.navigate("booking_confirmation/$bookingId") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    } else {
+                        navController.navigate("booking_history") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    }
+                },
+                onPaymentFailed = {
+                    // Navigate back or show error
+                    navController.popBackStack()
+                }
+            )
+        }
+        // Detail Screen - for showing destination/activity details
+        composable(
+            "detail/{type}",
+            arguments = listOf(
+                navArgument("type") { type = NavType.StringType },
+                navArgument("id") { type = NavType.StringType; nullable = true },
+                navArgument("title") { type = NavType.StringType; nullable = true }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "destination"
+            val id = backStackEntry.arguments?.getString("id")
+            val title = backStackEntry.arguments?.getString("title")
+            DetailScreen(navController = navController)
+        }
+        // Alternative Confirmation Screen (if needed for different confirmation flows)
+        composable("confirmation") {
+            ConfirmationScreen(navController = navController)
+        }
+        // Legacy Ticket Screen (keeping for backward compatibility, but TicketsScreen is preferred)
+        composable("ticket") {
+            TicketScreen(navController = navController)
         }
     }
 }

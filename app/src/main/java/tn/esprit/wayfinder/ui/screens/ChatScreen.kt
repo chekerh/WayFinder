@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -474,49 +475,75 @@ private fun ModelSelectorDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select AI Model") },
         text = {
-            Column {
-                availableModels.forEach { model ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                            .clickable {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 400.dp)
+            ) {
+                items(availableModels.size) { index ->
+                    val model = availableModels[index]
+                    val chatModel = try {
+                        // Handle different model ID formats
+                        when {
+                            model.id.equals("huggingface", ignoreCase = true) -> ChatModel.HUGGINGFACE
+                            model.id.equals("openai_gpt4o_mini", ignoreCase = true) || 
+                            model.id.equals("gpt-4o-mini", ignoreCase = true) -> ChatModel.OPENAI_GPT4O_MINI
+                            model.id.equals("openai_gpt4o", ignoreCase = true) || 
+                            model.id.equals("gpt-4o", ignoreCase = true) -> ChatModel.OPENAI_GPT4O
+                            else -> {
+                                // Try enum valueOf as fallback
                                 try {
-                                    val chatModel = ChatModel.valueOf(model.id.uppercase())
-                                    onModelSelected(chatModel)
+                                    ChatModel.valueOf(model.id.replace("-", "_").uppercase())
                                 } catch (e: Exception) {
-                                    // Handle invalid model
-                                }
-                            },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = try {
-                                val chatModel = ChatModel.valueOf(model.id.uppercase())
-                                chatModel == selectedModel
-                            } catch (e: Exception) {
-                                false
-                            },
-                            onClick = {
-                                try {
-                                    val chatModel = ChatModel.valueOf(model.id.uppercase())
-                                    onModelSelected(chatModel)
-                                } catch (e: Exception) {
-                                    // Handle invalid model
+                                    null
                                 }
                             }
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = model.name,
-                                style = MaterialTheme.typography.bodyLarge
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    if (chatModel != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .clickable {
+                                    if (model.available) {
+                                        onModelSelected(chatModel)
+                                        onDismiss()
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = chatModel == selectedModel,
+                                onClick = {
+                                    if (model.available) {
+                                        onModelSelected(chatModel)
+                                        onDismiss()
+                                    }
+                                },
+                                enabled = model.available
                             )
-                            if (!model.available) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
+                            ) {
                                 Text(
-                                    text = "Not available",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
+                                    text = model.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (model.available) 
+                                        MaterialTheme.colorScheme.onSurface 
+                                    else 
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
+                                if (!model.available) {
+                                    Text(
+                                        text = "Not available",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
@@ -526,8 +553,8 @@ private fun ModelSelectorDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
+            }
         }
-    }
     )
 }
 

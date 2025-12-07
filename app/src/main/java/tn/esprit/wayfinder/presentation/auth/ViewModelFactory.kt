@@ -43,7 +43,9 @@ import tn.esprit.wayfinder.viewmodels.ChatViewModel
 import tn.esprit.wayfinder.viewmodels.OutfitWeatherViewModel
 import tn.esprit.wayfinder.viewmodels.ReelsViewModel
 import tn.esprit.wayfinder.viewmodels.GroupFlightViewModel
+import tn.esprit.wayfinder.viewmodels.UpsellViewModel
 import tn.esprit.wayfinder.presentation.groupflight.GroupFlightRepository
+import tn.esprit.wayfinder.presentation.upsells.UpsellRepository
 
 class ViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -61,19 +63,19 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 OnboardingViewModel(repository) as T
             }
             modelClass.isAssignableFrom(CatalogViewModel::class.java) -> {
-                val repository = CatalogRepository(apiService)
+                val repository = CatalogRepository(apiService, application.applicationContext)
                 val cache = FlightsCache(application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
                 CatalogViewModel(repository, cache) as T
             }
                    modelClass.isAssignableFrom(UserViewModel::class.java) -> {
-                       val repository = UserRepository(apiService)
+                       val repository = UserRepository(apiService, application.applicationContext)
                        val tokenManager = TokenManager(application.applicationContext)
                        @Suppress("UNCHECKED_CAST")
                        UserViewModel(repository, tokenManager) as T
                    }
             modelClass.isAssignableFrom(BookingViewModel::class.java) -> {
-                val repository = BookingRepository(apiService)
+                val repository = BookingRepository(apiService, application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
                 BookingViewModel(repository) as T
             }
@@ -83,7 +85,7 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 PaymentViewModel(repository) as T
             }
             modelClass.isAssignableFrom(ActivitiesViewModel::class.java) -> {
-                val repository = CatalogRepository(apiService)
+                val repository = CatalogRepository(apiService, application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
                 ActivitiesViewModel(repository) as T
             }
@@ -108,7 +110,7 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 ItineraryViewModel(repository) as T
             }
             modelClass.isAssignableFrom(NotificationsViewModel::class.java) -> {
-                val repository = NotificationsRepository(apiService)
+                val repository = NotificationsRepository(apiService, application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
                 NotificationsViewModel(repository, application.applicationContext) as T
             }
@@ -140,7 +142,7 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
             modelClass.isAssignableFrom(ChatViewModel::class.java) -> {
                 val repository = ChatRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
-                ChatViewModel(repository) as T
+                ChatViewModel(repository, application.applicationContext) as T
             }
             modelClass.isAssignableFrom(OutfitWeatherViewModel::class.java) -> {
                 @Suppress("UNCHECKED_CAST")
@@ -156,6 +158,12 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = GroupFlightRepository(apiService)
                 @Suppress("UNCHECKED_CAST")
                 GroupFlightViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(UpsellViewModel::class.java) -> {
+                val catalogRepository = CatalogRepository(apiService, application.applicationContext)
+                val repository = UpsellRepository(apiService, catalogRepository, application.applicationContext)
+                @Suppress("UNCHECKED_CAST")
+                UpsellViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

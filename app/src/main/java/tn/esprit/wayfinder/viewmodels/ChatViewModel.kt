@@ -1,11 +1,13 @@
 package tn.esprit.wayfinder.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.models.*
 import tn.esprit.wayfinder.presentation.chat.ChatRepository
 
@@ -23,8 +25,13 @@ data class ChatMessageUi(
     val flightPacks: List<FlightPack>? = null
 )
 
-class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
+class ChatViewModel(
+    private val chatRepository: ChatRepository,
+    private val context: Context? = null
+) : ViewModel() {
 
+    private val tokenManager = context?.let { TokenManager(it) }
+    
     private val _uiState = MutableStateFlow<ChatUiState>(ChatUiState.Idle)
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -41,8 +48,21 @@ class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
+        loadSavedModel()
         loadAvailableModels()
         loadHistory()
+    }
+    
+    private fun loadSavedModel() {
+        val savedModelName = tokenManager?.getSelectedChatModel()
+        if (savedModelName != null) {
+            try {
+                val model = ChatModel.valueOf(savedModelName.uppercase())
+                _selectedModel.value = model
+            } catch (e: Exception) {
+                // Invalid saved model, will use default
+            }
+        }
     }
 
     fun sendMessage(message: String) {
@@ -94,9 +114,16 @@ class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
                 val response = chatRepository.switchModel(model)
                 if (response.success) {
                     _selectedModel.value = model
+                    // Persist selected model
+                    tokenManager?.saveSelectedChatModel(model.name)
                     _uiState.value = ChatUiState.Success("Model switched to ${response.model}")
+                } else {
+                    _uiState.value = ChatUiState.Error("Failed to switch model")
                 }
             } catch (e: Exception) {
+                // Still update local state even if API call fails
+                _selectedModel.value = model
+                tokenManager?.saveSelectedChatModel(model.name)
                 _uiState.value = ChatUiState.Error(
                     e.message ?: "Failed to switch model. Please try again."
                 )
@@ -142,13 +169,29 @@ class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
                 val response = chatRepository.getAvailableModels()
                 _availableModels.value = response.models
                 
-                // Set default model to first available one
-                val firstAvailable = response.models.firstOrNull { it.available }
-                if (firstAvailable != null) {
-                    try {
-                        _selectedModel.value = ChatModel.valueOf(firstAvailable.id.uppercase())
-                    } catch (e: Exception) {
-                        _selectedModel.value = ChatModel.HUGGINGFACE
+                // Set default model to first available one if no model is selected
+                if (_selectedModel.value == null) {
+                    val firstAvailable = response.models.firstOrNull { it.available }
+                    if (firstAvailable != null) {
+                        try {
+                            val model = when {
+                                firstAvailable.id.equals("huggingface", ignoreCase = true) -> ChatModel.HUGGINGFACE
+                                firstAvailable.id.equals("openai_gpt4o_mini", ignoreCase = true) -> ChatModel.OPENAI_GPT4O_MINI
+                                firstAvailable.id.equals("openai_gpt4o", ignoreCase = true) -> ChatModel.OPENAI_GPT4O
+                                else -> {
+                                    try {
+                                        ChatModel.valueOf(firstAvailable.id.replace("-", "_").uppercase())
+                                    } catch (e: Exception) {
+                                        ChatModel.HUGGINGFACE
+                                    }
+                                }
+                            }
+                            _selectedModel.value = model
+                            tokenManager?.saveSelectedChatModel(model.name)
+                        } catch (e: Exception) {
+                            _selectedModel.value = ChatModel.HUGGINGFACE
+                            tokenManager?.saveSelectedChatModel(ChatModel.HUGGINGFACE.name)
+                        }
                     }
                 }
             } catch (e: Exception) {

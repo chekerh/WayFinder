@@ -30,8 +30,8 @@ object RetrofitInstance {
 
         // FIX: Reordered interceptors. The logging interceptor should be last to log the final request.
         // This prevents issues where the request method is inadvertently changed from POST to GET.
-        // Add HTTP cache for faster response times
-        val cacheSize = 10 * 1024 * 1024L // 10 MB cache
+        // Add HTTP cache for faster response times - increased size for better offline support
+        val cacheSize = 50 * 1024 * 1024L // 50 MB cache (increased from 10 MB)
         val cache = okhttp3.Cache(context.cacheDir, cacheSize)
         
         val client = OkHttpClient.Builder()
@@ -41,6 +41,7 @@ object RetrofitInstance {
             .callTimeout(150, TimeUnit.SECONDS) // 2.5 minutes total timeout
             .cache(cache) // Enable HTTP response caching
             .addInterceptor(AuthInterceptor(context))
+            .addInterceptor(RateLimitInterceptor()) // Handle rate limiting with retry logic
             .addInterceptor(loggingInterceptor)
             .build()
 

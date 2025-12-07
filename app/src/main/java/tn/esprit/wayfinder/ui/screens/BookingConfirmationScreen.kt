@@ -28,6 +28,11 @@ import tn.esprit.wayfinder.utils.StringTranslator
 import androidx.compose.ui.platform.LocalContext
 import android.util.Log
 import kotlinx.coroutines.delay
+import tn.esprit.wayfinder.models.Accommodation
+import tn.esprit.wayfinder.models.SelectedUpsell
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.LocalActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +47,10 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
     val bookingTotal = previousEntry?.savedStateHandle?.get<Double>(BOOKING_TOTAL_KEY)
     val bookingCurrency = previousEntry?.savedStateHandle?.get<String>(BOOKING_CURRENCY_KEY) ?: "EUR"
     val bookingDestination = previousEntry?.savedStateHandle?.get<String>(BOOKING_DESTINATION_NAME_KEY)
+    val bookingAccommodation = previousEntry?.savedStateHandle?.get<Accommodation>("booking_accommodation")
+    val bookingUpsells = previousEntry?.savedStateHandle?.get<List<SelectedUpsell>>("booking_upsells") ?: emptyList()
+    val hasHotel = bookingAccommodation != null
+    val hasActivities = bookingUpsells.isNotEmpty()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -159,6 +168,118 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
                             color = Color(0xFF4CAF50),
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Tickets Section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Vos billets et réservations"),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    HorizontalDivider()
+                    
+                    // Flight Ticket Button
+                    Button(
+                        onClick = {
+                            navController.currentBackStackEntry?.savedStateHandle?.set("ticket_type", "flight")
+                            navController.currentBackStackEntry?.savedStateHandle?.set("booking_confirmation_number", bookingId)
+                            navController.navigate("tickets/$bookingId")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1976D2)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Flight,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = StringTranslator.translate(context, "Billet d'avion"),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Hotel Reservation Button
+                    if (hasHotel) {
+                        Button(
+                            onClick = {
+                                navController.currentBackStackEntry?.savedStateHandle?.set("ticket_type", "hotel")
+                                navController.currentBackStackEntry?.savedStateHandle?.set("booking_confirmation_number", bookingId)
+                                navController.navigate("tickets/$bookingId")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF4CAF50)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Hotel,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = StringTranslator.translate(context, "Réservation hôtel"),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    // Activities Tickets Button
+                    if (hasActivities) {
+                        Button(
+                            onClick = {
+                                navController.currentBackStackEntry?.savedStateHandle?.set("ticket_type", "activities")
+                                navController.currentBackStackEntry?.savedStateHandle?.set("booking_confirmation_number", bookingId)
+                                navController.navigate("tickets/$bookingId")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFF9800)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalActivity,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = StringTranslator.translate(context, "Billets d'activités"),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

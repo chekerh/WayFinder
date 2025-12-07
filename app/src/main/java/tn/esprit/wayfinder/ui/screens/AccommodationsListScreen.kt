@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.models.Accommodation
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.utils.StringTranslator
@@ -112,11 +113,17 @@ fun AccommodationsListScreen(
                     AccommodationCard(
                         accommodation = accommodation,
                         onClick = {
-                            // Navigate to accommodation detail or booking
+                            // Save accommodation selection and navigate to upsell screen
                             navController.currentBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("selected_accommodation", accommodation)
-                            navController.navigate("booking/${destinationId}")
+                                ?.apply {
+                                    set("selected_accommodation", accommodation)
+                                    set("accommodation_id", accommodation.id)
+                                    set("accommodation_price", accommodation.price)
+                                    set("accommodation_currency", accommodation.currency)
+                                }
+                            // Navigate to upsell screen (will be created)
+                            navController.navigate("upsells/${destinationId}")
                         }
                     )
                 }
@@ -124,18 +131,6 @@ fun AccommodationsListScreen(
         }
     }
 }
-
-data class Accommodation(
-    val id: String,
-    val name: String,
-    val type: String,
-    val price: Double,
-    val currency: String,
-    val rating: Double,
-    val imageUrl: String?,
-    val location: String,
-    val amenities: List<String>
-)
 
 @Composable
 fun AccommodationCard(

@@ -510,11 +510,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         }
                         Button(
                             onClick = {
-                                // Navigate to airline selection first
+                                // Navigate to accommodation selection
                                 navController.currentBackStackEntry
                                     ?.savedStateHandle
                                     ?.set(SELECTED_DESTINATION_KEY, destination)
-                                navController.navigate("airline_selection/${destination.id}")
+                                navController.navigate("lodging_choice/${destination.id}")
                             },
                             modifier = Modifier
                                 .weight(1f)
@@ -525,7 +525,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                             )
                         ) {
                             Text(
-                                text = StringTranslator.translate(context, "Réserver"),
+                                text = StringTranslator.translate(context, "Choisir Hôtel"),
                                 color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                                 fontWeight = FontWeight.Bold
                             )

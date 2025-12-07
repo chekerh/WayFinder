@@ -52,4 +52,12 @@ class TokenManager(context: Context) {
             }
         }
     }
+    
+    fun saveSelectedChatModel(model: String) {
+        sharedPreferences.edit().putString("selected_chat_model", model).apply()
+    }
+    
+    fun getSelectedChatModel(): String? {
+        return sharedPreferences.getString("selected_chat_model", null)
+    }
 }

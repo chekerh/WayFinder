@@ -3,6 +3,8 @@ package tn.esprit.wayfinder.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +32,11 @@ class NotificationsViewModel(
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
     
     private var lastNotificationIds = emptySet<String>()
+    
+    // Debouncing/throttling for loadNotifications calls
+    private var loadNotificationsJob: Job? = null
+    private var lastLoadTime = 0L
+    private val MIN_LOAD_INTERVAL_MS = 10000L // Minimum 10 seconds between loads
 
     init {
         // Initialize with empty list and 0 count
@@ -40,33 +47,59 @@ class NotificationsViewModel(
     }
 
     fun loadNotifications(unreadOnly: Boolean = false, showSystemNotifications: Boolean = true) {
-        viewModelScope.launch {
-            try {
-                val notifications = notificationsRepository.getNotifications(unreadOnly)
-                val unreadCount = notificationsRepository.getUnreadCount()
-                
-                android.util.Log.d("NotificationsViewModel", "Loaded ${notifications.size} notifications, ${unreadCount} unread")
-                
-                // Show system notifications for new unread notifications
-                if (showSystemNotifications && context != null) {
-                    showNewNotifications(notifications.filter { !it.isRead })
-                }
-                
-                // Only update UI state if it's not already loading (to avoid flickering)
-                if (_uiState.value !is NotificationsUiState.Loading) {
-                    _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
-                } else {
-                    _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
-                }
-            } catch (e: Exception) {
-                // Handle 401 Unauthorized gracefully - user may not be logged in yet
-                if (e.message?.contains("401") == true || e.message?.contains("Unauthorized") == true) {
-                    android.util.Log.d("NotificationsViewModel", "User not authenticated, returning empty notifications list")
-                    _uiState.value = NotificationsUiState.Success(emptyList(), 0)
-                } else {
-                    android.util.Log.e("NotificationsViewModel", "Error loading notifications: ${e.message}", e)
-                    _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to load notifications")
-                }
+        // Cancel any pending load
+        loadNotificationsJob?.cancel()
+        
+        // Throttle: if called too soon after last load, schedule it for later
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastLoad = currentTime - lastLoadTime
+        
+        if (timeSinceLastLoad < MIN_LOAD_INTERVAL_MS) {
+            val delayMs = MIN_LOAD_INTERVAL_MS - timeSinceLastLoad
+            android.util.Log.d("NotificationsViewModel", "Throttling notification load: waiting ${delayMs}ms")
+            loadNotificationsJob = viewModelScope.launch {
+                delay(delayMs)
+                performLoadNotifications(unreadOnly, showSystemNotifications)
+            }
+        } else {
+            // Load immediately
+            loadNotificationsJob = viewModelScope.launch {
+                performLoadNotifications(unreadOnly, showSystemNotifications)
+            }
+        }
+    }
+    
+    private suspend fun performLoadNotifications(unreadOnly: Boolean = false, showSystemNotifications: Boolean = true) {
+        try {
+            lastLoadTime = System.currentTimeMillis()
+            val notifications = notificationsRepository.getNotifications(unreadOnly)
+            val unreadCount = notificationsRepository.getUnreadCount()
+            
+            android.util.Log.d("NotificationsViewModel", "Loaded ${notifications.size} notifications, ${unreadCount} unread")
+            
+            // Show system notifications for new unread notifications
+            if (showSystemNotifications && context != null) {
+                showNewNotifications(notifications.filter { !it.isRead })
+            }
+            
+            // Only update UI state if it's not already loading (to avoid flickering)
+            if (_uiState.value !is NotificationsUiState.Loading) {
+                _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
+            } else {
+                _uiState.value = NotificationsUiState.Success(notifications, unreadCount)
+            }
+        } catch (e: Exception) {
+            // Handle 401 Unauthorized gracefully - user may not be logged in yet
+            if (e.message?.contains("401") == true || e.message?.contains("Unauthorized") == true) {
+                android.util.Log.d("NotificationsViewModel", "User not authenticated, returning empty notifications list")
+                _uiState.value = NotificationsUiState.Success(emptyList(), 0)
+            } else if (e.message?.contains("429") == true || e.message?.contains("Too Many Requests") == true) {
+                // Handle rate limiting gracefully - don't show error, just log it
+                android.util.Log.w("NotificationsViewModel", "Rate limited (429), will retry later")
+                // Keep current state, don't update to error
+            } else {
+                android.util.Log.e("NotificationsViewModel", "Error loading notifications: ${e.message}", e)
+                _uiState.value = NotificationsUiState.Error(e.message ?: "Failed to load notifications")
             }
         }
     }

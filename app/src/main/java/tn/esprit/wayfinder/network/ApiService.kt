@@ -554,4 +554,11 @@ interface ApiService {
     // --- REWARDS / POINTS --- //
     @GET("rewards/points")
     suspend fun getUserPoints(): UserPointsResponse
+
+    // --- UPSELLS --- //
+    @GET("upsells/products")
+    suspend fun getUpsellProducts(
+        @Query("destinationId") destinationId: String? = null,
+        @Query("dates") dates: String? = null
+    ): UpsellProductsResponse
 }

@@ -45,6 +45,8 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import tn.esprit.wayfinder.manager.LanguageManager
 import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.models.Accommodation
+import tn.esprit.wayfinder.models.SelectedUpsell
 import tn.esprit.wayfinder.navigation.BOOKING_CARD_CVV_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_CARD_EXPIRY_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_CARD_NAME_KEY
@@ -84,6 +86,12 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
     val cardExpiry = savedStateHandle?.get<String>(BOOKING_CARD_EXPIRY_KEY)
     val cardCvv = savedStateHandle?.get<String>(BOOKING_CARD_CVV_KEY)
     val groupFlightId = savedStateHandle?.get<String>("group_flight_id")
+    
+    // Get accommodation and upsells
+    val selectedAccommodation = savedStateHandle?.get<Accommodation>("selected_accommodation")
+    val selectedUpsells = savedStateHandle?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
+    val accommodationPrice = savedStateHandle?.get<Double>("accommodation_price") ?: 0.0
+    val upsellTotal = savedStateHandle?.get<Double>("upsell_total") ?: 0.0
 
     LaunchedEffect(reservationState) {
         val currentState = reservationState
@@ -99,6 +107,21 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 BOOKING_CURRENCY_KEY,
                 selectedDestination?.currency ?: currency
             )
+            // Save accommodation and upsells for ticket generation
+            selectedAccommodation?.let {
+                navController.currentBackStackEntry?.savedStateHandle?.set("booking_accommodation", it)
+            }
+            if (selectedUpsells.isNotEmpty()) {
+                navController.currentBackStackEntry?.savedStateHandle?.set("booking_upsells", selectedUpsells)
+            }
+            // Save trip details for ticket generation
+            booking.tripDetails?.let {
+                navController.currentBackStackEntry?.savedStateHandle?.set("booking_trip_details", it)
+            }
+            // Save passengers for ticket generation
+            booking.passengers?.let {
+                navController.currentBackStackEntry?.savedStateHandle?.set("booking_passengers", it)
+            }
 
             val languageManager = LanguageManager(context)
             val currentLanguage = languageManager.getLanguage()
@@ -174,28 +197,65 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
             // Check if this is a group flight booking
             val isGroupFlight = groupFlightId != null
             
-            // Calculate commission breakdown
-            val priceBreakdown = remember(totalPrice, isGroupFlight) {
+            // Calculate commission breakdown - base price is flight only, accommodation and upsells are separate
+            val flightBasePrice = totalPrice - accommodationPrice - upsellTotal
+            val priceBreakdown = remember(totalPrice, isGroupFlight, accommodationPrice, upsellTotal) {
                 if (isGroupFlight) {
                     // For group flights, the price already includes shared costs
-                    // Just add commission on top
                     CommissionCalculator.calculateBreakdown(
-                        basePrice = totalPrice,
+                        basePrice = flightBasePrice,
                         bookingType = "flight"
                     )
                 } else {
                     CommissionCalculator.calculateBreakdown(
-                        basePrice = totalPrice,
+                        basePrice = flightBasePrice,
                         bookingType = "flight"
                     )
                 }
             }
             
+            // Calculate commission for accommodation and upsells
+            val accommodationCommission = remember(accommodationPrice) {
+                if (accommodationPrice > 0) {
+                    CommissionCalculator.calculateCommission(
+                        basePrice = accommodationPrice,
+                        bookingType = "hotel"
+                    ).commission
+                } else {
+                    0.0
+                }
+            }
+            
+            val upsellCommission = remember(upsellTotal) {
+                if (upsellTotal > 0) {
+                    CommissionCalculator.calculateCommission(
+                        basePrice = upsellTotal,
+                        bookingType = "other"
+                    ).commission
+                } else {
+                    0.0
+                }
+            }
+            
+            // Calculate total commission (flight + accommodation + upsells)
+            val totalCommission = priceBreakdown.commission + accommodationCommission + upsellCommission
+            
+            // Calculate final total including accommodation, upsells, and all commissions
+            val finalTotal = priceBreakdown.basePrice + accommodationPrice + upsellTotal + totalCommission
+            
             SummaryCard(
                 destination = destination,
                 priceBreakdown = priceBreakdown,
                 currency = currency,
-                isGroupFlight = isGroupFlight
+                isGroupFlight = isGroupFlight,
+                accommodation = selectedAccommodation,
+                accommodationPrice = accommodationPrice,
+                accommodationCommission = accommodationCommission,
+                upsells = selectedUpsells,
+                upsellTotal = upsellTotal,
+                upsellCommission = upsellCommission,
+                totalCommission = totalCommission,
+                finalTotal = finalTotal
             )
 
             PaymentCard(
@@ -231,12 +291,12 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 onClick = {
                     // Prevent multiple clicks
                     if (reservationState !is ReservationUiState.Loading && reservationState !is ReservationUiState.Success) {
-                    // Use total price with commission
+                    // Use final total price with commission, accommodation, and upsells
                     bookingViewModel.confirmBooking(
                         offerId = destinationId,
                         cardNumber = cardNumber,
                         cardHolderName = cardHolder,
-                        totalPrice = priceBreakdown.totalPrice, // Total includes commission
+                        totalPrice = finalTotal, // Total includes flight, accommodation, upsells, and commission
                         destination = destination.name,
                         destinationCountry = destination.country
                     )
@@ -277,7 +337,15 @@ private fun SummaryCard(
     destination: FlightDestination,
     priceBreakdown: tn.esprit.wayfinder.utils.PriceBreakdown,
     currency: String,
-    isGroupFlight: Boolean = false
+    isGroupFlight: Boolean = false,
+    accommodation: Accommodation? = null,
+    accommodationPrice: Double = 0.0,
+    accommodationCommission: Double = 0.0,
+    upsells: List<SelectedUpsell> = emptyList(),
+    upsellTotal: Double = 0.0,
+    upsellCommission: Double = 0.0,
+    totalCommission: Double = 0.0,
+    finalTotal: Double
 ) {
     val context = LocalContext.current
     Card(
@@ -333,13 +401,109 @@ private fun SummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = StringTranslator.translate(context, "Prix de base"),
+                    text = StringTranslator.translate(context, "Prix de base (vol)"),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = String.format("%.2f %s", priceBreakdown.basePrice, currency),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            
+            // Accommodation
+            if (accommodationPrice > 0 && accommodation != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = StringTranslator.translate(context, "Hébergement"),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = accommodation.name,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                    Text(
+                        text = String.format("%.2f %s", accommodationPrice, currency),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (accommodationCommission > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Commission hébergement"),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = String.format("%.2f %s", accommodationCommission, currency),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+            
+            // Upsells
+            if (upsellTotal > 0 && upsells.isNotEmpty()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    upsells.forEach { upsell ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Service additionnel"),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = String.format("%.2f %s", upsell.price * upsell.quantity, upsell.currency),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Total services"),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = String.format("%.2f %s", upsellTotal, currency),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (upsellCommission > 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Commission services"),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = String.format("%.2f %s", upsellCommission, currency),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
             }
             
             Row(
@@ -356,6 +520,25 @@ private fun SummaryCard(
                 )
             }
             
+            // Show total commission if there are accommodation or upsells
+            if ((accommodationCommission > 0 || upsellCommission > 0) && totalCommission > priceBreakdown.commission) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Commission totale"),
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = String.format("%.2f %s", totalCommission, currency),
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
             HorizontalDivider()
             
             Row(
@@ -368,7 +551,7 @@ private fun SummaryCard(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = String.format("%.2f %s", priceBreakdown.totalPrice, currency),
+                    text = String.format("%.2f %s", finalTotal, currency),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary

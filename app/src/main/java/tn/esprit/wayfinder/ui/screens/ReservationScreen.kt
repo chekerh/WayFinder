@@ -27,6 +27,8 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
 import tn.esprit.wayfinder.models.FlightDestination
+import tn.esprit.wayfinder.models.Accommodation
+import tn.esprit.wayfinder.models.SelectedUpsell
 import tn.esprit.wayfinder.navigation.BOOKING_CURRENCY_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_DESTINATION_NAME_KEY
 import tn.esprit.wayfinder.navigation.BOOKING_TOTAL_KEY
@@ -58,6 +60,19 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
             ?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
     }
     
+    // Get accommodation and upsells from saved state
+    val selectedAccommodation = remember(destinationId) {
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.get<Accommodation>("selected_accommodation")
+    }
+    
+    val selectedUpsells = remember(destinationId) {
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
+    }
+    
     var cardNumber by remember { mutableStateOf("") }
     var cardHolderName by remember { mutableStateOf("") }
     var expiryDate by remember { mutableStateOf("") }
@@ -76,14 +91,25 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     }
 
 
-    val currency = selectedDestination?.currency ?: "EUR"
+    val currency = selectedDestination?.currency ?: selectedAccommodation?.currency ?: "EUR"
     val comparison = (comparisonState as? OfferComparisonUiState.Success)?.comparison
     val destinationPrice = selectedDestination?.price ?: 0.0
     val basePrice = if (destinationPrice > 0) destinationPrice else comparison?.basePrice ?: 0.0
     val taxes = comparison?.taxes ?: (basePrice * 0.15)
     val baggage = comparison?.baggage ?: 0.0
     val serviceFees = comparison?.serviceFees ?: 10.0
-    val total = basePrice + taxes + baggage + serviceFees
+    
+    // Calculate accommodation price (per night, assume 7 nights default)
+    val accommodationPrice = selectedAccommodation?.let { it.price * 7 } ?: 0.0
+    
+    // Calculate upsell total
+    val upsellTotal = selectedUpsells.sumOf { it.price * it.quantity }
+    
+    // Calculate commission
+    val commission = selectedUpsells.sumOf { it.commissionAmount * it.quantity }
+    
+    // Total includes flight, accommodation, upsells, taxes, fees
+    val total = basePrice + taxes + baggage + serviceFees + accommodationPrice + upsellTotal
     val displayPrice = basePrice
 
     Scaffold(
@@ -367,6 +393,67 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         Text(String.format(Locale.getDefault(), "%.2f %s", taxes, currency), fontWeight = FontWeight.Medium)
                     }
                     
+                    // Accommodation
+                    if (accommodationPrice > 0 && selectedAccommodation != null) {
+                        HorizontalDivider()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(StringTranslator.translate(context, "Hébergement"), color = Color.Gray)
+                                Text(
+                                    text = selectedAccommodation.name,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                            Text(
+                                String.format(Locale.getDefault(), "%.2f %s", accommodationPrice, currency),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    
+                    // Upsells
+                    if (upsellTotal > 0) {
+                        HorizontalDivider()
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            selectedUpsells.forEach { upsell ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        StringTranslator.translate(context, "Service additionnel"),
+                                        color = Color.Gray,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        String.format(Locale.getDefault(), "%.2f %s", upsell.price * upsell.quantity, upsell.currency),
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    StringTranslator.translate(context, "Total services"),
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    String.format(Locale.getDefault(), "%.2f %s", upsellTotal, currency),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -426,6 +513,16 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             set(BOOKING_CARD_NAME_KEY, cardHolderName.trim())
                             set(BOOKING_CARD_EXPIRY_KEY, expiryDate)
                             set(BOOKING_CARD_CVV_KEY, cvv)
+                            // Save accommodation and upsells
+                            if (selectedAccommodation != null) {
+                                set("selected_accommodation", selectedAccommodation)
+                                set("accommodation_price", accommodationPrice)
+                            }
+                            if (selectedUpsells.isNotEmpty()) {
+                                set("selected_upsells", selectedUpsells)
+                                set("upsell_total", upsellTotal)
+                                set("commission_total", commission)
+                            }
                         }
                         navController.navigate("review_booking/${selectedDestination.id}")
                     }
