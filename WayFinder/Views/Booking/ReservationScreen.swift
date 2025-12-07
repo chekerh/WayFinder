@@ -4,6 +4,7 @@ struct ReservationScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @StateObject private var bookingViewModel = BookingViewModel()
+    @StateObject private var rewardsViewModel = RewardsViewModel()
     let destinationId: String
     let destination: FlightDestination?
     var onBackToHome: (() -> Void)? = nil
@@ -15,6 +16,7 @@ struct ReservationScreen: View {
     @State private var showConfirmation = false
     @State private var confirmationNumber: String?
     @State private var navigateToConfirmation = false
+    @State private var usePoints = false
     
     var body: some View {
         ZStack {
@@ -50,6 +52,9 @@ struct ReservationScreen: View {
         .navigationBarHidden(true)
         .navigationDestination(isPresented: $navigateToConfirmation) {
             confirmationScreen
+        }
+        .task {
+            await rewardsViewModel.loadUserPoints()
         }
     }
     
@@ -208,6 +213,70 @@ struct ReservationScreen: View {
                     )
                     .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
                     
+                    // Points and Discount Card
+                    if let userPoints = rewardsViewModel.userPoints, userPoints.availablePoints > 0 {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "star.fill")
+                                    .foregroundColor(.yellow)
+                                Text("Utiliser mes points")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                            }
+                            .padding(.bottom, 8)
+                            
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Points disponibles")
+                                        .font(.subheadline)
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                    Text("\(userPoints.availablePoints) points")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                                }
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $usePoints)
+                                    .labelsHidden()
+                            }
+                            
+                            if usePoints {
+                                let basePrice = destination?.price ?? 0
+                                let taxes = 30.0
+                                let baggage = 30.0
+                                let subtotal = basePrice + taxes + baggage
+                                let maxUsablePoints = rewardsViewModel.getMaxUsablePoints(for: subtotal)
+                                let discount = rewardsViewModel.calculateDiscount(pointsToUse: maxUsablePoints, currency: destination?.currency ?? "TND")
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Divider()
+                                    
+                                    HStack {
+                                        Text("Réduction appliquée")
+                                            .font(.subheadline)
+                                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                        Spacer()
+                                        Text("- \(String(format: "%.2f %@", discount, destination?.currency ?? "TND"))")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.green)
+                                    }
+                                    
+                                    Text("\(maxUsablePoints) points utilisés")
+                                        .font(.caption)
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                }
+                                .padding(.top, 8)
+                            }
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(cardBackground)
+                        )
+                        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
+                    }
+                    
                     // Summary Card
                     VStack(alignment: .leading, spacing: 16) {
                         Text("reservation_summary")
@@ -248,6 +317,25 @@ struct ReservationScreen: View {
                                     .fontWeight(.medium)
                                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             }
+                            
+                            // Discount line if using points
+                            if usePoints, rewardsViewModel.userPoints != nil {
+                                let basePrice = destination?.price ?? 0
+                                let taxes = 30.0
+                                let baggage = 30.0
+                                let subtotal = basePrice + taxes + baggage
+                                let maxUsablePoints = rewardsViewModel.getMaxUsablePoints(for: subtotal)
+                                let discount = rewardsViewModel.calculateDiscount(pointsToUse: maxUsablePoints, currency: destination?.currency ?? "TND")
+                                
+                                HStack {
+                                    Text("Réduction (points)")
+                                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                                    Spacer()
+                                    Text("- \(String(format: "%.2f %@", discount, destination?.currency ?? "TND"))")
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.green)
+                                }
+                            }
                         }
                         
                         Divider()
@@ -257,7 +345,12 @@ struct ReservationScreen: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundStyle(ThemeColors.primaryText(colorScheme))
                             Spacer()
-                            let total = (destination?.price ?? 0) + 30.0 + 30.0
+                            let basePrice = destination?.price ?? 0
+                            let taxes = 30.0
+                            let baggage = 30.0
+                            let subtotal = basePrice + taxes + baggage
+                            let discount = usePoints && rewardsViewModel.userPoints != nil ? rewardsViewModel.calculateDiscount(pointsToUse: rewardsViewModel.getMaxUsablePoints(for: subtotal), currency: destination?.currency ?? "TND") : 0.0
+                            let total = max(0, subtotal - discount)
                             Text(String(format: "%.2f %@", total, destination?.currency ?? "EUR"))
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
@@ -283,13 +376,45 @@ struct ReservationScreen: View {
                                     "cvv": cvv as Any
                                 ]
                                 
-                                // Calculate total price
-                                let totalPrice = (destination?.price ?? 0) + 30.0 + 30.0
+                                // Calculate total price with discount
+                                let basePrice = destination?.price ?? 0
+                                let taxes = 30.0
+                                let baggage = 30.0
+                                let subtotal = basePrice + taxes + baggage
+                                
+                                var finalPrice = subtotal
+                                var pointsToRedeem = 0
+                                
+                                // Apply points discount if enabled
+                                if usePoints, rewardsViewModel.userPoints != nil {
+                                    let maxUsablePoints = rewardsViewModel.getMaxUsablePoints(for: subtotal)
+                                    let discount = rewardsViewModel.calculateDiscount(pointsToUse: maxUsablePoints, currency: destination?.currency ?? "TND")
+                                    finalPrice = max(0, subtotal - discount)
+                                    pointsToRedeem = maxUsablePoints
+                                    
+                                    // Redeem points if using them
+                                    if pointsToRedeem > 0 {
+                                        do {
+                                            _ = try await rewardsViewModel.service.redeemPoints(
+                                                points: pointsToRedeem,
+                                                description: "Réduction sur réservation",
+                                                metadata: [
+                                                    "booking_offer_id": destinationId,
+                                                    "discount_amount": discount
+                                                ]
+                                            )
+                                            print("✅ [ReservationScreen] Redeemed \(pointsToRedeem) points")
+                                        } catch {
+                                            print("⚠️ [ReservationScreen] Failed to redeem points: \(error.localizedDescription)")
+                                            // Continue with booking even if points redemption fails
+                                        }
+                                    }
+                                }
                                 
                                 let response = try await bookingViewModel.confirmBooking(
                                     offerId: destinationId,
                                     paymentDetails: paymentDetails,
-                                    totalPrice: totalPrice
+                                    totalPrice: finalPrice
                                 )
                                 confirmationNumber = response.confirmationNumber
                                 navigateToConfirmation = true
