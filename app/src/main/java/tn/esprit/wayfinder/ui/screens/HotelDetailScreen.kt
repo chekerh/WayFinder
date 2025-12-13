@@ -34,8 +34,8 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.Accommodation
+import tn.esprit.wayfinder.models.AccommodationReview
 import tn.esprit.wayfinder.models.FlightDestination
-import tn.esprit.wayfinder.models.Review
 import tn.esprit.wayfinder.models.Hotel
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
@@ -91,7 +91,7 @@ fun HotelDetailScreen(
                     description = h.description,
                     photos = h.media?.map { it.uri } ?: emptyList(),
                     reviews = state.reviews.map { r ->
-                        Review(
+                        AccommodationReview(
                             authorName = r.authorName ?: "Anonymous",
                             rating = r.rating?.toDouble() ?: 0.0,
                             text = r.text ?: "",
@@ -545,7 +545,7 @@ fun TimeInfoCard(
 }
 
 @Composable
-fun ReviewCard(review: Review) {
+fun ReviewCard(review: AccommodationReview) {
     val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.fillMaxWidth(),

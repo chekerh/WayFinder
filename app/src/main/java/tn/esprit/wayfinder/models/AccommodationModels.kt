@@ -3,9 +3,9 @@ package tn.esprit.wayfinder.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Define Review first since it's used by Accommodation
+// Simple review model for hotel/accommodation reviews from Google Places
 @Serializable
-data class Review(
+data class AccommodationReview(
     val authorName: String = "Anonymous",
     val rating: Double = 0.0,
     val text: String = "",
@@ -27,7 +27,7 @@ data class Accommodation(
     val address: String? = null,
     val description: String? = null,
     val photos: List<String> = emptyList(),
-    val reviews: List<Review> = emptyList(),
+    val reviews: List<AccommodationReview> = emptyList(),
     val checkInTime: String? = null,
     val checkOutTime: String? = null,
     val userRatingsTotal: Int? = null,
