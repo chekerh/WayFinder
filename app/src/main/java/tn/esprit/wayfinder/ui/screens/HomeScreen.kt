@@ -149,45 +149,7 @@ fun HomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(28.dp))
             
             Column {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        Text(
-                            text = StringTranslator.translate(context, "Personnalisé par Gemini"),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        // Sparkle icon for personalization
-                        Icon(
-                            imageVector = Icons.Filled.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                    Text(
-                        text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                }
-                
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    RegionSection(
-                        regions = regions,
-                        selectedRegion = selectedRegion,
-                        onRegionSelected = { regionName ->
-                            selectedRegion = if (selectedRegion == regionName) null else regionName
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
+                // Personalized section removed
                 
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Row(
@@ -196,7 +158,7 @@ fun HomeScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = StringTranslator.translate(context, "Comparateur avec Gemini"),
+                            text = StringTranslator.translate(context, "Comparateur avec ChatGPT"),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -349,20 +311,10 @@ fun TopBar(
     var user by remember { mutableStateOf(tokenManager.getUser()) }
     val notificationsState by notificationsViewModel.uiState.collectAsState()
     
-    // Get user's first name or username, fallback to "Explorateur"
+    // Get user's first name or username
     val userName = user?.firstName?.takeIf { it.isNotBlank() } 
         ?: user?.username?.takeIf { it.isNotBlank() }
-        ?: "Explorateur"
-    
-    // Personalized greeting based on time of day
-    val greeting = remember {
-        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        when {
-            hour < 12 -> StringTranslator.translate(context, "Bonjour")
-            hour < 18 -> StringTranslator.translate(context, "Bon après-midi")
-            else -> StringTranslator.translate(context, "Bonsoir")
-        }
-    }
+        ?: "Utilisateur"
     
     val unreadCount = when (val state = notificationsState) {
         is NotificationsUiState.Success -> state.unreadCount
@@ -429,65 +381,72 @@ fun TopBar(
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "$greeting, $userName! 👋",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    // Compact points badge
-                    val currentUser = user
-                    if (currentUser?.totalPoints != null && currentUser.totalPoints > 0) {
-                        CompactPointsBadge(
-                            points = currentUser.totalPoints,
-                            modifier = Modifier.scale(0.85f)
-                        )
-                    }
-                }
-                Text(
-                    text = StringTranslator.translate(context, "Prêt pour votre prochaine aventure?"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            
+            // User name after photo
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(start = 12.dp)
+            )
         }
         
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                .clickable { 
-                    HapticFeedbackHelper.triggerButtonPress(context)
-                    navController.navigate("notifications") 
-                },
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.Notifications,
-                contentDescription = "Notifications",
-                tint = Color(0xFF0D47A1)
-            )
-            if (unreadCount > 0) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(18.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFF44336)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (unreadCount > 9) "9+" else unreadCount.toString(),
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+            // Favorites button
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                    .clickable { 
+                        HapticFeedbackHelper.triggerButtonPress(context)
+                        navController.navigate("favorites") 
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = "Favoris",
+                    tint = Color(0xFFFF1744)
+                )
+            }
+            
+            // Notifications button
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                    .clickable { 
+                        HapticFeedbackHelper.triggerButtonPress(context)
+                        navController.navigate("notifications") 
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = "Notifications",
+                    tint = Color(0xFF0D47A1)
+                )
+                if (unreadCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF44336)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (unreadCount > 9) "9+" else unreadCount.toString(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

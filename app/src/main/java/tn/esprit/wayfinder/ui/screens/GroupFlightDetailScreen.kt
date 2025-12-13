@@ -212,7 +212,7 @@ fun GroupFlightDetailContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         groupFlight.members.forEach { member ->
-                            MemberItem(member = member, isOrganizer = member.userId == groupFlight.organizerId)
+                        MemberItem(member = member, isOrganizer = member.userId == groupFlight.organizerId)
                         }
                     }
                 }

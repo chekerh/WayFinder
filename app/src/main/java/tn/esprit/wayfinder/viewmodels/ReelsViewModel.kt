@@ -208,6 +208,35 @@ class ReelsViewModel(
         }
     }
     
+    fun incrementCommentCount(itemId: String) {
+        val currentState = _uiState.value
+        if (currentState is ReelsUiState.Success) {
+            val updatedItems = currentState.items.map { currentItem ->
+                if (currentItem.id == itemId) {
+                    when (currentItem) {
+                        is ReelContentItem.PostItem -> {
+                            ReelContentItem.PostItem(
+                                post = currentItem.post.copy(
+                                    commentsCount = currentItem.post.commentsCount + 1
+                                )
+                            )
+                        }
+                        is ReelContentItem.JourneyItem -> {
+                            ReelContentItem.JourneyItem(
+                                journey = currentItem.journey.copy(
+                                    commentsCount = currentItem.journey.commentsCount + 1
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    currentItem
+                }
+            }
+            _uiState.value = currentState.copy(items = updatedItems)
+        }
+    }
+    
     fun retry() {
         loadReelsFeed(refresh = true)
     }
