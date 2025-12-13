@@ -203,13 +203,13 @@ fun NavBarIcon(
         animationSpec = infiniteRepeatable(
             animation = keyframes<Float> {
                 durationMillis = 1200 // Cycle duration matching iOS spring timing
-                -8.dp.value at 0 with FastOutSlowInEasing // Start position
-                -16.dp.value at 300 with FastOutSlowInEasing // Bounce up (fast)
-                -8.dp.value at 600 with FastOutSlowInEasing // Bounce down
-                -12.dp.value at 800 with FastOutSlowInEasing // Small rebound up
-                -8.dp.value at 1000 with FastOutSlowInEasing // Settle
-                -9.dp.value at 1100 with FastOutSlowInEasing // Tiny bounce
-                -8.dp.value at 1200 with FastOutSlowInEasing // Final settle
+                -8.dp.value at 0 using FastOutSlowInEasing // Start position
+                -16.dp.value at 300 using FastOutSlowInEasing // Bounce up (fast)
+                -8.dp.value at 600 using FastOutSlowInEasing // Bounce down
+                -12.dp.value at 800 using FastOutSlowInEasing // Small rebound up
+                -8.dp.value at 1000 using FastOutSlowInEasing // Settle
+                -9.dp.value at 1100 using FastOutSlowInEasing // Tiny bounce
+                -8.dp.value at 1200 using FastOutSlowInEasing // Final settle
             },
             repeatMode = RepeatMode.Restart // Restart for continuous bounce
         ),
@@ -224,13 +224,13 @@ fun NavBarIcon(
         animationSpec = infiniteRepeatable(
             animation = keyframes<Float> {
                 durationMillis = 1200 // Same cycle as offset
-                1.0f at 0 with FastOutSlowInEasing // Start scale
-                1.15f at 300 with FastOutSlowInEasing // Scale up on bounce up
-                0.95f at 500 with FastOutSlowInEasing // Compress on way down
-                1.05f at 700 with FastOutSlowInEasing // Small rebound
-                0.98f at 900 with FastOutSlowInEasing // Settle down
-                1.02f at 1050 with FastOutSlowInEasing // Tiny bounce
-                1.0f at 1200 with FastOutSlowInEasing // Final settle
+                1.0f at 0 using FastOutSlowInEasing // Start scale
+                1.15f at 300 using FastOutSlowInEasing // Scale up on bounce up
+                0.95f at 500 using FastOutSlowInEasing // Compress on way down
+                1.05f at 700 using FastOutSlowInEasing // Small rebound
+                0.98f at 900 using FastOutSlowInEasing // Settle down
+                1.02f at 1050 using FastOutSlowInEasing // Tiny bounce
+                1.0f at 1200 using FastOutSlowInEasing // Final settle
             },
             repeatMode = RepeatMode.Restart
         ),

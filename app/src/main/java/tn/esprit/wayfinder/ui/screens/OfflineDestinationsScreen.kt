@@ -251,7 +251,7 @@ fun OfflineDestinationCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${destination.city ?: ""}${if (destination.city != null && destination.country.isNotEmpty()) ", " else ""}${destination.country}",
+                    text = "${destination.city}${if (destination.city.isNotEmpty() && destination.country.isNotEmpty()) ", " else ""}${destination.country}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
