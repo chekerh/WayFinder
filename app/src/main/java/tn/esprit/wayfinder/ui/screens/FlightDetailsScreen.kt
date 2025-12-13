@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.*
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
@@ -74,6 +75,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
     
     var showPriceAlertDialog by remember { mutableStateOf(false) }
     var showBookingDialog by remember { mutableStateOf(false) }
+    var showReviewsSheet by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(false) }
     
     // Check if favorite on composition
@@ -449,7 +451,101 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(16.dp))
 
 
-                // Travel Tips Section
+                // Quick Actions Row - Reviews & Price Alert
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Reviews Button - Opens bottom sheet
+                    val reviewsState by reviewsViewModel.uiState.collectAsState()
+                    val reviewStats = (reviewsState as? tn.esprit.wayfinder.viewmodels.ReviewsUiState.Success)?.stats
+                    
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(72.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
+                        onClick = { showReviewsSheet = true }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = reviewStats?.averageRating?.let { 
+                                        String.format("%.1f", it) 
+                                    } ?: "–",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "${reviewStats?.totalReviews ?: 0} ${StringTranslator.translate(context, "avis")}",
+                                    fontSize = 12.sp,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                imageVector = Icons.Outlined.ChevronRight,
+                                contentDescription = null,
+                                tint = colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Price Alert Button
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(72.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
+                        onClick = { showPriceAlertDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.NotificationsActive,
+                                contentDescription = null,
+                                tint = colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = StringTranslator.translate(context, "Alerte prix"),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
+                                )
+                                Text(
+                                    text = StringTranslator.translate(context, "Être notifié"),
+                                    fontSize = 12.sp,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Travel Tips - Collapsible
                 TravelTipsSection(
                     destinationId = destination.id,
                     destinationName = destination.name,
@@ -458,74 +554,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     travelTipsViewModel = travelTipsViewModel,
                     navController = navController
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Reviews Section
-                ReviewsSection(
-                    itemType = "flight",
-                    itemId = destination.id,
-                    reviewsViewModel = reviewsViewModel
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Price Alert Section - Glass Effect
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Filled.NotificationsActive,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFC107),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = StringTranslator.translate(context, "Alerte de prix"),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colorScheme.onSurface
-                                )
-                            }
-                        }
-                        Text(
-                            text = StringTranslator.translate(context, "Soyez notifié lorsque le prix de ce vol change"),
-                            fontSize = 14.sp,
-                            color = colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = { showPriceAlertDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFFFC107)
-                            )
-                        ) {
-                            Text(
-                                text = StringTranslator.translate(context, "Créer une alerte"),
-                                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Action Buttons
                 Column(
@@ -793,6 +822,297 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     navController.navigate("lodging_choice/${destination.id}")
                 }
             )
+        }
+        
+        // Reviews Bottom Sheet
+        if (showReviewsSheet) {
+            ReviewsBottomSheet(
+                itemType = "flight",
+                itemId = destination.id,
+                reviewsViewModel = reviewsViewModel,
+                onDismiss = { showReviewsSheet = false }
+            )
+        }
+    }
+}
+
+/**
+ * Bottom sheet for displaying reviews
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReviewsBottomSheet(
+    itemType: String,
+    itemId: String,
+    reviewsViewModel: ReviewsViewModel,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    val uiState by reviewsViewModel.uiState.collectAsState()
+    var showReviewDialog by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    LaunchedEffect(itemId) {
+        reviewsViewModel.loadReviews(itemType, itemId)
+    }
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colorScheme.surface,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "Avis"),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+                FilledTonalButton(
+                    onClick = { showReviewDialog = true },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(StringTranslator.translate(context, "Ajouter"))
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            when (val state = uiState) {
+                is tn.esprit.wayfinder.viewmodels.ReviewsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is tn.esprit.wayfinder.viewmodels.ReviewsUiState.Success -> {
+                    // Stats summary
+                    state.stats?.let { stats ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = String.format("%.1f", stats.averageRating),
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.primary
+                                )
+                                Row {
+                                    repeat(5) { index ->
+                                        Icon(
+                                            imageVector = if (index < stats.averageRating.toInt()) 
+                                                Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                            contentDescription = null,
+                                            tint = Color(0xFFFFC107),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "${stats.totalReviews} ${StringTranslator.translate(context, "avis")}",
+                                    fontSize = 12.sp,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            // Rating bars
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                (5 downTo 1).forEach { rating ->
+                                    val count = stats.ratingDistribution[rating.toString()] ?: 0
+                                    val percentage = if (stats.totalReviews > 0) 
+                                        count.toFloat() / stats.totalReviews else 0f
+                                    
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "$rating",
+                                            fontSize = 12.sp,
+                                            color = colorScheme.onSurfaceVariant
+                                        )
+                                        LinearProgressIndicator(
+                                            progress = { percentage },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = Color(0xFFFFC107),
+                                            trackColor = colorScheme.surfaceVariant
+                                        )
+                                        Text(
+                                            text = "$count",
+                                            fontSize = 12.sp,
+                                            color = colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.width(24.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (state.reviews.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Outlined.RateReview,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(40.dp),
+                                    tint = colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = StringTranslator.translate(context, "Aucun avis pour le moment"),
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        // Reviews list
+                        Column(
+                            modifier = Modifier.heightIn(max = 400.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            state.reviews.take(10).forEach { review ->
+                                CompactReviewCard(review = review)
+                            }
+                        }
+                    }
+                }
+                is tn.esprit.wayfinder.viewmodels.ReviewsUiState.Error -> {
+                    Text(
+                        text = state.message,
+                        color = colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+                else -> {}
+            }
+        }
+    }
+    
+    if (showReviewDialog) {
+        // Trigger the add review dialog from ReviewsSection
+        ReviewsSection(
+            itemType = itemType,
+            itemId = itemId,
+            reviewsViewModel = reviewsViewModel
+        )
+    }
+}
+
+/**
+ * Compact review card for bottom sheet
+ */
+@Composable
+fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(colorScheme.primary.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = review.userId.name.firstOrNull()?.uppercase() ?: "?",
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.primary,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = review.userId.name,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                }
+                
+                // Rating
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    repeat(review.rating) {
+                        Icon(
+                            Icons.Filled.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+            
+            review.comment?.let { comment ->
+                Text(
+                    text = comment,
+                    fontSize = 13.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
+            }
         }
     }
 }
