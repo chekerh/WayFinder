@@ -41,7 +41,6 @@ import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
-import tn.esprit.wayfinder.viewmodels.HotelsUiState
 import tn.esprit.wayfinder.viewmodels.HotelDetailUiState
 import tn.esprit.wayfinder.viewmodels.HotelsViewModel
 import tn.esprit.wayfinder.models.HotelReview
@@ -59,7 +58,6 @@ fun HotelDetailScreen(
     val hotelsViewModel: HotelsViewModel = viewModel(
         factory = ViewModelFactory(context.applicationContext as Application)
     )
-    val hotelsUiState by hotelsViewModel.uiState.collectAsState()
     val hotelDetailState by hotelsViewModel.hotelDetailState.collectAsState()
     
     // Get saved data from navigation
