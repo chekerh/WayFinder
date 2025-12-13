@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 /// UI State for AI Travel Video generation
 enum AiVideoState: Equatable {
@@ -47,6 +48,8 @@ class AiTravelVideoViewModel: ObservableObject {
     @Published var travelPlans: [TravelPlanSuggestion] = []
     @Published var selectedImages: [String] = []
     @Published var selectedMusicTrack: MusicTrack?
+    @Published var isUploadingImage = false
+    @Published var uploadError: String?
     
     private var pollingTask: Task<Void, Never>?
     
@@ -117,6 +120,30 @@ class AiTravelVideoViewModel: ObservableObject {
     /// Select a music track
     func selectMusicTrack(_ track: MusicTrack?) {
         selectedMusicTrack = track
+    }
+    
+    /// Upload image data to server
+    func uploadImage(data: Data, fileName: String) async {
+        isUploadingImage = true
+        uploadError = nil
+        
+        do {
+            let response = try await APIService.shared.uploadVideoImage(imageData: data, fileName: fileName)
+            if response.success, let imageData = response.data {
+                addImage(imageData.url)
+            } else {
+                uploadError = response.message ?? "Failed to upload image"
+            }
+        } catch {
+            uploadError = error.localizedDescription
+        }
+        
+        isUploadingImage = false
+    }
+    
+    /// Clear upload error
+    func clearUploadError() {
+        uploadError = nil
     }
     
     /// Generate a travel video from a text prompt
@@ -236,6 +263,8 @@ struct AiTravelVideoGenerator: View {
     @State private var showMusicSelector = false
     @State private var showTravelPlans = false
     @State private var imageUrlInput = ""
+    @State private var showUrlInput = false
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @FocusState private var isTextFieldFocused: Bool
     
     var onVideoGenerated: ((String) -> Void)?
@@ -462,6 +491,64 @@ struct AiTravelVideoGenerator: View {
                 Text("Photos (\(viewModel.selectedImages.count)/20)")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(ThemeColors.primaryText(colorScheme))
+                
+                Spacer()
+                
+                // Photos Picker button
+                PhotosPicker(
+                    selection: $selectedPhotoItems,
+                    maxSelectionCount: 20 - viewModel.selectedImages.count,
+                    matching: .images
+                ) {
+                    HStack(spacing: 4) {
+                        if viewModel.isUploadingImage {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                            Text("Envoi...")
+                                .font(.system(size: 12))
+                        } else {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.system(size: 14))
+                            Text("Galerie")
+                                .font(.system(size: 12))
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(ThemeColors.primary(colorScheme).opacity(0.1))
+                    .foregroundColor(ThemeColors.primary(colorScheme))
+                    .cornerRadius(20)
+                }
+                .disabled(viewModel.isUploadingImage || viewModel.selectedImages.count >= 20)
+                .onChange(of: selectedPhotoItems) { items in
+                    Task {
+                        for item in items {
+                            if let data = try? await item.loadTransferable(type: Data.self) {
+                                let fileName = "image_\(Date().timeIntervalSince1970).jpg"
+                                await viewModel.uploadImage(data: data, fileName: fileName)
+                            }
+                        }
+                        selectedPhotoItems.removeAll()
+                    }
+                }
+            }
+            
+            // Upload error
+            if let error = viewModel.uploadError {
+                HStack {
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundColor(.red)
+                    Spacer()
+                    Button(action: { viewModel.clearUploadError() }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(8)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
             }
             
             if !viewModel.selectedImages.isEmpty {
@@ -492,31 +579,36 @@ struct AiTravelVideoGenerator: View {
                 }
             }
             
-            Text("Collez une URL d'image pour l'ajouter")
-                .font(.system(size: 11))
-                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+            // Optional URL input
+            Button(action: { showUrlInput.toggle() }) {
+                Text(showUrlInput ? "Masquer URL" : "Ou ajouter via URL")
+                    .font(.system(size: 11))
+                    .foregroundColor(ThemeColors.primary(colorScheme))
+            }
             
-            HStack(spacing: 8) {
-                TextField("https://...", text: $imageUrlInput)
-                    .font(.system(size: 12))
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(viewModel.selectedImages.count >= 20)
-                
-                Button(action: {
-                    if imageUrlInput.hasPrefix("http") {
-                        viewModel.addImage(imageUrlInput)
-                        imageUrlInput = ""
+            if showUrlInput {
+                HStack(spacing: 8) {
+                    TextField("https://...", text: $imageUrlInput)
+                        .font(.system(size: 12))
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(viewModel.selectedImages.count >= 20)
+                    
+                    Button(action: {
+                        if imageUrlInput.hasPrefix("http") {
+                            viewModel.addImage(imageUrlInput)
+                            imageUrlInput = ""
+                        }
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(
+                                imageUrlInput.hasPrefix("http") && viewModel.selectedImages.count < 20
+                                    ? ThemeColors.primary(colorScheme)
+                                    : Color.gray
+                            )
                     }
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(
-                            imageUrlInput.hasPrefix("http") && viewModel.selectedImages.count < 20
-                                ? ThemeColors.primary(colorScheme)
-                                : Color.gray
-                        )
+                    .disabled(!imageUrlInput.hasPrefix("http") || viewModel.selectedImages.count >= 20)
                 }
-                .disabled(!imageUrlInput.hasPrefix("http") || viewModel.selectedImages.count >= 20)
             }
         }
     }
@@ -857,6 +949,27 @@ extension APIService {
         let request = DefaultRequest(method: "GET", path: "/ai-video/travel-plans")
         return try await self.request(request, decodeTo: TravelPlansResponse.self)
     }
+    
+    func uploadVideoImage(imageData: Data, fileName: String) async throws -> ImageUploadResponse {
+        let boundary = UUID().uuidString
+        var body = Data()
+        
+        // Add image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        let request = MultipartRequest(
+            method: "POST",
+            path: "/ai-video/upload-image",
+            body: body,
+            boundary: boundary
+        )
+        return try await self.request(request, decodeTo: ImageUploadResponse.self)
+    }
 }
 
 // MARK: - Response Models
@@ -909,6 +1022,34 @@ struct MusicTracksResponse: Codable {
 struct TravelPlansResponse: Codable {
     let success: Bool
     let plans: [TravelPlanSuggestion]
+}
+
+struct ImageUploadResponse: Codable {
+    let success: Bool
+    let message: String?
+    let data: ImageUploadData?
+}
+
+struct ImageUploadData: Codable {
+    let url: String
+    let originalName: String
+    let size: Int?
+}
+
+/// Multipart Request for file uploads
+struct MultipartRequest: APIRequest {
+    let method: String
+    let path: String
+    let body: Data
+    let boundary: String
+    
+    var headers: [String: String]? {
+        ["Content-Type": "multipart/form-data; boundary=\(boundary)"]
+    }
+    
+    func encode() throws -> Data? {
+        return body
+    }
 }
 
 #Preview {
