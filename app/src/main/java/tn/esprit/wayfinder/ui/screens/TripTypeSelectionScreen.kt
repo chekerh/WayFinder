@@ -2,18 +2,18 @@ package tn.esprit.wayfinder.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,12 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,25 +31,22 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
-import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
 
 /**
- * Trip types available for selection
+ * Trip types available for selection - minimalistic version
  */
 data class TripTypeOption(
     val id: String,
     val name: String,
     val description: String,
-    val icon: ImageVector,
-    val gradient: List<Color>,
-    val recommendedStays: List<String>
+    val icon: ImageVector
 )
 
 /**
  * Screen for selecting the type of trip
- * Affects accommodation filtering and activity recommendations
+ * Minimalistic design with consistent theme colors
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,66 +70,50 @@ fun TripTypeSelectionScreen(
             TripTypeOption(
                 id = "business",
                 name = "Affaires",
-                description = "Voyages professionnels avec confort et efficacité",
-                icon = Icons.Filled.Business,
-                gradient = listOf(Color(0xFF1A237E), Color(0xFF3949AB)),
-                recommendedStays = listOf("Hôtels 4-5★", "Suites", "Business Hotels")
+                description = "Voyages professionnels",
+                icon = Icons.Outlined.Work
             ),
             TripTypeOption(
                 id = "leisure",
                 name = "Loisirs",
-                description = "Détente et découverte sans contraintes",
-                icon = Icons.Filled.BeachAccess,
-                gradient = listOf(Color(0xFF0277BD), Color(0xFF4FC3F7)),
-                recommendedStays = listOf("Hôtels", "Résorts", "Appartements")
+                description = "Détente et découverte",
+                icon = Icons.Outlined.WbSunny
             ),
             TripTypeOption(
                 id = "honeymoon",
                 name = "Lune de miel",
-                description = "Moments romantiques dans des lieux d'exception",
-                icon = Icons.Filled.Favorite,
-                gradient = listOf(Color(0xFFAD1457), Color(0xFFF48FB1)),
-                recommendedStays = listOf("Résorts", "Boutique Hotels", "Suites Romantiques")
+                description = "Escapade romantique",
+                icon = Icons.Outlined.FavoriteBorder
             ),
             TripTypeOption(
                 id = "family",
                 name = "Famille",
-                description = "Aventures pour petits et grands",
-                icon = Icons.Filled.FamilyRestroom,
-                gradient = listOf(Color(0xFFE65100), Color(0xFFFFB74D)),
-                recommendedStays = listOf("Appartements", "Hôtels Famille", "Villas")
+                description = "Aventures en famille",
+                icon = Icons.Outlined.People
             ),
             TripTypeOption(
                 id = "adventure",
                 name = "Aventure",
-                description = "Exploration et sensations fortes",
-                icon = Icons.Filled.Terrain,
-                gradient = listOf(Color(0xFF2E7D32), Color(0xFF81C784)),
-                recommendedStays = listOf("Éco-lodges", "Auberges", "Camping")
+                description = "Exploration nature",
+                icon = Icons.Outlined.Hiking
             ),
             TripTypeOption(
                 id = "solo",
                 name = "Solo",
-                description = "Liberté totale pour voyageur indépendant",
-                icon = Icons.Filled.Person,
-                gradient = listOf(Color(0xFF6A1B9A), Color(0xFFBA68C8)),
-                recommendedStays = listOf("Auberges", "Hôtels", "Hostels")
+                description = "Voyage indépendant",
+                icon = Icons.Outlined.Person
             ),
             TripTypeOption(
                 id = "wellness",
                 name = "Bien-être",
-                description = "Ressourcement corps et esprit",
-                icon = Icons.Filled.Spa,
-                gradient = listOf(Color(0xFF00695C), Color(0xFF80CBC4)),
-                recommendedStays = listOf("Spa Resorts", "Retreats", "Wellness Hotels")
+                description = "Repos et relaxation",
+                icon = Icons.Outlined.Spa
             ),
             TripTypeOption(
                 id = "backpacking",
                 name = "Backpacking",
-                description = "Voyage économique et authentique",
-                icon = Icons.Filled.Backpack,
-                gradient = listOf(Color(0xFF795548), Color(0xFFBCAAA4)),
-                recommendedStays = listOf("Hostels", "Auberges", "Budget Hotels")
+                description = "Voyage économique",
+                icon = Icons.Outlined.Backpack
             )
         )
     }
@@ -153,7 +131,7 @@ fun TripTypeSelectionScreen(
                         )
                         destination?.let {
                             Text(
-                                text = "${it.name}, ${it.country}",
+                                text = "${it.city ?: it.name}, ${it.country}",
                                 fontSize = 14.sp,
                                 color = colorScheme.onSurfaceVariant
                             )
@@ -166,7 +144,7 @@ fun TripTypeSelectionScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface
+                    containerColor = colorScheme.background
                 )
             )
         },
@@ -178,66 +156,61 @@ fun TripTypeSelectionScreen(
                     shadowElevation = 8.dp,
                     color = colorScheme.surface
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Button(
+                        onClick = {
+                            // Save trip type and navigate to accommodations
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("trip_type", selectedType)
+                            navController.navigate("accommodations/${destinationId ?: ""}/$selectedType")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.primary
+                        )
                     ) {
-                        Button(
-                            onClick = {
-                                // Save trip type and navigate to accommodations
-                                navController.currentBackStackEntry
-                                    ?.savedStateHandle
-                                    ?.set("trip_type", selectedType)
-                                navController.navigate("accommodations/${destinationId ?: ""}/$selectedType")
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colorScheme.primary
-                            )
-                        ) {
-                            Text(
-                                text = StringTranslator.translate(context, "Continuer"),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Text(
+                            text = StringTranslator.translate(context, "Continuer"),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
-            } else {
-                CustomBottomNavigationBar(navController = navController)
             }
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
+            item {
+                Text(
+                    text = StringTranslator.translate(context, "Quel est le but de votre voyage ?"),
+                    fontSize = 15.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             
-            Text(
-                text = StringTranslator.translate(context, "Quel est le but de votre voyage ?"),
-                fontSize = 16.sp,
-                color = colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            items(tripTypes, key = { it.id }) { tripType ->
+                TripTypeCard(
+                    tripType = tripType,
+                    isSelected = selectedType == tripType.id,
+                    onClick = { selectedType = tripType.id }
+                )
+            }
             
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(tripTypes, key = { it.id }) { tripType ->
-                    TripTypeCard(
-                        tripType = tripType,
-                        isSelected = selectedType == tripType.id,
-                        onClick = { selectedType = tripType.id }
-                    )
-                }
+            // Bottom spacing
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -253,98 +226,107 @@ fun TripTypeCard(
     
     val scale by animateFloatAsState(
         targetValue = if (isSelected) 1.02f else 1f,
-        animationSpec = spring(),
+        animationSpec = tween(durationMillis = 200),
         label = "scale"
     )
     
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) colorScheme.primaryContainer else colorScheme.surfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "backgroundColor"
+    )
+    
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) colorScheme.primary else Color.Transparent,
+        targetValue = if (isSelected) colorScheme.primary else colorScheme.surfaceVariant,
+        animationSpec = tween(durationMillis = 200),
         label = "borderColor"
     )
+    
+    val iconTint by animateColorAsState(
+        targetValue = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "iconTint"
+    )
+    
+    val textColor by animateColorAsState(
+        targetValue = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
+        animationSpec = tween(durationMillis = 200),
+        label = "textColor"
+    )
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(160.dp)
             .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
             .border(
-                width = if (isSelected) 3.dp else 0.dp,
+                width = 2.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 8.dp else 4.dp
-        )
+        shape = RoundedCornerShape(16.dp),
+        color = backgroundColor,
+        tonalElevation = if (isSelected) 4.dp else 0.dp
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(tripType.gradient)
-                )
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
+            // Icon in circle
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) colorScheme.primary.copy(alpha = 0.15f) 
+                        else colorScheme.surface
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                // Icon and checkmark
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        imageVector = tripType.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = Color.White
-                    )
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = "Selected",
-                            modifier = Modifier.size(24.dp),
-                            tint = Color.White
-                        )
-                    }
-                }
-                
-                // Title and description
-                Column {
-                    Text(
-                        text = tripType.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = tripType.description,
-                        fontSize = 11.sp,
-                        color = Color.White.copy(alpha = 0.85f),
-                        lineHeight = 14.sp,
-                        maxLines = 2
-                    )
-                }
+                Icon(
+                    imageVector = tripType.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(26.dp),
+                    tint = iconTint
+                )
             }
             
-            // Recommended stays badge
+            // Title and description
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = tripType.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = textColor
+                )
+                Text(
+                    text = tripType.description,
+                    fontSize = 13.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Checkmark when selected
             if (isSelected) {
-                Surface(
+                Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White.copy(alpha = 0.2f)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(colorScheme.primary),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = tripType.recommendedStays.first(),
-                        fontSize = 10.sp,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = "Selected",
+                        modifier = Modifier.size(18.dp),
+                        tint = colorScheme.onPrimary
                     )
                 }
             }
@@ -359,4 +341,3 @@ fun TripTypeSelectionScreenPreview() {
         TripTypeSelectionScreen(rememberNavController())
     }
 }
-
