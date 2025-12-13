@@ -117,6 +117,145 @@ final class CatalogService {
         
         return try await APIService.shared.request(request, decodeTo: RecommendedFlightsResponse.self)
     }
+    
+    // MARK: - Hotels API
+    
+    func searchHotels(
+        locationCode: String,
+        checkInDate: String,
+        checkOutDate: String? = nil,
+        adults: Int,
+        children: Int? = nil,
+        currencyCode: String? = nil,
+        radius: Int? = nil,
+        maxResults: Int? = nil,
+        priceRangeMin: Double? = nil,
+        priceRangeMax: Double? = nil,
+        minRating: Int? = nil,
+        boardType: String? = nil
+    ) async throws -> HotelSearchResponse {
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "locationCode", value: locationCode),
+            URLQueryItem(name: "checkInDate", value: checkInDate),
+            URLQueryItem(name: "adults", value: "\(adults)")
+        ]
+        
+        if let checkOut = checkOutDate {
+            queryItems.append(URLQueryItem(name: "checkOutDate", value: checkOut))
+        }
+        if let children = children {
+            queryItems.append(URLQueryItem(name: "children", value: "\(children)"))
+        }
+        if let currency = currencyCode {
+            queryItems.append(URLQueryItem(name: "currencyCode", value: currency))
+        }
+        if let radius = radius {
+            queryItems.append(URLQueryItem(name: "radius", value: "\(radius)"))
+        }
+        if let max = maxResults {
+            queryItems.append(URLQueryItem(name: "maxResults", value: "\(max)"))
+        }
+        if let minPrice = priceRangeMin {
+            queryItems.append(URLQueryItem(name: "priceRangeMin", value: "\(minPrice)"))
+        }
+        if let maxPrice = priceRangeMax {
+            queryItems.append(URLQueryItem(name: "priceRangeMax", value: "\(maxPrice)"))
+        }
+        if let rating = minRating {
+            queryItems.append(URLQueryItem(name: "minRating", value: "\(rating)"))
+        }
+        if let board = boardType {
+            queryItems.append(URLQueryItem(name: "boardType", value: board))
+        }
+        
+        let request = DefaultRequest(
+            method: "GET",
+            path: "/catalog/hotels/search",
+            queryItems: queryItems
+        )
+        
+        return try await APIService.shared.request(request, decodeTo: HotelSearchResponse.self)
+    }
+    
+    func getHotelDetails(
+        hotelId: String,
+        checkInDate: String? = nil,
+        checkOutDate: String? = nil,
+        adults: Int? = nil,
+        currencyCode: String? = nil
+    ) async throws -> HotelDetailsResponse {
+        var queryItems: [URLQueryItem] = []
+        
+        if let checkIn = checkInDate {
+            queryItems.append(URLQueryItem(name: "checkInDate", value: checkIn))
+        }
+        if let checkOut = checkOutDate {
+            queryItems.append(URLQueryItem(name: "checkOutDate", value: checkOut))
+        }
+        if let adults = adults {
+            queryItems.append(URLQueryItem(name: "adults", value: "\(adults)"))
+        }
+        if let currency = currencyCode {
+            queryItems.append(URLQueryItem(name: "currencyCode", value: currency))
+        }
+        
+        let request = DefaultRequest(
+            method: "GET",
+            path: "/catalog/hotels/\(hotelId)",
+            queryItems: queryItems.isEmpty ? nil : queryItems
+        )
+        
+        return try await APIService.shared.request(request, decodeTo: HotelDetailsResponse.self)
+    }
+    
+    // MARK: - Activities API
+    
+    func getActivities(
+        city: String,
+        limit: Int = 10,
+        categories: [String]? = nil
+    ) async throws -> ActivitiesResponse {
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "city", value: city),
+            URLQueryItem(name: "limit", value: "\(limit)")
+        ]
+        
+        if let cats = categories, !cats.isEmpty {
+            queryItems.append(URLQueryItem(name: "categories", value: cats.joined(separator: ",")))
+        }
+        
+        let request = DefaultRequest(
+            method: "GET",
+            path: "/catalog/activities",
+            queryItems: queryItems
+        )
+        
+        return try await APIService.shared.request(request, decodeTo: ActivitiesResponse.self)
+    }
+    
+    func getActivityFeed(
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        city: String? = nil
+    ) async throws -> ActivityFeedResponse {
+        var queryItems: [URLQueryItem] = []
+        
+        if let lat = latitude, let lon = longitude {
+            queryItems.append(URLQueryItem(name: "latitude", value: "\(lat)"))
+            queryItems.append(URLQueryItem(name: "longitude", value: "\(lon)"))
+        }
+        if let city = city {
+            queryItems.append(URLQueryItem(name: "city", value: city))
+        }
+        
+        let request = DefaultRequest(
+            method: "GET",
+            path: "/catalog/activity-feed",
+            queryItems: queryItems.isEmpty ? nil : queryItems
+        )
+        
+        return try await APIService.shared.request(request, decodeTo: ActivityFeedResponse.self)
+    }
 }
 
 // MARK: - Conversion logic (exact copy from Android)
