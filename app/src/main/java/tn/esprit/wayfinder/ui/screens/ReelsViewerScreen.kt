@@ -549,7 +549,7 @@ fun ReelItem(
                         .background(Color.Black.copy(alpha = 0.3f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Comment,
+                        imageVector = Icons.Outlined.ChatBubbleOutline,
                         contentDescription = "Comment",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)

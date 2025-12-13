@@ -367,14 +367,14 @@ fun HotelDetailScreen(
                             ) {
                                 hotel.checkInTime?.let {
                                     TimeInfoCard(
-                                        icon = Icons.AutoMirrored.Filled.Login,
+                                        icon = Icons.Filled.Schedule,
                                         label = StringTranslator.translate(context, "Check-in"),
                                         time = it
                                     )
                                 }
                                 hotel.checkOutTime?.let {
                                     TimeInfoCard(
-                                        icon = Icons.AutoMirrored.Filled.Logout,
+                                        icon = Icons.Filled.EventBusy,
                                         label = StringTranslator.translate(context, "Check-out"),
                                         time = it
                                     )
