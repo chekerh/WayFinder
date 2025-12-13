@@ -3,6 +3,15 @@ package tn.esprit.wayfinder.models
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+// Define Review first since it's used by Accommodation
+@Serializable
+data class Review(
+    val authorName: String = "Anonymous",
+    val rating: Double = 0.0,
+    val text: String = "",
+    val time: Long? = null
+)
+
 @Serializable
 data class Accommodation(
     val id: String,
@@ -29,14 +38,6 @@ data class Accommodation(
     val amenitiesList: List<String>
         get() = amenities
 }
-
-@Serializable
-data class Review(
-    val authorName: String = "Anonymous",
-    val rating: Double = 0.0,
-    val text: String = "",
-    val time: Long? = null
-)
 
 // ============ Hotel API Response Models ============
 
