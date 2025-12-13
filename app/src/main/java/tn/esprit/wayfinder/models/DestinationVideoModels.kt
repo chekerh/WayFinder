@@ -155,3 +155,32 @@ data class AiVideoGenerateWithMediaResponse(
     @SerialName("data") val data: AiVideoGenerateWithMediaData? = null
 )
 
+// --- Image Upload Models --- //
+
+@Serializable
+data class ImageUploadResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String? = null,
+    @SerialName("data") val data: ImageUploadData? = null
+)
+
+@Serializable
+data class ImageUploadData(
+    @SerialName("url") val url: String,
+    @SerialName("originalName") val originalName: String,
+    @SerialName("size") val size: Long? = null
+)
+
+@Serializable
+data class ImagesUploadResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String? = null,
+    @SerialName("data") val data: ImagesUploadData? = null
+)
+
+@Serializable
+data class ImagesUploadData(
+    @SerialName("images") val images: List<ImageUploadData> = emptyList(),
+    @SerialName("count") val count: Int = 0
+)
+

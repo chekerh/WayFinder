@@ -568,6 +568,14 @@ interface ApiService {
     @POST("ai-video/generate-with-media")
     suspend fun generateAiTravelVideoWithMedia(@Body request: AiVideoGenerateWithMediaRequest): AiVideoGenerateWithMediaResponse
 
+    @Multipart
+    @POST("ai-video/upload-image")
+    suspend fun uploadVideoImage(@Part image: MultipartBody.Part): ImageUploadResponse
+
+    @Multipart
+    @POST("ai-video/upload-images")
+    suspend fun uploadVideoImages(@Part images: List<MultipartBody.Part>): ImagesUploadResponse
+
     // --- CHAT --- //
     @POST("chat/message")
     suspend fun sendChatMessage(@Body request: ChatMessageRequest): ChatMessageResponse

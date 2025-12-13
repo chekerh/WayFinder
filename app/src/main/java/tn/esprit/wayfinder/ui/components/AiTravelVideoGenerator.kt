@@ -69,11 +69,22 @@ fun AiTravelVideoGenerator(
     val travelPlans by viewModel.travelPlans.collectAsState()
     val selectedImages by viewModel.selectedImages.collectAsState()
     val selectedMusicTrack by viewModel.selectedMusicTrack.collectAsState()
+    val isUploadingImage by viewModel.isUploadingImage.collectAsState()
+    val uploadError by viewModel.uploadError.collectAsState()
     
     var promptText by remember { mutableStateOf("") }
     var isExpanded by remember { mutableStateOf(false) }
     var showMusicSelector by remember { mutableStateOf(false) }
     var showTravelPlans by remember { mutableStateOf(false) }
+    
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.uploadImagesFromUris(context, uris)
+        }
+    }
 
     Card(
         modifier = modifier
@@ -294,7 +305,11 @@ fun AiTravelVideoGenerator(
                         selectedImages = selectedImages,
                         onAddImage = { imageUrl -> viewModel.addImage(imageUrl) },
                         onRemoveImage = { imageUrl -> viewModel.removeImage(imageUrl) },
-                        isEnabled = isServiceAvailable && uiState !is AiVideoUiState.Loading && uiState !is AiVideoUiState.Generating
+                        onPickFromGallery = { imagePickerLauncher.launch("image/*") },
+                        isEnabled = isServiceAvailable && uiState !is AiVideoUiState.Loading && uiState !is AiVideoUiState.Generating,
+                        isUploading = isUploadingImage,
+                        uploadError = uploadError,
+                        onClearError = { viewModel.clearUploadError() }
                     )
                     
                     // Music Selection Section
@@ -552,7 +567,11 @@ private fun ImageUploadSection(
     selectedImages: List<String>,
     onAddImage: (String) -> Unit,
     onRemoveImage: (String) -> Unit,
-    isEnabled: Boolean
+    onPickFromGallery: () -> Unit,
+    isEnabled: Boolean,
+    isUploading: Boolean,
+    uploadError: String?,
+    onClearError: () -> Unit
 ) {
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -580,6 +599,79 @@ private fun ImageUploadSection(
                     fontWeight = FontWeight.Medium,
                     color = colorScheme.onSurface
                 )
+            }
+            
+            // Upload from gallery button
+            Button(
+                onClick = onPickFromGallery,
+                enabled = isEnabled && selectedImages.size < 20 && !isUploading,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.onPrimaryContainer
+                )
+            ) {
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = colorScheme.primary
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = StringTranslator.translate(context, "Envoi..."),
+                        fontSize = 12.sp
+                    )
+                } else {
+                    Icon(
+                        Icons.Filled.AddAPhoto,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = StringTranslator.translate(context, "Galerie"),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+        
+        // Upload error
+        if (uploadError != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = colorScheme.errorContainer.copy(alpha = 0.5f)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = uploadError,
+                        fontSize = 11.sp,
+                        color = colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onClearError,
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Dismiss",
+                            tint = colorScheme.error,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
             }
         }
         
@@ -620,50 +712,61 @@ private fun ImageUploadSection(
             }
         }
         
-        // Add Image Hint
-        Text(
-            text = StringTranslator.translate(context, "Collez une URL d'image pour l'ajouter"),
-            fontSize = 11.sp,
-            color = colorScheme.onSurfaceVariant
-        )
+        // Optional: URL input as alternative
+        var showUrlInput by remember { mutableStateOf(false) }
         
-        // Image URL input
-        var imageUrlInput by remember { mutableStateOf("") }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        TextButton(
+            onClick = { showUrlInput = !showUrlInput },
+            contentPadding = PaddingValues(0.dp)
         ) {
-            OutlinedTextField(
-                value = imageUrlInput,
-                onValueChange = { imageUrlInput = it },
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "https://...",
-                        fontSize = 12.sp,
-                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                },
-                enabled = isEnabled && selectedImages.size < 20,
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+            Text(
+                text = if (showUrlInput) 
+                    StringTranslator.translate(context, "Masquer URL") 
+                else 
+                    StringTranslator.translate(context, "Ou ajouter via URL"),
+                fontSize = 11.sp,
+                color = colorScheme.primary
             )
-            IconButton(
-                onClick = {
-                    if (imageUrlInput.startsWith("http")) {
-                        onAddImage(imageUrlInput)
-                        imageUrlInput = ""
-                    }
-                },
-                enabled = imageUrlInput.startsWith("http") && selectedImages.size < 20
+        }
+        
+        AnimatedVisibility(visible = showUrlInput) {
+            var imageUrlInput by remember { mutableStateOf("") }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Add image",
-                    tint = if (imageUrlInput.startsWith("http")) colorScheme.primary else colorScheme.onSurfaceVariant
+                OutlinedTextField(
+                    value = imageUrlInput,
+                    onValueChange = { imageUrlInput = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text(
+                            "https://...",
+                            fontSize = 12.sp,
+                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    },
+                    enabled = isEnabled && selectedImages.size < 20,
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
                 )
+                IconButton(
+                    onClick = {
+                        if (imageUrlInput.startsWith("http")) {
+                            onAddImage(imageUrlInput)
+                            imageUrlInput = ""
+                        }
+                    },
+                    enabled = imageUrlInput.startsWith("http") && selectedImages.size < 20
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Add image",
+                        tint = if (imageUrlInput.startsWith("http")) colorScheme.primary else colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

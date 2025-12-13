@@ -1,5 +1,7 @@
 package tn.esprit.wayfinder.viewmodels
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import tn.esprit.wayfinder.models.AiVideoGenerateRequest
 import tn.esprit.wayfinder.models.AiVideoGenerateWithMediaRequest
 import tn.esprit.wayfinder.models.MusicTrack
@@ -67,6 +72,12 @@ class AiTravelVideoViewModel(
 
     private val _selectedMusicTrack = MutableStateFlow<MusicTrack?>(null)
     val selectedMusicTrack: StateFlow<MusicTrack?> = _selectedMusicTrack.asStateFlow()
+
+    private val _isUploadingImage = MutableStateFlow(false)
+    val isUploadingImage: StateFlow<Boolean> = _isUploadingImage.asStateFlow()
+
+    private val _uploadError = MutableStateFlow<String?>(null)
+    val uploadError: StateFlow<String?> = _uploadError.asStateFlow()
 
     init {
         checkServiceStatus()
@@ -313,6 +324,85 @@ class AiTravelVideoViewModel(
      */
     fun clearImages() {
         _selectedImages.value = emptyList()
+    }
+
+    /**
+     * Upload an image from a URI (phone gallery)
+     */
+    fun uploadImageFromUri(context: Context, uri: Uri) {
+        viewModelScope.launch {
+            _isUploadingImage.value = true
+            _uploadError.value = null
+
+            try {
+                // Get file bytes from URI
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bytes = inputStream?.readBytes() ?: throw Exception("Could not read image")
+                inputStream.close()
+
+                // Get file name
+                val fileName = uri.lastPathSegment ?: "image_${System.currentTimeMillis()}.jpg"
+
+                // Create multipart body
+                val requestBody = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("image", fileName, requestBody)
+
+                // Upload to server
+                val response = apiService.uploadVideoImage(part)
+
+                if (response.success && response.data != null) {
+                    addImage(response.data.url)
+                    Log.d(TAG, "Image uploaded successfully: ${response.data.url}")
+                } else {
+                    _uploadError.value = response.message ?: "Failed to upload image"
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to upload image", e)
+                _uploadError.value = e.message ?: "Failed to upload image"
+            } finally {
+                _isUploadingImage.value = false
+            }
+        }
+    }
+
+    /**
+     * Upload multiple images from URIs (phone gallery)
+     */
+    fun uploadImagesFromUris(context: Context, uris: List<Uri>) {
+        viewModelScope.launch {
+            _isUploadingImage.value = true
+            _uploadError.value = null
+
+            for (uri in uris) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes() ?: continue
+                    inputStream.close()
+
+                    val fileName = uri.lastPathSegment ?: "image_${System.currentTimeMillis()}.jpg"
+                    val requestBody = bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    val part = MultipartBody.Part.createFormData("image", fileName, requestBody)
+
+                    val response = apiService.uploadVideoImage(part)
+
+                    if (response.success && response.data != null) {
+                        addImage(response.data.url)
+                        Log.d(TAG, "Image uploaded: ${response.data.url}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to upload image from $uri", e)
+                }
+            }
+
+            _isUploadingImage.value = false
+        }
+    }
+
+    /**
+     * Clear upload error
+     */
+    fun clearUploadError() {
+        _uploadError.value = null
     }
 
     /**
