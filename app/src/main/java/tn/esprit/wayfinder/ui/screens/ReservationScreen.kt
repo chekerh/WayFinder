@@ -61,10 +61,35 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     }
     
     // Get accommodation and upsells from saved state
+    // Reconstruct Accommodation from primitive fields (SavedStateHandle doesn't support complex objects)
+    val savedStateHandle = remember(destinationId) {
+        navController.previousBackStackEntry?.savedStateHandle
+    }
     val selectedAccommodation = remember(destinationId) {
-        navController.previousBackStackEntry
-            ?.savedStateHandle
-            ?.get<Accommodation>("selected_accommodation")
+        val id = savedStateHandle?.get<String>("accommodation_id")
+        val name = savedStateHandle?.get<String>("accommodation_name")
+        val type = savedStateHandle?.get<String>("accommodation_type")
+        val price = savedStateHandle?.get<Double>("accommodation_price")
+        val currency = savedStateHandle?.get<String>("accommodation_currency")
+        val location = savedStateHandle?.get<String>("accommodation_location")
+        val rating = savedStateHandle?.get<Double>("accommodation_rating")
+        val imageUrl = savedStateHandle?.get<String>("accommodation_image_url")
+        
+        if (id != null && name != null && type != null && price != null && currency != null && location != null && rating != null) {
+            Accommodation(
+                id = id,
+                name = name,
+                type = type,
+                price = price,
+                currency = currency,
+                rating = rating,
+                imageUrl = imageUrl?.takeIf { it.isNotEmpty() },
+                location = location,
+                amenities = emptyList() // Amenities not saved, but not critical for display
+            )
+        } else {
+            null
+        }
     }
     
     val selectedUpsells = remember(destinationId) {
@@ -513,9 +538,9 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             set(BOOKING_CARD_NAME_KEY, cardHolderName.trim())
                             set(BOOKING_CARD_EXPIRY_KEY, expiryDate)
                             set(BOOKING_CARD_CVV_KEY, cvv)
-                            // Save accommodation and upsells
+                            // Save accommodation and upsells (only primitive types)
                             if (selectedAccommodation != null) {
-                                set("selected_accommodation", selectedAccommodation)
+                                // Accommodation object already saved as primitive fields, just save the calculated price
                                 set("accommodation_price", accommodationPrice)
                             }
                             if (selectedUpsells.isNotEmpty()) {

@@ -117,10 +117,15 @@ fun AccommodationsListScreen(
                             navController.currentBackStackEntry
                                 ?.savedStateHandle
                                 ?.apply {
-                                    set("selected_accommodation", accommodation)
+                                    // Only save primitive types - Accommodation object cannot be saved to SavedStateHandle
                                     set("accommodation_id", accommodation.id)
                                     set("accommodation_price", accommodation.price)
                                     set("accommodation_currency", accommodation.currency)
+                                    set("accommodation_name", accommodation.name)
+                                    set("accommodation_type", accommodation.type)
+                                    set("accommodation_location", accommodation.location)
+                                    set("accommodation_rating", accommodation.rating)
+                                    set("accommodation_image_url", accommodation.imageUrl ?: "")
                                 }
                             // Navigate to upsell screen (will be created)
                             navController.navigate("upsells/${destinationId}")

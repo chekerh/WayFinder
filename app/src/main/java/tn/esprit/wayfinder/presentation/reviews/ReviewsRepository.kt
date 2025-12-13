@@ -65,10 +65,18 @@ class ReviewsRepository(private val apiService: ApiService) {
                 null
             }
         } catch (e: SerializationException) {
-            Log.e("ReviewsRepository", "JSON parsing error for user review: ${e.message ?: "Unknown parsing error"}", e)
+            // Handle empty response or invalid JSON - this is expected when user has no review
+            // The API may return empty response instead of 404
+            Log.d("ReviewsRepository", "Empty or invalid response for user review (user likely has no review): ${e.message}")
             null
         } catch (e: Exception) {
-            Log.e("ReviewsRepository", "Error checking user review: ${e.message}", e)
+            // Catch all other exceptions including JsonDecodingException
+            if (e.message?.contains("EOF") == true || e.message?.contains("Expected start") == true) {
+                // Empty response - user has no review
+                Log.d("ReviewsRepository", "Empty response for user review (user has no review)")
+            } else {
+                Log.e("ReviewsRepository", "Error checking user review: ${e.message}", e)
+            }
             null
         }
     }

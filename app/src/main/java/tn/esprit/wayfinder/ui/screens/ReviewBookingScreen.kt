@@ -88,7 +88,33 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
     val groupFlightId = savedStateHandle?.get<String>("group_flight_id")
     
     // Get accommodation and upsells
-    val selectedAccommodation = savedStateHandle?.get<Accommodation>("selected_accommodation")
+    // Reconstruct Accommodation from primitive fields (SavedStateHandle doesn't support complex objects)
+    val selectedAccommodation = remember {
+        val id = savedStateHandle?.get<String>("accommodation_id")
+        val name = savedStateHandle?.get<String>("accommodation_name")
+        val type = savedStateHandle?.get<String>("accommodation_type")
+        val price = savedStateHandle?.get<Double>("accommodation_price")
+        val currency = savedStateHandle?.get<String>("accommodation_currency")
+        val location = savedStateHandle?.get<String>("accommodation_location")
+        val rating = savedStateHandle?.get<Double>("accommodation_rating")
+        val imageUrl = savedStateHandle?.get<String>("accommodation_image_url")
+        
+        if (id != null && name != null && type != null && price != null && currency != null && location != null && rating != null) {
+            Accommodation(
+                id = id,
+                name = name,
+                type = type,
+                price = price,
+                currency = currency,
+                rating = rating,
+                imageUrl = imageUrl?.takeIf { it.isNotEmpty() },
+                location = location,
+                amenities = emptyList() // Amenities not saved, but not critical for display
+            )
+        } else {
+            null
+        }
+    }
     val selectedUpsells = savedStateHandle?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
     val accommodationPrice = savedStateHandle?.get<Double>("accommodation_price") ?: 0.0
     val upsellTotal = savedStateHandle?.get<Double>("upsell_total") ?: 0.0
@@ -107,10 +133,8 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                 BOOKING_CURRENCY_KEY,
                 selectedDestination?.currency ?: currency
             )
-            // Save accommodation and upsells for ticket generation
-            selectedAccommodation?.let {
-                navController.currentBackStackEntry?.savedStateHandle?.set("booking_accommodation", it)
-            }
+            // Save accommodation and upsells for ticket generation (only primitive types)
+            // Accommodation already saved as primitive fields, no need to save object again
             if (selectedUpsells.isNotEmpty()) {
                 navController.currentBackStackEntry?.savedStateHandle?.set("booking_upsells", selectedUpsells)
             }
