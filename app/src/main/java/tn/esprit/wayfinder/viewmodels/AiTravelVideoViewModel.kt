@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import tn.esprit.wayfinder.models.AiVideoGenerateRequest
+import tn.esprit.wayfinder.models.AiVideoGenerateWithMediaRequest
+import tn.esprit.wayfinder.models.MusicTrack
+import tn.esprit.wayfinder.models.TravelPlanSuggestion
 import tn.esprit.wayfinder.network.ApiService
 
 /**
@@ -53,8 +56,22 @@ class AiTravelVideoViewModel(
     private val _generatedVideos = MutableStateFlow<List<GeneratedVideoItem>>(emptyList())
     val generatedVideos: StateFlow<List<GeneratedVideoItem>> = _generatedVideos.asStateFlow()
 
+    private val _musicTracks = MutableStateFlow<List<MusicTrack>>(emptyList())
+    val musicTracks: StateFlow<List<MusicTrack>> = _musicTracks.asStateFlow()
+
+    private val _travelPlans = MutableStateFlow<List<TravelPlanSuggestion>>(emptyList())
+    val travelPlans: StateFlow<List<TravelPlanSuggestion>> = _travelPlans.asStateFlow()
+
+    private val _selectedImages = MutableStateFlow<List<String>>(emptyList())
+    val selectedImages: StateFlow<List<String>> = _selectedImages.asStateFlow()
+
+    private val _selectedMusicTrack = MutableStateFlow<MusicTrack?>(null)
+    val selectedMusicTrack: StateFlow<MusicTrack?> = _selectedMusicTrack.asStateFlow()
+
     init {
         checkServiceStatus()
+        loadMusicTracks()
+        loadTravelPlans()
     }
 
     /**
@@ -230,6 +247,130 @@ class AiTravelVideoViewModel(
      */
     fun useSuggestion(suggestion: String): String {
         return suggestion
+    }
+
+    /**
+     * Load available music tracks
+     */
+    private fun loadMusicTracks() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getMusicTracks()
+                if (response.success) {
+                    _musicTracks.value = response.tracks
+                    Log.d(TAG, "Loaded ${response.tracks.size} music tracks")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load music tracks", e)
+            }
+        }
+    }
+
+    /**
+     * Load AI travel plan suggestions
+     */
+    private fun loadTravelPlans() {
+        viewModelScope.launch {
+            try {
+                val response = apiService.getTravelPlans()
+                if (response.success) {
+                    _travelPlans.value = response.plans
+                    Log.d(TAG, "Loaded ${response.plans.size} travel plans")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load travel plans", e)
+            }
+        }
+    }
+
+    /**
+     * Select a music track
+     */
+    fun selectMusicTrack(track: MusicTrack?) {
+        _selectedMusicTrack.value = track
+    }
+
+    /**
+     * Add an image URL to the selected images
+     */
+    fun addImage(imageUrl: String) {
+        val current = _selectedImages.value.toMutableList()
+        if (current.size < 20 && !current.contains(imageUrl)) {
+            current.add(imageUrl)
+            _selectedImages.value = current
+        }
+    }
+
+    /**
+     * Remove an image from the selected images
+     */
+    fun removeImage(imageUrl: String) {
+        _selectedImages.value = _selectedImages.value.filter { it != imageUrl }
+    }
+
+    /**
+     * Clear all selected images
+     */
+    fun clearImages() {
+        _selectedImages.value = emptyList()
+    }
+
+    /**
+     * Use a travel plan's video prompt
+     */
+    fun useTravelPlan(plan: TravelPlanSuggestion): String {
+        return plan.videoPrompt
+    }
+
+    /**
+     * Generate a travel video with images and music
+     */
+    fun generateVideoWithMedia(prompt: String) {
+        if (prompt.isBlank()) {
+            _uiState.value = AiVideoUiState.Error("Please enter a prompt")
+            return
+        }
+
+        if (prompt.length < 5) {
+            _uiState.value = AiVideoUiState.Error("Prompt must be at least 5 characters")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = AiVideoUiState.Loading
+
+            try {
+                val request = AiVideoGenerateWithMediaRequest(
+                    prompt = prompt.trim(),
+                    images = _selectedImages.value,
+                    musicTrackId = _selectedMusicTrack.value?.id
+                )
+                val response = apiService.generateAiTravelVideoWithMedia(request)
+
+                if (response.success && response.data != null) {
+                    val predictionId = response.data.predictionId
+                    _uiState.value = AiVideoUiState.Generating(
+                        predictionId = predictionId,
+                        progress = 0,
+                        enhancedPrompt = response.data.enhancedPrompt
+                    )
+
+                    Log.d(TAG, "Video with media generation started: $predictionId")
+
+                    // Start polling for status
+                    pollForCompletion(predictionId, prompt)
+                } else {
+                    _uiState.value = AiVideoUiState.Error(
+                        response.message ?: "Failed to start video generation"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to generate video with media", e)
+                _uiState.value = AiVideoUiState.Error(
+                    e.message ?: "Failed to generate video"
+                )
+            }
+        }
     }
 }
 

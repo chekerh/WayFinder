@@ -559,6 +559,15 @@ interface ApiService {
     @POST("ai-video/cancel/{predictionId}")
     suspend fun cancelAiVideo(@Path("predictionId") predictionId: String): GenericResponse
 
+    @GET("ai-video/music-tracks")
+    suspend fun getMusicTracks(): MusicTracksResponse
+
+    @GET("ai-video/travel-plans")
+    suspend fun getTravelPlans(): TravelPlansResponse
+
+    @POST("ai-video/generate-with-media")
+    suspend fun generateAiTravelVideoWithMedia(@Body request: AiVideoGenerateWithMediaRequest): AiVideoGenerateWithMediaResponse
+
     // --- CHAT --- //
     @POST("chat/message")
     suspend fun sendChatMessage(@Body request: ChatMessageRequest): ChatMessageResponse

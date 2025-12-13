@@ -3,9 +3,12 @@ package tn.esprit.wayfinder.ui.components
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import tn.esprit.wayfinder.models.MusicTrack
+import tn.esprit.wayfinder.models.TravelPlanSuggestion
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.AiTravelVideoViewModel
@@ -41,7 +46,7 @@ import tn.esprit.wayfinder.viewmodels.AiVideoUiState
 
 /**
  * AI Travel Video Generator Component
- * Allows users to generate travel videos from text prompts
+ * Allows users to generate travel videos from text prompts, images, and music
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,9 +65,15 @@ fun AiTravelVideoGenerator(
     val uiState by viewModel.uiState.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
     val isServiceAvailable by viewModel.isServiceAvailable.collectAsState()
+    val musicTracks by viewModel.musicTracks.collectAsState()
+    val travelPlans by viewModel.travelPlans.collectAsState()
+    val selectedImages by viewModel.selectedImages.collectAsState()
+    val selectedMusicTrack by viewModel.selectedMusicTrack.collectAsState()
     
     var promptText by remember { mutableStateOf("") }
     var isExpanded by remember { mutableStateOf(false) }
+    var showMusicSelector by remember { mutableStateOf(false) }
+    var showTravelPlans by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier
@@ -120,7 +131,7 @@ fun AiTravelVideoGenerator(
                             color = colorScheme.onSurface
                         )
                         Text(
-                            text = StringTranslator.translate(context, "Décrivez votre voyage de rêve"),
+                            text = StringTranslator.translate(context, "Texte, photos & musique"),
                             fontSize = 12.sp,
                             color = colorScheme.onSurfaceVariant
                         )
@@ -180,6 +191,62 @@ fun AiTravelVideoGenerator(
                         }
                     }
                     
+                    // AI Travel Plans Section
+                    if (travelPlans.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Plans de voyage IA"),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colorScheme.onSurface
+                            )
+                            TextButton(onClick = { showTravelPlans = !showTravelPlans }) {
+                                Text(if (showTravelPlans) "Masquer" else "Voir tout")
+                            }
+                        }
+                        
+                        AnimatedVisibility(visible = showTravelPlans) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(travelPlans) { plan ->
+                                    TravelPlanCard(
+                                        plan = plan,
+                                        onClick = {
+                                            promptText = plan.videoPrompt
+                                            showTravelPlans = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        
+                        if (!showTravelPlans) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(travelPlans.take(3)) { plan ->
+                                    SuggestionChip(
+                                        onClick = { promptText = plan.videoPrompt },
+                                        label = {
+                                            Text(
+                                                text = plan.title.take(25) + if (plan.title.length > 25) "..." else "",
+                                                fontSize = 11.sp
+                                            )
+                                        },
+                                        colors = SuggestionChipDefaults.suggestionChipColors(
+                                            containerColor = Color(0xFFE8F5E9)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
                     // Prompt input field
                     OutlinedTextField(
                         value = promptText,
@@ -187,7 +254,7 @@ fun AiTravelVideoGenerator(
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = {
                             Text(
-                                StringTranslator.translate(context, "Ex: Coucher de soleil sur une plage tropicale..."),
+                                StringTranslator.translate(context, "Décrivez votre vidéo de voyage..."),
                                 color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         },
@@ -211,12 +278,7 @@ fun AiTravelVideoGenerator(
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                if (promptText.isNotBlank() && isServiceAvailable) {
-                                    viewModel.generateVideo(promptText)
-                                }
-                            }
+                            onDone = { focusManager.clearFocus() }
                         ),
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -227,7 +289,24 @@ fun AiTravelVideoGenerator(
                         maxLines = 3
                     )
                     
-                    // Suggestions
+                    // Image Upload Section
+                    ImageUploadSection(
+                        selectedImages = selectedImages,
+                        onAddImage = { imageUrl -> viewModel.addImage(imageUrl) },
+                        onRemoveImage = { imageUrl -> viewModel.removeImage(imageUrl) },
+                        isEnabled = isServiceAvailable && uiState !is AiVideoUiState.Loading && uiState !is AiVideoUiState.Generating
+                    )
+                    
+                    // Music Selection Section
+                    MusicSelectionSection(
+                        musicTracks = musicTracks,
+                        selectedTrack = selectedMusicTrack,
+                        onSelectTrack = { track -> viewModel.selectMusicTrack(track) },
+                        showSelector = showMusicSelector,
+                        onToggleSelector = { showMusicSelector = !showMusicSelector }
+                    )
+                    
+                    // Suggestions (when no prompt)
                     if (suggestions.isNotEmpty() && promptText.isEmpty()) {
                         Text(
                             text = StringTranslator.translate(context, "Suggestions:"),
@@ -342,7 +421,6 @@ fun AiTravelVideoGenerator(
                                     ) {
                                         Button(
                                             onClick = {
-                                                // Open video in browser or player
                                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(state.videoUrl))
                                                 context.startActivity(intent)
                                                 onVideoGenerated?.invoke(state.videoUrl)
@@ -363,6 +441,8 @@ fun AiTravelVideoGenerator(
                                         OutlinedButton(
                                             onClick = {
                                                 viewModel.resetState()
+                                                viewModel.clearImages()
+                                                viewModel.selectMusicTrack(null)
                                                 promptText = ""
                                             }
                                         ) {
@@ -417,7 +497,11 @@ fun AiTravelVideoGenerator(
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                viewModel.generateVideo(promptText)
+                                if (selectedImages.isNotEmpty() || selectedMusicTrack != null) {
+                                    viewModel.generateVideoWithMedia(promptText)
+                                } else {
+                                    viewModel.generateVideo(promptText)
+                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -460,3 +544,357 @@ fun AiTravelVideoGenerator(
     }
 }
 
+/**
+ * Image Upload Section Component
+ */
+@Composable
+private fun ImageUploadSection(
+    selectedImages: List<String>,
+    onAddImage: (String) -> Unit,
+    onRemoveImage: (String) -> Unit,
+    isEnabled: Boolean
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.PhotoLibrary,
+                    contentDescription = null,
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = StringTranslator.translate(context, "Photos") + " (${selectedImages.size}/20)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurface
+                )
+            }
+        }
+        
+        // Selected Images Row
+        if (selectedImages.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(selectedImages) { imageUrl ->
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        // Remove button
+                        IconButton(
+                            onClick = { onRemoveImage(imageUrl) },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(20.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remove",
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Add Image Hint
+        Text(
+            text = StringTranslator.translate(context, "Collez une URL d'image pour l'ajouter"),
+            fontSize = 11.sp,
+            color = colorScheme.onSurfaceVariant
+        )
+        
+        // Image URL input
+        var imageUrlInput by remember { mutableStateOf("") }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = imageUrlInput,
+                onValueChange = { imageUrlInput = it },
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "https://...",
+                        fontSize = 12.sp,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                },
+                enabled = isEnabled && selectedImages.size < 20,
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.sp)
+            )
+            IconButton(
+                onClick = {
+                    if (imageUrlInput.startsWith("http")) {
+                        onAddImage(imageUrlInput)
+                        imageUrlInput = ""
+                    }
+                },
+                enabled = imageUrlInput.startsWith("http") && selectedImages.size < 20
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Add image",
+                    tint = if (imageUrlInput.startsWith("http")) colorScheme.primary else colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Music Selection Section Component
+ */
+@Composable
+private fun MusicSelectionSection(
+    musicTracks: List<MusicTrack>,
+    selectedTrack: MusicTrack?,
+    onSelectTrack: (MusicTrack?) -> Unit,
+    showSelector: Boolean,
+    onToggleSelector: () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggleSelector() },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = StringTranslator.translate(context, "Musique de fond"),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurface
+                )
+            }
+            
+            if (selectedTrack != null) {
+                AssistChip(
+                    onClick = { onSelectTrack(null) },
+                    label = {
+                        Text(selectedTrack.name, fontSize = 11.sp)
+                    },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Clear",
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                )
+            } else {
+                Icon(
+                    if (showSelector) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        
+        AnimatedVisibility(visible = showSelector && musicTracks.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(musicTracks) { track ->
+                    MusicTrackChip(
+                        track = track,
+                        isSelected = selectedTrack?.id == track.id,
+                        onClick = { onSelectTrack(if (selectedTrack?.id == track.id) null else track) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Music Track Chip Component
+ */
+@Composable
+private fun MusicTrackChip(
+    track: MusicTrack,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Card(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) colorScheme.primaryContainer else colorScheme.surfaceVariant
+        ),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, colorScheme.primary) else null
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = track.name,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isSelected) colorScheme.primary else colorScheme.onSurface
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = track.genre,
+                    fontSize = 10.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = track.duration,
+                    fontSize = 10.sp,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Travel Plan Card Component
+ */
+@Composable
+private fun TravelPlanCard(
+    plan: TravelPlanSuggestion,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Card(
+        modifier = Modifier
+            .width(200.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = plan.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = colorScheme.onSecondaryContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = plan.description,
+                fontSize = 11.sp,
+                color = colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = colorScheme.primary
+                )
+                Text(
+                    text = plan.duration,
+                    fontSize = 10.sp,
+                    color = colorScheme.primary
+                )
+            }
+            // Destinations
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(plan.destinations.take(3)) { dest ->
+                    Text(
+                        text = dest,
+                        fontSize = 9.sp,
+                        color = colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .background(
+                                colorScheme.surface,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(8.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Utiliser ce plan",
+                    fontSize = 11.sp
+                )
+            }
+        }
+    }
+}

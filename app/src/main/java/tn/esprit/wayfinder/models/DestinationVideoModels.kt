@@ -93,3 +93,65 @@ data class GenericResponse(
     @SerialName("message") val message: String? = null
 )
 
+// --- Music Track Models --- //
+
+@Serializable
+data class MusicTrack(
+    @SerialName("id") val id: String,
+    @SerialName("name") val name: String,
+    @SerialName("genre") val genre: String,
+    @SerialName("duration") val duration: String,
+    @SerialName("previewUrl") val previewUrl: String? = null
+)
+
+@Serializable
+data class MusicTracksResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("tracks") val tracks: List<MusicTrack> = emptyList()
+)
+
+// --- Travel Plan Models --- //
+
+@Serializable
+data class TravelPlanSuggestion(
+    @SerialName("id") val id: String,
+    @SerialName("title") val title: String,
+    @SerialName("description") val description: String,
+    @SerialName("destinations") val destinations: List<String> = emptyList(),
+    @SerialName("duration") val duration: String,
+    @SerialName("activities") val activities: List<String> = emptyList(),
+    @SerialName("videoPrompt") val videoPrompt: String
+)
+
+@Serializable
+data class TravelPlansResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("plans") val plans: List<TravelPlanSuggestion> = emptyList()
+)
+
+// --- Generate with Media --- //
+
+@Serializable
+data class AiVideoGenerateWithMediaRequest(
+    @SerialName("prompt") val prompt: String,
+    @SerialName("images") val images: List<String> = emptyList(),
+    @SerialName("musicTrackId") val musicTrackId: String? = null
+)
+
+@Serializable
+data class AiVideoGenerateWithMediaData(
+    @SerialName("predictionId") val predictionId: String,
+    @SerialName("status") val status: String,
+    @SerialName("originalPrompt") val originalPrompt: String,
+    @SerialName("enhancedPrompt") val enhancedPrompt: String,
+    @SerialName("musicTrack") val musicTrack: MusicTrack? = null,
+    @SerialName("estimatedTime") val estimatedTime: String? = null
+)
+
+@Serializable
+data class AiVideoGenerateWithMediaResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String? = null,
+    @SerialName("data") val data: AiVideoGenerateWithMediaData? = null
+)
+
