@@ -286,6 +286,61 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             
             Spacer(modifier = Modifier.height(20.dp))
             
+            // Arrive Mode Teaser Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF6200EE).copy(alpha = 0.1f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "✨",
+                            fontSize = 24.sp
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Mode Arrive"),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF6200EE)
+                        )
+                    }
+                    
+                    Text(
+                        text = StringTranslator.translate(context, "Dès votre arrivée à destination, WayFinder deviendra votre compagnon de voyage intelligent avec:"),
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ArriveModeFeature(StringTranslator.translate(context, "🗺️ Navigation AR en temps réel"))
+                        ArriveModeFeature(StringTranslator.translate(context, "🎯 Recommandations personnalisées"))
+                        ArriveModeFeature(StringTranslator.translate(context, "🤖 Assistant IA vocal"))
+                        ArriveModeFeature(StringTranslator.translate(context, "📸 Organisation automatique de photos"))
+                        ArriveModeFeature(StringTranslator.translate(context, "🏆 Quêtes et badges d'explorateur"))
+                    }
+                    
+                    Text(
+                        text = StringTranslator.translate(context, "Le Mode Arrive s'activera automatiquement à l'atterrissage!"),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF6200EE)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             // Outfit Weather Button - Navigate to outfit_selection (same as profile)
             Button(
                 onClick = {
@@ -355,6 +410,15 @@ fun BookingConfirmationScreen(navController: NavController, bookingId: String) {
             }
         }
     }
+}
+
+@Composable
+fun ArriveModeFeature(text: String) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        color = Color.DarkGray
+    )
 }
 
 @Preview(showBackground = true)

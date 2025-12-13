@@ -226,7 +226,18 @@ fun AppNavigation() {
             })
         ) { backStackEntry ->
             val destinationId = backStackEntry.arguments?.getString("destinationId")
-            LodgingChoiceScreen(navController = navController, destinationId = destinationId)
+            // Navigate to trip type selection first
+            TripTypeSelectionScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "trip_type/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { 
+                type = NavType.StringType
+                nullable = true
+            })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId")
+            TripTypeSelectionScreen(navController = navController, destinationId = destinationId)
         }
         composable(
             "accommodations/{destinationId}/{type}",
@@ -240,11 +251,32 @@ fun AppNavigation() {
             AccommodationsListScreen(navController = navController, destinationId = destinationId, accommodationType = type)
         }
         composable(
+            "hotel_detail/{hotelId}",
+            arguments = listOf(navArgument("hotelId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val hotelId = backStackEntry.arguments?.getString("hotelId") ?: ""
+            HotelDetailScreen(navController = navController, hotelId = hotelId)
+        }
+        composable(
             "upsells/{destinationId}",
             arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
         ) { backStackEntry ->
             val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
             UpsellScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "activities_preview/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            ActivitiesPreviewScreen(navController = navController, destinationId = destinationId)
+        }
+        composable(
+            "payment_summary/{destinationId}",
+            arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val destinationId = backStackEntry.arguments?.getString("destinationId") ?: ""
+            PaymentSummaryScreen(navController = navController, destinationId = destinationId)
         }
         composable("during_travel") {
             DuringTravelScreen(navController = navController)

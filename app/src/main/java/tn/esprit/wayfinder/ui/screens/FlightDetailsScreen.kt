@@ -8,6 +8,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -115,12 +120,39 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
         )
     }
 
+    // Parallax scroll state
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    val imageHeight = 380.dp
+    val headerOffset = 320.dp
+    
+    // Calculate parallax and fade values based on scroll
+    val scrollOffset = scrollState.value.toFloat()
+    val maxScroll = with(density) { imageHeight.toPx() }
+    
+    // Parallax factor (image moves at 0.5x speed of scroll)
+    val parallaxOffset = scrollOffset * 0.5f
+    
+    // Calculate alpha for header elements (fade out as user scrolls)
+    val headerAlpha = (1f - (scrollOffset / (maxScroll * 0.5f))).coerceIn(0f, 1f)
+    
+    // Calculate dynamic header offset (image collapses as user scrolls)
+    val dynamicHeaderOffset = with(density) { 
+        (headerOffset.toPx() - scrollOffset).coerceAtLeast(0f).toDp()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Header Image
+        // Header Image with Parallax Effect
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(380.dp)
+                .height(imageHeight)
+                .graphicsLayer {
+                    // Parallax translation - image moves up slower than content
+                    translationY = -parallaxOffset
+                    // Fade out image as it scrolls away
+                    alpha = headerAlpha.coerceAtLeast(0.3f)
+                }
         ) {
             // Display destination image if available, otherwise use gradient
             if (!destination.imageUrl.isNullOrBlank()) {
@@ -141,20 +173,36 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     )
                 )
             }
+            
+            // Gradient overlay for better text readability
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.3f)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    )
+            )
         }
 
-        // Content Card
+        // Content Card with scroll
         Card(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 320.dp),
+                .padding(top = dynamicHeaderOffset.coerceAtLeast(80.dp)),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(24.dp)
             ) {
 
@@ -565,43 +613,53 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             }
         }
 
-        // Airline Logo Buttons on Right Side
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 16.dp)
-                .statusBarsPadding()
-                .padding(top = 80.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Airline 1 - Example: Air France
-            AirlineLogoButton(
-                logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Air-France-Logo.png",
-                airlineName = "Air France",
-                onClick = {
-                    // Navigate to airline page
-                    navController.navigate("airline/AirFrance")
-                }
-            )
-            // Airline 2 - Example: Lufthansa
-            AirlineLogoButton(
-                logoUrl = "https://logos-world.net/wp-content/uploads/2020/03/Lufthansa-Logo.png",
-                airlineName = "Lufthansa",
-                onClick = {
-                    navController.navigate("airline/Lufthansa")
-                }
-            )
-            // Airline 3 - Example: Emirates
-            AirlineLogoButton(
-                logoUrl = "https://logos-world.net/wp-content/uploads/2020/06/Emirates-Logo.png",
-                airlineName = "Emirates",
-                onClick = {
-                    navController.navigate("airline/Emirates")
-                }
-            )
+        // Airline Logo Buttons on Right Side - Scroll with parallax and fade out
+        if (headerAlpha > 0.1f) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 16.dp)
+                    .statusBarsPadding()
+                    .padding(top = 100.dp)
+                    .graphicsLayer {
+                        // Move up with parallax
+                        translationY = -parallaxOffset * 0.8f
+                        // Fade out with scroll
+                        alpha = headerAlpha
+                    },
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Booking.com
+                BookingSourceButton(
+                    logoUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/Booking.com_logo.png",
+                    sourceName = "Booking.com",
+                    price = destination.price?.let { "${(it * 0.98).toInt()} ${destination.currency}" },
+                    onClick = {
+                        // Show price comparison or open booking link
+                    }
+                )
+                // Expedia
+                BookingSourceButton(
+                    logoUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5b/Expedia_2012_logo.svg",
+                    sourceName = "Expedia",
+                    price = destination.price?.let { "${(it * 1.02).toInt()} ${destination.currency}" },
+                    onClick = {
+                        // Show price comparison or open booking link
+                    }
+                )
+                // Skyscanner
+                BookingSourceButton(
+                    logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Skyscanner-Logo.png",
+                    sourceName = "Skyscanner",
+                    price = destination.price?.let { "${it.toInt()} ${destination.currency}" },
+                    onClick = {
+                        // Show price comparison or open booking link
+                    }
+                )
+            }
         }
 
-        // Buttons overlay - declared after Card to be on top and clickable
+        // Action Buttons overlay - fade out with scroll but back button always visible
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -615,6 +673,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Back button - always visible
                 IconButton(
                     onClick = { 
                         navController.popBackStack() 
@@ -636,7 +695,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         tint = Color.White
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Share and Favorite buttons - fade with scroll
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.graphicsLayer { alpha = headerAlpha }
+                ) {
                     IconButton(
                         onClick = { 
                             // Share action - TODO: implement share functionality
@@ -763,6 +826,57 @@ fun AirlineLogoButton(
                 contentScale = ContentScale.Fit,
                 error = painterResource(id = R.drawable.europe)
             )
+        }
+    }
+}
+
+/**
+ * Booking source button showing price comparison from different providers
+ */
+@Composable
+fun BookingSourceButton(
+    logoUrl: String,
+    sourceName: String,
+    price: String?,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .width(80.dp)
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            AsyncImage(
+                model = logoUrl,
+                contentDescription = sourceName,
+                modifier = Modifier
+                    .height(20.dp)
+                    .widthIn(max = 60.dp),
+                contentScale = ContentScale.Fit,
+                error = painterResource(id = R.drawable.europe)
+            )
+            if (price != null) {
+                Text(
+                    text = price,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.primary,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

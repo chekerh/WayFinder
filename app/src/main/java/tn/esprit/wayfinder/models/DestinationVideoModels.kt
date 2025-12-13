@@ -35,3 +35,61 @@ data class UserDestinationsResponse(
     @SerialName("destinations") val destinations: List<DestinationWithVideoStatus>
 )
 
+// --- AI Travel Video Models --- //
+
+@Serializable
+data class AiVideoStatusResponse(
+    @SerialName("available") val available: Boolean,
+    @SerialName("suggestions") val suggestions: List<String> = emptyList(),
+    @SerialName("message") val message: String? = null
+)
+
+@Serializable
+data class AiVideoSuggestionsResponse(
+    @SerialName("suggestions") val suggestions: List<String>
+)
+
+@Serializable
+data class AiVideoGenerateRequest(
+    @SerialName("prompt") val prompt: String
+)
+
+@Serializable
+data class AiVideoGenerateResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String? = null,
+    @SerialName("data") val data: AiVideoGenerateData? = null
+)
+
+@Serializable
+data class AiVideoGenerateData(
+    @SerialName("predictionId") val predictionId: String,
+    @SerialName("status") val status: String,
+    @SerialName("originalPrompt") val originalPrompt: String,
+    @SerialName("enhancedPrompt") val enhancedPrompt: String,
+    @SerialName("estimatedTime") val estimatedTime: String? = null
+)
+
+@Serializable
+data class AiVideoCheckStatusResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("data") val data: AiVideoStatusData? = null
+)
+
+@Serializable
+data class AiVideoStatusData(
+    @SerialName("predictionId") val predictionId: String,
+    @SerialName("status") val status: String,
+    @SerialName("videoUrl") val videoUrl: String? = null,
+    @SerialName("progress") val progress: Int? = null,
+    @SerialName("error") val error: String? = null,
+    @SerialName("isComplete") val isComplete: Boolean = false,
+    @SerialName("isFailed") val isFailed: Boolean = false
+)
+
+@Serializable
+data class GenericResponse(
+    @SerialName("success") val success: Boolean,
+    @SerialName("message") val message: String? = null
+)
+

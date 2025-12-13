@@ -44,6 +44,8 @@ import tn.esprit.wayfinder.viewmodels.OutfitWeatherViewModel
 import tn.esprit.wayfinder.viewmodels.ReelsViewModel
 import tn.esprit.wayfinder.viewmodels.GroupFlightViewModel
 import tn.esprit.wayfinder.viewmodels.UpsellViewModel
+import tn.esprit.wayfinder.viewmodels.HotelsViewModel
+import tn.esprit.wayfinder.viewmodels.AiTravelVideoViewModel
 import tn.esprit.wayfinder.presentation.groupflight.GroupFlightRepository
 import tn.esprit.wayfinder.presentation.upsells.UpsellRepository
 
@@ -164,6 +166,15 @@ class ViewModelFactory(private val application: Application) : ViewModelProvider
                 val repository = UpsellRepository(apiService, catalogRepository, application.applicationContext)
                 @Suppress("UNCHECKED_CAST")
                 UpsellViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(HotelsViewModel::class.java) -> {
+                val repository = CatalogRepository(apiService, application.applicationContext)
+                @Suppress("UNCHECKED_CAST")
+                HotelsViewModel(repository) as T
+            }
+            modelClass.isAssignableFrom(AiTravelVideoViewModel::class.java) -> {
+                @Suppress("UNCHECKED_CAST")
+                AiTravelVideoViewModel(apiService) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }

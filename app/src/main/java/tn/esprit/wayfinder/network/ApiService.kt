@@ -159,6 +159,37 @@ interface ApiService {
         @Query("radiusMeters") radiusMeters: Int? = null
     ): ActivityFeedResponse
 
+    // --- HOTELS --- //
+    @GET("catalog/hotels")
+    suspend fun searchHotels(
+        @Query("cityCode") cityCode: String,
+        @Query("checkInDate") checkInDate: String,
+        @Query("checkOutDate") checkOutDate: String,
+        @Query("adults") adults: Int? = null,
+        @Query("tripType") tripType: String? = null,
+        @Query("ratings") ratings: String? = null,
+        @Query("limit") limit: Int? = null,
+        @Query("currency") currency: String? = null
+    ): HotelSearchResponse
+
+    @GET("catalog/hotels/offers")
+    suspend fun getHotelOffers(
+        @Query("hotelIds") hotelIds: String,
+        @Query("checkInDate") checkInDate: String,
+        @Query("checkOutDate") checkOutDate: String,
+        @Query("adults") adults: Int? = null,
+        @Query("currency") currency: String? = null
+    ): HotelOffersResponse
+
+    @GET("catalog/hotels/{hotelId}")
+    suspend fun getHotelById(@Path("hotelId") hotelId: String): HotelDetailResponse
+
+    @GET("catalog/hotels/{hotelId}/reviews")
+    suspend fun getHotelReviews(
+        @Path("hotelId") hotelId: String,
+        @Query("placeId") placeId: String?
+    ): HotelReviewsResponse
+
     // --- DISCUSSION --- //
     @GET("discussion/posts")
     suspend fun getPosts(
@@ -511,6 +542,22 @@ interface ApiService {
 
     @GET("users/{userId}/destinations")
     suspend fun getUserDestinations(@Path("userId") userId: String): UserDestinationsResponse
+
+    // --- AI TRAVEL VIDEO --- //
+    @GET("ai-video/status")
+    suspend fun getAiVideoStatus(): AiVideoStatusResponse
+
+    @GET("ai-video/suggestions")
+    suspend fun getAiVideoSuggestions(): AiVideoSuggestionsResponse
+
+    @POST("ai-video/generate")
+    suspend fun generateAiTravelVideo(@Body request: AiVideoGenerateRequest): AiVideoGenerateResponse
+
+    @GET("ai-video/status/{predictionId}")
+    suspend fun checkAiVideoStatus(@Path("predictionId") predictionId: String): AiVideoCheckStatusResponse
+
+    @POST("ai-video/cancel/{predictionId}")
+    suspend fun cancelAiVideo(@Path("predictionId") predictionId: String): GenericResponse
 
     // --- CHAT --- //
     @POST("chat/message")

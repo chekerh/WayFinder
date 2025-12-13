@@ -180,5 +180,102 @@ class CatalogRepository(
             Log.w(TAG, "Background refresh failed for activities", e)
         }
     }
+
+    // ============ HOTELS ============
+
+    suspend fun searchHotels(
+        cityCode: String,
+        checkInDate: String,
+        checkOutDate: String,
+        adults: Int? = null,
+        tripType: String? = null,
+        ratings: String? = null,
+        limit: Int? = null,
+        currency: String? = null
+    ): HotelSearchResponse = withContext(Dispatchers.IO) {
+        val cacheKey = "hotels_${cityCode}_${checkInDate}_${checkOutDate}_${tripType}_${ratings}_${limit}"
+        
+        // Try cache first
+        cacheManager?.get<HotelSearchResponse>(cacheKey)?.let { cached ->
+            Log.d(TAG, "Returning cached hotels for $cityCode")
+            return@withContext cached
+        }
+        
+        try {
+            val response = apiService.searchHotels(
+                cityCode, checkInDate, checkOutDate, adults, tripType, ratings, limit, currency
+            )
+            cacheManager?.put(cacheKey, response, CacheManager.TTL_MEDIUM)
+            Log.d(TAG, "Fetched and cached hotels from API for $cityCode")
+            response
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching hotels from API", e)
+            throw e
+        }
+    }
+
+    suspend fun getHotelOffers(
+        hotelIds: List<String>,
+        checkInDate: String,
+        checkOutDate: String,
+        adults: Int? = null,
+        currency: String? = null
+    ): HotelOffersResponse = withContext(Dispatchers.IO) {
+        val hotelIdsStr = hotelIds.joinToString(",")
+        val cacheKey = "hotel_offers_${hotelIdsStr}_${checkInDate}_${checkOutDate}"
+        
+        cacheManager?.get<HotelOffersResponse>(cacheKey)?.let { cached ->
+            Log.d(TAG, "Returning cached hotel offers")
+            return@withContext cached
+        }
+        
+        try {
+            val response = apiService.getHotelOffers(hotelIdsStr, checkInDate, checkOutDate, adults, currency)
+            cacheManager?.put(cacheKey, response, CacheManager.TTL_SHORT) // Prices change often
+            Log.d(TAG, "Fetched and cached hotel offers from API")
+            response
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching hotel offers from API", e)
+            throw e
+        }
+    }
+
+    suspend fun getHotelById(hotelId: String): HotelDetailResponse = withContext(Dispatchers.IO) {
+        val cacheKey = "hotel_detail_$hotelId"
+        
+        cacheManager?.get<HotelDetailResponse>(cacheKey)?.let { cached ->
+            Log.d(TAG, "Returning cached hotel detail for $hotelId")
+            return@withContext cached
+        }
+        
+        try {
+            val response = apiService.getHotelById(hotelId)
+            cacheManager?.put(cacheKey, response, CacheManager.TTL_LONG)
+            Log.d(TAG, "Fetched and cached hotel detail from API")
+            response
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching hotel detail from API", e)
+            throw e
+        }
+    }
+
+    suspend fun getHotelReviews(hotelId: String, placeId: String?): HotelReviewsResponse = withContext(Dispatchers.IO) {
+        val cacheKey = "hotel_reviews_$hotelId"
+        
+        cacheManager?.get<HotelReviewsResponse>(cacheKey)?.let { cached ->
+            Log.d(TAG, "Returning cached hotel reviews for $hotelId")
+            return@withContext cached
+        }
+        
+        try {
+            val response = apiService.getHotelReviews(hotelId, placeId)
+            cacheManager?.put(cacheKey, response, CacheManager.TTL_LONG)
+            Log.d(TAG, "Fetched and cached hotel reviews from API")
+            response
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching hotel reviews from API", e)
+            throw e
+        }
+    }
 }
 

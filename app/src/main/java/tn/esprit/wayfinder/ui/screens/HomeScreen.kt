@@ -73,6 +73,7 @@ import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 import tn.esprit.wayfinder.ui.components.TravelReelsFeed
+import tn.esprit.wayfinder.ui.components.AiTravelVideoGenerator
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -289,6 +290,16 @@ fun HomeScreen(navController: NavController) {
                         else -> {}
                 }
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // AI Travel Video Generator Section
+            AiTravelVideoGenerator(
+                onVideoGenerated = { videoUrl ->
+                    // Optionally navigate to video player or show in reels
+                    android.util.Log.d("HomeScreen", "AI Video generated: $videoUrl")
+                }
+            )
             
             Spacer(modifier = Modifier.height(32.dp))
             

@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
+import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,14 +18,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.models.Accommodation
+import tn.esprit.wayfinder.models.Hotel
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
+import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.utils.StringTranslator
+import tn.esprit.wayfinder.viewmodels.HotelsViewModel
+import tn.esprit.wayfinder.viewmodels.HotelsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,15 +43,29 @@ fun AccommodationsListScreen(
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     
+    // Get HotelsViewModel
+    val hotelsViewModel: HotelsViewModel = viewModel(
+        factory = ViewModelFactory(context.applicationContext as Application)
+    )
+    val hotelsState by hotelsViewModel.hotelsState.collectAsStateWithLifecycle()
+    
     val destination = remember(destinationId) {
         navController.previousBackStackEntry
             ?.savedStateHandle
             ?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
     }
     
-    // Mock accommodations data - in real app, fetch from API
-    val accommodations = remember(accommodationType, destination) {
-        generateMockAccommodations(accommodationType, destination?.name ?: destinationId)
+    // Load hotels from API when screen opens
+    LaunchedEffect(accommodationType, destination) {
+        val cityCode = destination?.let { 
+            hotelsViewModel.getCityCode(it.city ?: it.name)
+        } ?: "PAR" // Default to Paris
+        
+        hotelsViewModel.searchHotels(
+            cityCode = cityCode,
+            tripType = accommodationType,
+            limit = 20
+        )
     }
     
     val typeName = when (accommodationType) {
@@ -53,6 +74,12 @@ fun AccommodationsListScreen(
         "hostel" -> "Auberges"
         "resort" -> "Résorts"
         "apartment" -> "Appartements"
+        "business" -> "Hôtels d'affaires"
+        "honeymoon" -> "Hôtels romantiques"
+        "family" -> "Hôtels famille"
+        "adventure" -> "Éco-lodges"
+        "wellness" -> "Spa & Bien-être"
+        "backpacking" -> "Auberges & Hostels"
         else -> "Logements"
     }
     
@@ -60,10 +87,17 @@ fun AccommodationsListScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        "$typeName - ${destination?.name ?: destinationId}",
-                        fontWeight = FontWeight.Bold
-                    ) 
+                    Column {
+                        Text(
+                            typeName,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            destination?.name ?: destinationId,
+                            fontSize = 14.sp,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -80,63 +114,368 @@ fun AccommodationsListScreen(
         },
         containerColor = colorScheme.background
     ) { paddingValues ->
-        if (accommodations.isEmpty()) {
+        when (val state = hotelsState) {
+            is HotelsUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = StringTranslator.translate(context, "Recherche des meilleurs hébergements..."),
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            
+            is HotelsUiState.Error -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Error,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = state.message,
+                        color = colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = {
+                        val cityCode = destination?.let { 
+                            hotelsViewModel.getCityCode(it.city ?: it.name)
+                        } ?: "PAR"
+                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = accommodationType)
+                    }) {
+                        Text(StringTranslator.translate(context, "Réessayer"))
+                    }
+                }
+            }
+            
+            is HotelsUiState.Success -> {
+                if (state.hotels.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Hotel,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = StringTranslator.translate(context, "Aucun logement disponible pour le moment"),
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Column(modifier = Modifier.padding(paddingValues)) {
+                        // Source indicator
+                        if (state.source == "fallback") {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                color = colorScheme.tertiaryContainer,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Info,
+                                        contentDescription = null,
+                                        tint = colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = StringTranslator.translate(context, "Données de démonstration"),
+                                        fontSize = 12.sp,
+                                        color = colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.hotels, key = { it.hotelId }) { hotel ->
+                                HotelCard(
+                                    hotel = hotel,
+                                    onClick = {
+                                        // Save hotel selection and navigate
+                                        navController.currentBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.apply {
+                                                set("accommodation_id", hotel.hotelId)
+                                                set("accommodation_price", hotel.pricePerNight ?: 0.0)
+                                                set("accommodation_currency", hotel.currency ?: "EUR")
+                                                set("accommodation_name", hotel.name)
+                                                set("accommodation_type", hotel.type ?: "hotel")
+                                                set("accommodation_location", hotel.address?.cityName ?: "")
+                                                set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
+                                                set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
+                                            }
+                                        // Navigate to activities preview (new flow)
+                                        navController.navigate("activities_preview/${destinationId}")
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            else -> {
+                // Idle state - show nothing or skeleton
+            }
+        }
+    }
+}
+
+/**
+ * Card for displaying Hotel data from API
+ */
+@Composable
+fun HotelCard(
+    hotel: Hotel,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // Get the best image URL
+    val imageUrl = hotel.media?.firstOrNull()?.uri 
+        ?: "https://picsum.photos/400/200?random=${hotel.hotelId.hashCode()}"
+    
+    // Get rating (prefer Google rating, fallback to hotel rating)
+    val rating = hotel.googleRating ?: hotel.rating ?: 0.0
+    val reviewCount = hotel.googleReviewCount ?: 0
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Image
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = hotel.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = R.drawable.europe),
+                    error = painterResource(id = R.drawable.europe)
+                )
+                
+                // Star rating (hotel stars)
+                hotel.rating?.let { stars ->
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(12.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = colorScheme.surface.copy(alpha = 0.9f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(stars.toInt().coerceIn(1, 5)) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Google rating badge
+                if (rating > 0) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = colorScheme.primaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = colorScheme.primary
+                            )
+                            Text(
+                                text = String.format("%.1f", rating),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colorScheme.onPrimaryContainer
+                            )
+                            if (reviewCount > 0) {
+                                Text(
+                                    text = "($reviewCount)",
+                                    fontSize = 12.sp,
+                                    color = colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Details
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Hotel,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = StringTranslator.translate(context, "Aucun logement disponible pour le moment"),
-                    color = colorScheme.onSurfaceVariant
+                    text = hotel.name,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface,
+                    maxLines = 2
                 )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(accommodations, key = { it.id }) { accommodation ->
-                    AccommodationCard(
-                        accommodation = accommodation,
-                        onClick = {
-                            // Save accommodation selection and navigate to upsell screen
-                            navController.currentBackStackEntry
-                                ?.savedStateHandle
-                                ?.apply {
-                                    // Only save primitive types - Accommodation object cannot be saved to SavedStateHandle
-                                    set("accommodation_id", accommodation.id)
-                                    set("accommodation_price", accommodation.price)
-                                    set("accommodation_currency", accommodation.currency)
-                                    set("accommodation_name", accommodation.name)
-                                    set("accommodation_type", accommodation.type)
-                                    set("accommodation_location", accommodation.location)
-                                    set("accommodation_rating", accommodation.rating)
-                                    set("accommodation_image_url", accommodation.imageUrl ?: "")
-                                }
-                            // Navigate to upsell screen (will be created)
-                            navController.navigate("upsells/${destinationId}")
+                
+                // Location
+                val location = hotel.address?.let { addr ->
+                    listOfNotNull(addr.cityName, addr.countryCode).joinToString(", ")
+                } ?: hotel.cityCode ?: ""
+                
+                if (location.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = location,
+                            fontSize = 14.sp,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                // Amenities
+                if (hotel.amenities.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        hotel.amenities.take(3).forEach { amenity ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    text = amenity.replace("_", " ").lowercase()
+                                        .replaceFirstChar { it.uppercase() },
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = colorScheme.onSecondaryContainer,
+                                    maxLines = 1
+                                )
+                            }
                         }
-                    )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Price and Book button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        hotel.pricePerNight?.let { price ->
+                            Text(
+                                text = "${price.toInt()} ${hotel.currency ?: "EUR"}",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colorScheme.primary
+                            )
+                            Text(
+                                text = StringTranslator.translate(context, "par nuit"),
+                                fontSize = 12.sp,
+                                color = colorScheme.onSurfaceVariant
+                            )
+                        } ?: Text(
+                            text = StringTranslator.translate(context, "Prix sur demande"),
+                            fontSize = 16.sp,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorScheme.primary
+                        )
+                    ) {
+                        Text(StringTranslator.translate(context, "Choisir"))
+                    }
                 }
             }
         }
     }
 }
 
+/**
+ * Legacy card for Accommodation objects (backward compatibility)
+ */
 @Composable
 fun AccommodationCard(
     accommodation: Accommodation,
