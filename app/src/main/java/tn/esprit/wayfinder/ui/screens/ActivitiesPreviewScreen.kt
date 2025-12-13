@@ -34,7 +34,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.R
-import tn.esprit.wayfinder.models.Activity
+import tn.esprit.wayfinder.models.TravelActivity
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
@@ -77,7 +77,7 @@ fun ActivitiesPreviewScreen(
     // Load activities for the destination
     LaunchedEffect(destination) {
         val city = destination?.city ?: destination?.name ?: "Paris"
-        activitiesViewModel.loadActivities(city = city, limit = 12)
+        activitiesViewModel.loadActivities(city = city)
     }
     
     // Category filter
@@ -364,7 +364,7 @@ fun ActivitiesPreviewScreen(
 
 @Composable
 fun ActivityPreviewCard(
-    activity: Activity,
+    activity: TravelActivity,
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -408,18 +408,16 @@ fun ActivityPreviewCard(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Category chip
-                activity.category?.let { category ->
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colorScheme.primaryContainer.copy(alpha = 0.9f)
-                    ) {
-                        Text(
-                            text = category,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            color = colorScheme.onPrimaryContainer
-                        )
-                    }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colorScheme.primaryContainer.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = activity.category,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = colorScheme.onPrimaryContainer
+                    )
                 }
                 
                 // Title and rating

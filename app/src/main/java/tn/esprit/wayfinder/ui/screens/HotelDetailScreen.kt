@@ -36,12 +36,15 @@ import tn.esprit.wayfinder.R
 import tn.esprit.wayfinder.models.Accommodation
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.models.Review
+import tn.esprit.wayfinder.models.Hotel
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.HotelsUiState
+import tn.esprit.wayfinder.viewmodels.HotelDetailUiState
 import tn.esprit.wayfinder.viewmodels.HotelsViewModel
+import tn.esprit.wayfinder.models.HotelReview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +60,7 @@ fun HotelDetailScreen(
         factory = ViewModelFactory(context.applicationContext as Application)
     )
     val hotelsUiState by hotelsViewModel.uiState.collectAsState()
+    val hotelDetailState by hotelsViewModel.hotelDetailState.collectAsState()
     
     // Get saved data from navigation
     val savedStateHandle = navController.previousBackStackEntry?.savedStateHandle
@@ -70,10 +74,37 @@ fun HotelDetailScreen(
         }
     }
     
-    // Get the hotel data
-    val hotel = accommodation ?: when (hotelsUiState) {
-        is HotelsUiState.Success -> (hotelsUiState as HotelsUiState.Success).accommodations.firstOrNull()
-        else -> null
+    // Convert Hotel to Accommodation for display
+    val hotel: Accommodation? = accommodation ?: run {
+        when (val state = hotelDetailState) {
+            is HotelDetailUiState.Success -> {
+                val h = state.hotel
+                Accommodation(
+                    id = h.id,
+                    name = h.name,
+                    type = h.type ?: "hotel",
+                    price = h.pricePerNight ?: 0.0,
+                    currency = h.currency ?: "EUR",
+                    rating = h.rating ?: h.googleRating ?: 0.0,
+                    imageUrl = h.media?.firstOrNull()?.uri,
+                    location = h.address?.cityName ?: h.cityCode ?: "",
+                    amenities = h.amenities,
+                    address = h.address?.lines?.joinToString(", ") ?: h.address?.cityName,
+                    description = h.description,
+                    photos = h.media?.map { it.uri } ?: emptyList(),
+                    reviews = state.reviews.map { r ->
+                        Review(
+                            authorName = r.authorName ?: "Anonymous",
+                            rating = r.rating?.toDouble() ?: 0.0,
+                            text = r.text ?: "",
+                            time = r.time
+                        )
+                    },
+                    userRatingsTotal = h.googleReviewCount
+                )
+            }
+            else -> null
+        }
     }
     
     // Parallax effect calculations
@@ -146,7 +177,7 @@ fun HotelDetailScreen(
                         .padding(bottom = 40.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    photos.forEachIndexed { index, _ ->
+                    for (index in photos.indices) {
                         Box(
                             modifier = Modifier
                                 .size(if (index == selectedPhotoIndex) 10.dp else 8.dp)
@@ -170,7 +201,7 @@ fun HotelDetailScreen(
             colors = CardDefaults.cardColors(containerColor = colorScheme.background)
         ) {
             when {
-                hotelsUiState is HotelsUiState.Loading && hotel == null -> {
+                hotelDetailState is HotelDetailUiState.Loading && hotel == null -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -278,7 +309,7 @@ fun HotelDetailScreen(
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(photos.withIndex().toList()) { (index, photoUrl) ->
+                                items(photos.size) { index ->
                                     Card(
                                         modifier = Modifier
                                             .size(100.dp),
@@ -286,7 +317,7 @@ fun HotelDetailScreen(
                                         onClick = { selectedPhotoIndex = index }
                                     ) {
                                         AsyncImage(
-                                            model = photoUrl,
+                                            model = photos[index],
                                             contentDescription = null,
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
@@ -362,7 +393,7 @@ fun HotelDetailScreen(
                                 color = colorScheme.onBackground
                             )
                             
-                            hotel.reviews.take(5).forEach { review ->
+                            for (review in hotel.reviews.take(5)) {
                                 ReviewCard(review = review)
                             }
                         }
@@ -544,7 +575,7 @@ fun ReviewCard(review: Review) {
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = review.authorName.firstOrNull()?.uppercase() ?: "?",
+                                text = review.authorName.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
                                 fontWeight = FontWeight.Bold,
                                 color = colorScheme.primary
                             )

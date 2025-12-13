@@ -13,7 +13,29 @@ data class Accommodation(
     val rating: Double,
     val imageUrl: String? = null,
     val location: String,
-    val amenities: List<String> = emptyList()
+    val amenities: List<String> = emptyList(),
+    // Extended properties for hotel details
+    val address: String? = null,
+    val description: String? = null,
+    val photos: List<String> = emptyList(),
+    val reviews: List<Review> = emptyList(),
+    val checkInTime: String? = null,
+    val checkOutTime: String? = null,
+    val userRatingsTotal: Int? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
+) {
+    // Helper property for amenities list
+    val amenitiesList: List<String>
+        get() = amenities
+}
+
+@Serializable
+data class Review(
+    val authorName: String = "Anonymous",
+    val rating: Double = 0.0,
+    val text: String = "",
+    val time: Long? = null
 )
 
 // ============ Hotel API Response Models ============
