@@ -69,19 +69,19 @@ class OnboardingViewModel: ObservableObject {
                case .httpError(let statusCode, let data) = apiError,
                statusCode == 400 {
                 // Extract message from data if available
-                var errorMessage: String?
                 if let data = data,
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let message = json["message"] as? String {
-                    errorMessage = message
                     let messageLower = message.lowercased()
                     if messageLower.contains("already completed") || messageLower.contains("déjà complété") {
                         uiState = .completed(message: "Onboarding already completed. Redirecting to home...")
                         return
                     }
+                    uiState = .error(message: message)
+                } else {
+                    uiState = .error(message: error.localizedDescription)
                 }
-                
-                uiState = .error(message: error.localizedDescription)
+                return
             } else {
                 uiState = .error(message: error.localizedDescription)
             }
@@ -163,7 +163,7 @@ class OnboardingViewModel: ObservableObject {
                 return
             }
             
-            print("✅ [OnboardingViewModel] Reset successful - sessionId: \(response.sessionId ?? "nil"), completed: \(response.completed), hasQuestion: \(response.question != nil)")
+            print("✅ [OnboardingViewModel] Reset successful - sessionId: \(response.sessionId), completed: \(response.completed), hasQuestion: \(response.question != nil)")
             currentSessionId = response.sessionId
             
             // After reset, if we get a question, show it. Otherwise, start a fresh onboarding

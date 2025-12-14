@@ -116,7 +116,7 @@ struct EmailOTPEntryView: View {
         defer { isLoading = false }
         
         do {
-            let response = try await AuthService.shared.sendOTP(email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+            _ = try await AuthService.shared.sendOTP(email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
             showOTPScreen = true
         } catch {
             errorMessage = error.localizedDescription

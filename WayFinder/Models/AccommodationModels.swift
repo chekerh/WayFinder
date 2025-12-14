@@ -144,7 +144,7 @@ extension AccommodationType {
 
 // MARK: - Trip Type for Hotel Filtering
 
-enum TripType: String, CaseIterable {
+enum AccommodationTripType: String, CaseIterable {
     case business = "business"
     case romantic = "romantic"
     case family = "family"

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PhotosUI
+import Foundation
 
 /// UI State for AI Travel Video generation
 enum AiVideoState: Equatable {
@@ -305,7 +306,7 @@ struct AiTravelVideoGenerator: View {
                     
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(ThemeColors.primary(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
                 }
             }
             .buttonStyle(.plain)
@@ -342,7 +343,7 @@ struct AiTravelVideoGenerator: View {
                                 withAnimation { showTravelPlans.toggle() }
                             }
                             .font(.system(size: 12))
-                            .foregroundColor(ThemeColors.primary(colorScheme))
+                            .foregroundColor(ThemeColors.accent())
                         }
                         
                         if showTravelPlans {
@@ -378,7 +379,7 @@ struct AiTravelVideoGenerator: View {
                     // Prompt input field
                     HStack {
                         Image(systemName: "pencil")
-                            .foregroundColor(ThemeColors.primary(colorScheme))
+                            .foregroundColor(ThemeColors.accent())
                         
                         TextField("Décrivez votre vidéo de voyage...", text: $promptText, axis: .vertical)
                             .focused($isTextFieldFocused)
@@ -397,7 +398,7 @@ struct AiTravelVideoGenerator: View {
                     .cornerRadius(16)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(isTextFieldFocused ? ThemeColors.primary(colorScheme) : Color.gray.opacity(0.3), lineWidth: 1)
+                            .stroke(isTextFieldFocused ? ThemeColors.accent() : Color.gray.opacity(0.3), lineWidth: 1)
                     )
                     
                     // Image Upload Section
@@ -422,8 +423,8 @@ struct AiTravelVideoGenerator: View {
                                                 .lineLimit(1)
                                                 .padding(.horizontal, 12)
                                                 .padding(.vertical, 6)
-                                                .background(ThemeColors.primary(colorScheme).opacity(0.1))
-                                                .foregroundColor(ThemeColors.primary(colorScheme))
+                                                .background(ThemeColors.accent().opacity(0.1))
+                                                .foregroundColor(ThemeColors.accent())
                                                 .cornerRadius(16)
                                         }
                                     }
@@ -454,7 +455,7 @@ struct AiTravelVideoGenerator: View {
                             .background(
                                 promptText.isEmpty || !viewModel.isServiceAvailable
                                     ? Color.gray.opacity(0.3)
-                                    : ThemeColors.primary(colorScheme)
+                                    : ThemeColors.accent()
                             )
                             .cornerRadius(12)
                         }
@@ -487,7 +488,7 @@ struct AiTravelVideoGenerator: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "photo.on.rectangle.angled")
-                    .foregroundColor(ThemeColors.primary(colorScheme))
+                    .foregroundColor(ThemeColors.accent())
                 Text("Photos (\(viewModel.selectedImages.count)/20)")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(ThemeColors.primaryText(colorScheme))
@@ -515,8 +516,8 @@ struct AiTravelVideoGenerator: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(ThemeColors.primary(colorScheme).opacity(0.1))
-                    .foregroundColor(ThemeColors.primary(colorScheme))
+                    .background(ThemeColors.accent().opacity(0.1))
+                    .foregroundColor(ThemeColors.accent())
                     .cornerRadius(20)
                 }
                 .disabled(viewModel.isUploadingImage || viewModel.selectedImages.count >= 20)
@@ -583,7 +584,7 @@ struct AiTravelVideoGenerator: View {
             Button(action: { showUrlInput.toggle() }) {
                 Text(showUrlInput ? "Masquer URL" : "Ou ajouter via URL")
                     .font(.system(size: 11))
-                    .foregroundColor(ThemeColors.primary(colorScheme))
+                    .foregroundColor(ThemeColors.accent())
             }
             
             if showUrlInput {
@@ -603,7 +604,7 @@ struct AiTravelVideoGenerator: View {
                             .font(.system(size: 24))
                             .foregroundColor(
                                 imageUrlInput.hasPrefix("http") && viewModel.selectedImages.count < 20
-                                    ? ThemeColors.primary(colorScheme)
+                                    ? ThemeColors.accent()
                                     : Color.gray
                             )
                     }
@@ -620,7 +621,7 @@ struct AiTravelVideoGenerator: View {
             Button(action: { withAnimation { showMusicSelector.toggle() } }) {
                 HStack {
                     Image(systemName: "music.note")
-                        .foregroundColor(ThemeColors.primary(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
                     Text("Musique de fond")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(ThemeColors.primaryText(colorScheme))
@@ -637,8 +638,8 @@ struct AiTravelVideoGenerator: View {
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(ThemeColors.primary(colorScheme).opacity(0.1))
-                            .foregroundColor(ThemeColors.primary(colorScheme))
+                            .background(ThemeColors.accent().opacity(0.1))
+                            .foregroundColor(ThemeColors.accent())
                             .cornerRadius(12)
                         }
                     } else {
@@ -688,11 +689,11 @@ struct AiTravelVideoGenerator: View {
         case .generating(_, let progress, let enhancedPrompt):
             VStack(spacing: 8) {
                 ProgressView(value: Double(progress) / 100)
-                    .tint(ThemeColors.primary(colorScheme))
+                    .tint(ThemeColors.accent())
                 
                 Text("Génération en cours \(progress)%")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(ThemeColors.primary(colorScheme))
+                    .foregroundColor(ThemeColors.accent())
                 
                 if !enhancedPrompt.isEmpty {
                     Text("\"\(String(enhancedPrompt.prefix(80)))...\"")
@@ -706,7 +707,7 @@ struct AiTravelVideoGenerator: View {
                     viewModel.cancelGeneration()
                 }
                 .font(.system(size: 14))
-                .foregroundColor(ThemeColors.primary(colorScheme))
+                .foregroundColor(ThemeColors.accent())
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -736,7 +737,7 @@ struct AiTravelVideoGenerator: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(ThemeColors.primary(colorScheme))
+                        .background(ThemeColors.accent())
                         .cornerRadius(12)
                     }
                     
@@ -748,12 +749,12 @@ struct AiTravelVideoGenerator: View {
                     }) {
                         Text("Nouveau")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(ThemeColors.primary(colorScheme))
+                            .foregroundColor(ThemeColors.accent())
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(ThemeColors.primary(colorScheme), lineWidth: 1)
+                                    .stroke(ThemeColors.accent(), lineWidth: 1)
                             )
                     }
                 }
@@ -778,7 +779,7 @@ struct AiTravelVideoGenerator: View {
                     viewModel.resetState()
                 }
                 .font(.system(size: 14))
-                .foregroundColor(ThemeColors.primary(colorScheme))
+                .foregroundColor(ThemeColors.accent())
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -817,7 +818,7 @@ struct MusicTrackCard: View {
                         .font(.system(size: 12, weight: .medium))
                         .lineLimit(1)
                 }
-                .foregroundColor(isSelected ? ThemeColors.primary(colorScheme) : ThemeColors.primaryText(colorScheme))
+                .foregroundColor(isSelected ? ThemeColors.accent() : ThemeColors.primaryText(colorScheme))
                 
                 HStack {
                     Text(track.genre)
@@ -830,11 +831,11 @@ struct MusicTrackCard: View {
             }
             .padding(12)
             .frame(width: 140)
-            .background(isSelected ? ThemeColors.primary(colorScheme).opacity(0.1) : ThemeColors.surface(colorScheme))
+            .background(isSelected ? ThemeColors.accent().opacity(0.1) : ThemeColors.surface(colorScheme))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? ThemeColors.primary(colorScheme) : Color.clear, lineWidth: 2)
+                    .stroke(isSelected ? ThemeColors.accent() : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(.plain)
@@ -867,7 +868,7 @@ struct TravelPlanCard: View {
                 Text(plan.duration)
                     .font(.system(size: 10))
             }
-            .foregroundColor(ThemeColors.primary(colorScheme))
+            .foregroundColor(ThemeColors.accent())
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
@@ -889,13 +890,13 @@ struct TravelPlanCard: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(ThemeColors.primary(colorScheme))
+                    .background(ThemeColors.accent())
                     .cornerRadius(8)
             }
         }
         .padding(12)
         .frame(width: 200)
-        .background(ThemeColors.secondaryContainer(colorScheme))
+        .background(ThemeColors.elevatedSurface(colorScheme))
         .cornerRadius(16)
     }
 }
@@ -912,7 +913,7 @@ extension APIService {
         let request = DefaultRequest(
             method: "POST",
             path: "/ai-video/generate",
-            body: ["prompt": prompt]
+            body: try JSONSerialization.data(withJSONObject: ["prompt": prompt], options: [])
         )
         return try await self.request(request, decodeTo: AiVideoGenerateResponse.self)
     }
@@ -925,7 +926,7 @@ extension APIService {
         let request = DefaultRequest(
             method: "POST",
             path: "/ai-video/generate-with-media",
-            body: body
+            body: try JSONSerialization.data(withJSONObject: body, options: [])
         )
         return try await self.request(request, decodeTo: AiVideoGenerateResponse.self)
     }
@@ -1037,18 +1038,16 @@ struct ImageUploadData: Codable {
 }
 
 /// Multipart Request for file uploads
-struct MultipartRequest: APIRequest {
+struct MultipartRequest: RequestBuilder {
     let method: String
     let path: String
-    let body: Data
+    let body: Data?
     let boundary: String
-    
+
+    var queryItems: [URLQueryItem]? = nil
+
     var headers: [String: String]? {
         ["Content-Type": "multipart/form-data; boundary=\(boundary)"]
-    }
-    
-    func encode() throws -> Data? {
-        return body
     }
 }
 

@@ -134,7 +134,7 @@ struct HotelDetailView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(ThemeColors.primary(colorScheme).opacity(0.1))
+                                .background(ThemeColors.accent().opacity(0.1))
                                 .cornerRadius(12)
                             }
                             
@@ -174,7 +174,7 @@ struct HotelDetailView: View {
                                                     RoundedRectangle(cornerRadius: 12)
                                                         .stroke(
                                                             index == selectedPhotoIndex
-                                                                ? ThemeColors.primary(colorScheme)
+                                                                ? ThemeColors.accent()
                                                                 : Color.clear,
                                                             lineWidth: 3
                                                         )
@@ -260,11 +260,11 @@ struct HotelDetailView: View {
                         )
                         .offset(y: -40)
                     }
-                    .background(GeometryReader { geo -> Color in
-                        DispatchQueue.main.async {
-                            scrollOffset = -geo.frame(in: .named("scroll")).origin.y
-                        }
-                        return Color.clear
+                    .background(GeometryReader { geo in
+                        Color.clear
+                            .onChange(of: geo.frame(in: .named("scroll")).origin.y) { newY in
+                                scrollOffset = -newY
+                            }
                     })
                 }
                 .coordinateSpace(name: "scroll")
@@ -280,7 +280,7 @@ struct HotelDetailView: View {
                                 .foregroundColor(ThemeColors.secondaryText(colorScheme))
                             Text("\(Int(hotel.price)) \(hotel.currency)")
                                 .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(ThemeColors.primary(colorScheme))
+                                .foregroundColor(ThemeColors.accent())
                         }
                         
                         Spacer()
@@ -291,7 +291,7 @@ struct HotelDetailView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 24)
                                 .padding(.vertical, 16)
-                                .background(ThemeColors.primary(colorScheme))
+                                .background(ThemeColors.accent())
                                 .cornerRadius(16)
                         }
                     }
@@ -356,7 +356,7 @@ struct TimeInfoView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 24))
-                .foregroundColor(ThemeColors.primary(colorScheme))
+                .foregroundColor(ThemeColors.accent())
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
@@ -387,12 +387,12 @@ struct ReviewCardView: View {
                 // Avatar
                 ZStack {
                     Circle()
-                        .fill(ThemeColors.primary(colorScheme).opacity(0.2))
+                        .fill(ThemeColors.accent().opacity(0.2))
                         .frame(width: 40, height: 40)
                     
                     Text(String(review.authorName.prefix(1)).uppercased())
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(ThemeColors.primary(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
                 }
                 
                 Text(review.authorName)

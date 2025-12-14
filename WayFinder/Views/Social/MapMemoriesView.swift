@@ -7,16 +7,19 @@ struct MapMemoriesView: View {
     @StateObject private var viewModel = MapMemoriesViewModel()
     @State private var selectedCountry: CountryMemory?
     @State private var showCountryMemories = false
-    @State private var region = MKCoordinateRegion(
+    @State private var cameraPosition = MapCameraPosition.region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 50.0, longitude: 10.0), // Europe center
         span: MKCoordinateSpan(latitudeDelta: 60.0, longitudeDelta: 60.0)
-    )
+    ))
+    
+    // For zoom calculation
+    @State private var currentSpan: MKCoordinateSpan = MKCoordinateSpan(latitudeDelta: 60.0, longitudeDelta: 60.0)
     
     // Calculate zoom emoji based on latitudeDelta
     // Smaller latitudeDelta = closer zoom, larger = farther zoom
     // Using different emojis with same meaning (close to far) - not copying Snapchat
     private var zoomEmoji: String {
-        let delta = region.span.latitudeDelta
+        let delta = currentSpan.latitudeDelta
         if delta < 0.1 {
             return "🐛" // Very close - insect on ground (very close to terrain)
         } else if delta < 1.0 {
@@ -36,22 +39,30 @@ struct MapMemoriesView: View {
         NavigationView {
             ZStack {
                 // Map
-                Map(coordinateRegion: $region, annotationItems: viewModel.mapMemories?.countries ?? []) { country in
-                    MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng)) {
-                        Button(action: {
-                            selectedCountry = country
-                            showCountryMemories = true
-                            // Animate to country location
-                            withAnimation {
-                                region = MKCoordinateRegion(
-                                    center: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng),
-                                    span: MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
-                                )
+                Map(position: $cameraPosition) {
+                    let countries = viewModel.mapMemories?.countries ?? []
+                    ForEach(countries) { country in
+                        Annotation(country.country, coordinate: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng)) {
+                            Button(action: {
+                                selectedCountry = country
+                                showCountryMemories = true
+                                // Animate to country location
+                                withAnimation {
+                                    let newSpan = MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
+                                    cameraPosition = .region(MKCoordinateRegion(
+                                        center: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng),
+                                        span: newSpan
+                                    ))
+                                    currentSpan = newSpan
+                                }
+                            }) {
+                                CountryMarker(country: country)
                             }
-                        }) {
-                            CountryMarker(country: country)
                         }
                     }
+                }
+                .onMapCameraChange { context in
+                    currentSpan = context.region.span
                 }
                 .ignoresSafeArea()
                 
@@ -147,10 +158,12 @@ struct MapMemoriesView: View {
                                 selectedCountry = country
                                 showCountryMemories = true
                                 withAnimation {
-                                    region = MKCoordinateRegion(
+                                    let newSpan = MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
+                                    cameraPosition = .region(MKCoordinateRegion(
                                         center: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng),
-                                        span: MKCoordinateSpan(latitudeDelta: 10.0, longitudeDelta: 10.0)
-                                    )
+                                        span: newSpan
+                                    ))
+                                    currentSpan = newSpan
                                 }
                             }
                         )
@@ -424,24 +437,7 @@ struct MemoryCard: View {
     }
 }
 
-// Extension for rounded corners
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
+// RoundedCorner extension is defined in ActivitiesPreviewView.swift
 
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-    
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
-    }
-}
+
 

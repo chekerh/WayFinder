@@ -187,7 +187,23 @@ struct AccommodationsListView: View {
                 rating: Double.random(in: 3.5...5.0),
                 imageUrl: nil,
                 location: locations[index % locations.count],
-                amenities: amenitiesList[index % amenitiesList.count]
+                address: nil,
+                cityCode: nil,
+                description: nil,
+                photos: [],
+                reviews: [],
+                amenities: amenitiesList[index % amenitiesList.count],
+                contact: nil,
+                latitude: nil,
+                longitude: nil,
+                checkInTime: nil,
+                checkOutTime: nil,
+                roomType: nil,
+                boardType: nil,
+                guestRating: nil,
+                userRatingsTotal: nil,
+                pricePerNight: nil,
+                totalPrice: nil
             )
         }
     }

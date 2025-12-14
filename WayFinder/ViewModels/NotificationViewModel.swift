@@ -29,7 +29,7 @@ final class NotificationViewModel: ObservableObject {
         print("🔄 [NotificationViewModel] Loading notifications")
         do {
             let previousIds = Set(notifications.map { $0.id })
-            var loadedNotifications = try await service.getNotifications()
+            let loadedNotifications = try await service.getNotifications()
             
             // Dédupliquer les notifications d'annulation par bookingId
             // Garder seulement la notification la plus récente pour chaque bookingId annulé

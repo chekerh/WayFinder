@@ -56,7 +56,7 @@ class DestinationVideoViewModel: ObservableObject {
             // Update the destination status in the list if needed
             if case .success(var destinations) = uiState {
                 if let index = destinations.firstIndex(where: { $0.destination == destination }) {
-                    var updatedDestination = destinations[index]
+                    let updatedDestination = destinations[index]
                     // Note: DestinationWithVideoStatus is a struct, so we need to create a new one
                     let newDestination = DestinationWithVideoStatus(
                         destination: updatedDestination.destination,

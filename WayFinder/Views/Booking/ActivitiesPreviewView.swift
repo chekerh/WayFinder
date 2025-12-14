@@ -22,7 +22,7 @@ struct ActivitiesPreviewView: View {
     }
     
     private var destinationCity: String {
-        destination?.city ?? accommodation?.location?.components(separatedBy: ",").first ?? "Paris"
+        destination?.city ?? accommodation?.location.components(separatedBy: ",").first ?? "Paris"
     }
     
     var body: some View {
@@ -119,20 +119,20 @@ struct ActivitiesPreviewView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(ThemeColors.primary(colorScheme))
+                        .background(ThemeColors.accent())
                         .cornerRadius(16)
                 }
                 
                 Button(action: onExploreActivities) {
                     Text("Explorer toutes les activités")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(ThemeColors.primary(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Color.clear)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(ThemeColors.primary(colorScheme), lineWidth: 2)
+                                .stroke(ThemeColors.accent(), lineWidth: 2)
                         )
                 }
             }

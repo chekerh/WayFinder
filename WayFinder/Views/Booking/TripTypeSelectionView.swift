@@ -164,7 +164,7 @@ struct TripTypeCard: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(
                             isSelected 
-                                ? ThemeColors.primary(colorScheme)
+                                ? ThemeColors.accent()
                                 : ThemeColors.primaryText(colorScheme)
                         )
                     
@@ -179,7 +179,7 @@ struct TripTypeCard: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(ThemeColors.primary(colorScheme))
+                        .foregroundColor(ThemeColors.accent())
                 }
             }
             .padding(16)
@@ -187,7 +187,7 @@ struct TripTypeCard: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(
                         isSelected
-                            ? ThemeColors.primary(colorScheme).opacity(0.1)
+                            ? ThemeColors.accent().opacity(0.1)
                             : ThemeColors.surface(colorScheme)
                     )
             )
@@ -195,7 +195,7 @@ struct TripTypeCard: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(
                         isSelected
-                            ? ThemeColors.primary(colorScheme)
+                            ? ThemeColors.accent()
                             : Color.gray.opacity(0.2),
                         lineWidth: isSelected ? 2 : 1
                     )

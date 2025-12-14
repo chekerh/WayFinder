@@ -75,7 +75,7 @@ struct PaymentSummaryView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "airplane.departure")
                                 .font(.system(size: 24))
-                                .foregroundColor(ThemeColors.primary(colorScheme))
+                                .foregroundColor(ThemeColors.accent())
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Votre voyage à")
@@ -177,7 +177,7 @@ struct PaymentSummaryView: View {
                             Spacer()
                             Text(String(format: "%.2f %@", totalPrice, currency))
                                 .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(ThemeColors.primary(colorScheme))
+                                .foregroundColor(ThemeColors.accent())
                         }
                     }
                     .padding(20)
@@ -189,7 +189,7 @@ struct PaymentSummaryView: View {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "info.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(ThemeColors.primary(colorScheme))
+                            .foregroundColor(ThemeColors.accent())
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Paiement sécurisé")
@@ -201,7 +201,7 @@ struct PaymentSummaryView: View {
                         }
                     }
                     .padding(16)
-                    .background(ThemeColors.primary(colorScheme).opacity(0.1))
+                    .background(ThemeColors.accent().opacity(0.1))
                     .cornerRadius(16)
                     
                     Spacer().frame(height: 20)
@@ -234,7 +234,7 @@ struct PaymentSummaryView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(ThemeColors.primary(colorScheme))
+                            .background(ThemeColors.accent())
                             .cornerRadius(16)
                         }
                         .disabled(isProcessing)

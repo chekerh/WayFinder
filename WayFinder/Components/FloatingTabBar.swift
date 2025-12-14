@@ -215,7 +215,7 @@ struct FloatingTabBar: View {
         }
 
         .frame(height: 64)
-        .onChange(of: selection) { newSelection in
+        .onChange(of: selection) { _, newSelection in
             // Only trigger bounce animation if selection actually changed
             guard previousSelection != newSelection else { return }
             previousSelection = newSelection

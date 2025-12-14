@@ -33,7 +33,7 @@ struct WayFinderApp: App {
                 .onAppear {
                     // Initialize FCM service when app appears
                     Task { @MainActor in
-                        await FirebaseMessagingService.shared.initialize()
+                        FirebaseMessagingService.shared.initialize()
                     }
                     
                     // Listen for FCM notification taps
@@ -80,7 +80,9 @@ struct WayFinderApp: App {
             queue: .main
         ) { _ in
             print("🔄 [WayFinderApp] App became active - checking for new notifications")
-            FirebaseMessagingService.shared.checkForNewNotifications()
+            Task { @MainActor in
+                FirebaseMessagingService.shared.checkForNewNotifications()
+            }
         }
     }
 }

@@ -6,17 +6,15 @@ final class AuthService {
     private init() {}
 
     func loginWithResponse(email: String, password: String) async throws -> LoginResponse {
-        // Send identifier (email or username) as-is, just like Android does
-        // Backend accepts both email and username in the 'username' field
-        let identifier = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !identifier.isEmpty else {
+        // Backend expects { email, password }
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmedEmail.isEmpty else {
             throw NSError(domain: "AuthService", code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "Identifiant requis"])
         }
 
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(LoginRequest(username: identifier, password: password))
+        let data = try encoder.encode(EmailLoginRequest(email: trimmedEmail, password: password))
 
         let builder = DefaultRequest(
             method: "POST",
@@ -78,17 +76,15 @@ final class AuthService {
     }
     
     func login(email: String, password: String) async throws -> UserProfile {
-        // Send identifier (email or username) as-is, just like Android does
-        // Backend accepts both email and username in the 'username' field
-        let identifier = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !identifier.isEmpty else {
+        // Backend expects { email, password }
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmedEmail.isEmpty else {
             throw NSError(domain: "AuthService", code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "Identifiant requis"])
         }
 
         let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        let data = try encoder.encode(LoginRequest(username: identifier, password: password))
+        let data = try encoder.encode(EmailLoginRequest(email: trimmedEmail, password: password))
 
         let builder = DefaultRequest(
             method: "POST",
@@ -430,7 +426,7 @@ final class AuthService {
 
     /// Enregistre le token FCM si disponible après la connexion
     private func registerFcmTokenIfAvailable() async {
-        if let fcmToken = await FirebaseMessagingService.shared.fcmToken {
+        if let fcmToken = FirebaseMessagingService.shared.fcmToken {
             do {
                 try await FirebaseMessagingService.shared.registerTokenWithBackend(token: fcmToken)
                 print("✅ [AuthService] FCM token registered after login")

@@ -74,13 +74,13 @@ class OutfitWeatherViewModel: ObservableObject {
             let outfits = try await outfitService.getOutfitsForBooking(bookingId: bookingId)
             outfitHistory = outfits.sorted { outfit1, outfit2 in
                 // Sort by outfit_date if available, otherwise by createdAt
-                if let date1 = outfit1.outfitDate, let date2 = outfit2.outfitDate {
-                    return date1 > date2
+                if let d1 = outfit1.outfitDate, let d2 = outfit2.outfitDate {
+                    return d1 > d2
                 }
-                if let date1 = outfit1.outfitDate {
+                if outfit1.outfitDate != nil {
                     return true
                 }
-                if let date2 = outfit2.outfitDate {
+                if outfit2.outfitDate != nil {
                     return false
                 }
                 return (outfit1.createdAt ?? "") > (outfit2.createdAt ?? "")

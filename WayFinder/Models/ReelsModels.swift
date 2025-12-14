@@ -57,7 +57,7 @@ enum ReelContentItem: Identifiable {
     
     var isLiked: Bool {
         switch self {
-        case .postItem(let post):
+        case .postItem:
             // Will be determined by likedBy list in ViewModel
             return false
         case .journeyItem(let journey):
@@ -104,7 +104,7 @@ enum ReelContentItem: Identifiable {
                 let firstName = user.firstName ?? ""
                 let lastName = user.lastName ?? ""
                 let name = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
-                return name.isEmpty ? (user.username ?? "Traveler") : name
+                return name.isEmpty ? user.username : name
             }
             return "Traveler"
         }

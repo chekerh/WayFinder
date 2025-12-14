@@ -60,7 +60,7 @@ class ReelsViewModel: ObservableObject {
             let journeyItems = journeysResult.map { journey in
                 // Debug: Print journey user info
                 if let user = journey.user {
-                    print("📸 [ReelsViewModel] Journey \(journey.id) - User: \(user.id), Username: \(user.username ?? "nil"), Avatar: \(user.profileImageUrl ?? "nil")")
+                    print("📸 [ReelsViewModel] Journey \(journey.id) - User: \(user.id), Username: \(user.username), Avatar: \(user.profileImageUrl ?? "nil")")
                 } else {
                     print("⚠️ [ReelsViewModel] Journey \(journey.id) - User is nil")
                 }

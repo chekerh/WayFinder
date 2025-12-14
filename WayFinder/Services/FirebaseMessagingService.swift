@@ -47,7 +47,7 @@ final class FirebaseMessagingService: NSObject, ObservableObject {
         // Request all notification permissions including provisional for better popup display
         let options: UNAuthorizationOptions = [.alert, .badge, .sound, .provisional]
         
-        UNUserNotificationCenter.current().requestAuthorization(options: options) { [weak self] granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: options) { granted, error in
             if let error = error {
                 print("❌ [FCM] Error requesting notification permissions: \(error.localizedDescription)")
                 return
@@ -346,7 +346,7 @@ final class FirebaseMessagingService: NSObject, ObservableObject {
         content.title = notification.title
         content.body = notification.message
         content.sound = .default
-        content.badge = NSNumber(value: UIApplication.shared.applicationIconBadgeNumber + 1)
+        content.badge = NSNumber(value: 1) // Increment badge count
         
         // Add notification data for navigation
         content.userInfo["notificationId"] = notification.id

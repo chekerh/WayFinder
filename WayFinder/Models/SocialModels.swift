@@ -256,8 +256,8 @@ struct AnyCodable: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         
-        // Check if value is Optional.none (null)
-        if let optionalValue = value as? Optional<Any>, case .none = optionalValue {
+        // Check if value represents nil (NSNull or similar)
+        if value is NSNull {
             try container.encodeNil()
         } else {
             switch value {
