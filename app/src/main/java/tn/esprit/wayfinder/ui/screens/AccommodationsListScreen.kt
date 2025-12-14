@@ -88,10 +88,10 @@ fun AccommodationsListScreen(
             TopAppBar(
                 title = { 
                     Column {
-                        Text(
+                    Text(
                             typeName,
-                            fontWeight = FontWeight.Bold
-                        )
+                        fontWeight = FontWeight.Bold
+                    ) 
                         Text(
                             destination?.name ?: destinationId,
                             fontSize = 14.sp,
@@ -169,27 +169,27 @@ fun AccommodationsListScreen(
             
             is HotelsUiState.Success -> {
                 if (state.hotels.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Hotel,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = StringTranslator.translate(context, "Aucun logement disponible pour le moment"),
-                            color = colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Hotel,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = StringTranslator.translate(context, "Aucun logement disponible pour le moment"),
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
                     Column(modifier = Modifier.padding(paddingValues)) {
                         // Source indicator
                         if (state.source == "fallback") {
@@ -220,18 +220,18 @@ fun AccommodationsListScreen(
                             }
                         }
                         
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                             items(state.hotels, key = { it.hotelId }) { hotel ->
                                 HotelCard(
                                     hotel = hotel,
-                                    onClick = {
+                        onClick = {
                                         // Save hotel selection and navigate
-                                        navController.currentBackStackEntry
-                                            ?.savedStateHandle
-                                            ?.apply {
+                            navController.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.apply {
                                                 set("accommodation_id", hotel.hotelId)
                                                 set("accommodation_price", hotel.pricePerNight ?: 0.0)
                                                 set("accommodation_currency", hotel.currency ?: "EUR")
@@ -240,17 +240,17 @@ fun AccommodationsListScreen(
                                                 set("accommodation_location", hotel.address?.cityName ?: "")
                                                 set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
                                                 set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
-                                            }
+                                }
                                         // Navigate to activities preview (new flow)
                                         navController.navigate("activities_preview/${destinationId}")
-                                    }
-                                )
-                            }
                         }
-                    }
+                    )
                 }
             }
-            
+        }
+    }
+}
+
             else -> {
                 // Idle state - show nothing or skeleton
             }

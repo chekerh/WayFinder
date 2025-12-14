@@ -27,6 +27,7 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.*
@@ -461,27 +462,27 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     val reviewsState by reviewsViewModel.uiState.collectAsState()
                     val reviewStats = (reviewsState as? tn.esprit.wayfinder.viewmodels.ReviewsUiState.Success)?.stats
                     
-                    Card(
+                Card(
                         modifier = Modifier
                             .weight(1f)
                             .height(72.dp),
-                        shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
                         onClick = { showReviewsSheet = true }
-                    ) {
+                ) {
                         Row(
-                            modifier = Modifier
+                        modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
+                                Icon(
                                 imageVector = Icons.Outlined.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFC107),
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFC107),
                                 modifier = Modifier.size(28.dp)
-                            )
+                                )
                             Column {
                                 Text(
                                     text = reviewStats?.averageRating?.let { 
@@ -491,11 +492,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                     fontWeight = FontWeight.Bold,
                                     color = colorScheme.onSurface
                                 )
-                                Text(
+                        Text(
                                     text = "${reviewStats?.totalReviews ?: 0} ${StringTranslator.translate(context, "avis")}",
                                     fontSize = 12.sp,
-                                    color = colorScheme.onSurfaceVariant
-                                )
+                            color = colorScheme.onSurfaceVariant
+                        )
                             }
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
@@ -529,7 +530,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 modifier = Modifier.size(28.dp)
                             )
                             Column {
-                                Text(
+                            Text(
                                     text = StringTranslator.translate(context, "Alerte prix"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -645,11 +646,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
 
         // Airline Logo Buttons on Right Side - Scroll with parallax and fade out
         if (headerAlpha > 0.1f) {
-            Column(
-                modifier = Modifier
+        Column(
+            modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = 16.dp)
-                    .statusBarsPadding()
+                .padding(end = 16.dp)
+                .statusBarsPadding()
                     .padding(top = 100.dp)
                     .graphicsLayer {
                         // Move up with parallax
@@ -657,35 +658,35 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         // Fade out with scroll
                         alpha = headerAlpha
                     },
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
                 // Booking.com
                 BookingSourceButton(
                     logoUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/Booking.com_logo.png",
                     sourceName = "Booking.com",
                     price = destination.price?.let { "${(it * 0.98).toInt()} ${destination.currency}" },
-                    onClick = {
+                onClick = {
                         // Show price comparison or open booking link
-                    }
-                )
+                }
+            )
                 // Expedia
                 BookingSourceButton(
                     logoUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5b/Expedia_2012_logo.svg",
                     sourceName = "Expedia",
                     price = destination.price?.let { "${(it * 1.02).toInt()} ${destination.currency}" },
-                    onClick = {
+                onClick = {
                         // Show price comparison or open booking link
-                    }
-                )
+                }
+            )
                 // Skyscanner
                 BookingSourceButton(
                     logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Skyscanner-Logo.png",
                     sourceName = "Skyscanner",
                     price = destination.price?.let { "${it.toInt()} ${destination.currency}" },
-                    onClick = {
+                onClick = {
                         // Show price comparison or open booking link
-                    }
-                )
+                }
+            )
             }
         }
 
@@ -1076,21 +1077,39 @@ fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
                             .background(colorScheme.primary.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
+                        val displayInitial = buildString {
+                            val firstName = review.userId.firstName?.takeIf { it.isNotBlank() }
+                            val lastName = review.userId.lastName?.takeIf { it.isNotBlank() }
+                            when {
+                                firstName != null -> append(firstName.first())
+                                lastName != null -> append(lastName.first())
+                                else -> append(review.userId.username.firstOrNull() ?: '?')
+                            }
+                        }.uppercase()
                         Text(
-                            text = review.userId.username.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                            text = displayInitial,
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.primary,
                             fontSize = 14.sp
                         )
                     }
                     Column {
+                        val fullName = buildString {
+                            val firstName = review.userId.firstName?.takeIf { it.isNotBlank() }
+                            val lastName = review.userId.lastName?.takeIf { it.isNotBlank() }
+                            when {
+                                firstName != null && lastName != null -> append("$firstName $lastName")
+                                firstName != null -> append(firstName)
+                                lastName != null -> append(lastName)
+                                else -> append(review.userId.username)
+                            }
+                        }
                         Text(
-                            text = review.userId.username,
+                            text = fullName,
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp,
                             color = colorScheme.onSurface
                         )
-                    }
                 }
                 
                 // Rating
@@ -1203,7 +1222,7 @@ fun BookingSourceButton(
 }
 
 @Composable
-private fun FlightTimeline(
+fun FlightTimeline(
     originLabel: String,
     destinationLabel: String,
     airline: String,
@@ -1278,7 +1297,7 @@ private fun FlightTimeline(
 }
 
 @Composable
-private fun FlightAddOnChip(
+fun FlightAddOnChip(
     title: String,
     subtitle: String,
     price: String,
