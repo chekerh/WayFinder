@@ -274,3 +274,18 @@ struct UpdateBookingRequest: Encodable {
     }
 }
 
+// Paginated response structure to match backend format
+struct PaginatedResponse<T: Decodable>: Decodable {
+    let data: [T]
+    let pagination: PaginationInfo
+}
+
+struct PaginationInfo: Decodable {
+    let page: Int
+    let limit: Int
+    let total: Int
+    let totalPages: Int
+    let hasNext: Bool
+    let hasPrev: Bool
+}
+

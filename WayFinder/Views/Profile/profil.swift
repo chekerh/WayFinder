@@ -71,7 +71,7 @@ struct ProfileView: View {
                                 .padding(.horizontal, 24)
                             } else if destination == .discoverApp {
                                 Button(action: {
-                                    openAppStore()
+                                    showSurveyScreen = true
                                 }) {
                                     ProfileRowContent(action: action)
                                 }
@@ -820,3 +820,4 @@ struct ProfileView_Previews: PreviewProvider {
         ProfileView()
     }
 }
+

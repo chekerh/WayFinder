@@ -90,9 +90,10 @@ final class BookingService {
         decoder.dateDecodingStrategy = .iso8601
         
         do {
-            let result = try decoder.decode([Booking].self, from: data)
-            print("✅ [BookingService] Successfully decoded \(result.count) bookings")
-            return result
+            // Decode as paginated response
+            let paginatedResponse = try decoder.decode(PaginatedResponse<Booking>.self, from: data)
+            print("✅ [BookingService] Successfully decoded \(paginatedResponse.data.count) bookings (page \(paginatedResponse.pagination.page)/\(paginatedResponse.pagination.totalPages))")
+            return paginatedResponse.data
         } catch {
             print("❌ [BookingService] Decoding error for booking history: \(error)")
             if let decodingError = error as? DecodingError {
@@ -119,7 +120,9 @@ final class BookingService {
             method: "GET",
             path: "booking"
         )
-        return try await APIService.shared.request(builder, decodeTo: [Booking].self)
+        // Decode paginated response and extract data array
+        let paginatedResponse: PaginatedResponse<Booking> = try await APIService.shared.request(builder, decodeTo: PaginatedResponse<Booking>.self)
+        return paginatedResponse.data
     }
     
     /// Récupère une réservation par ID
