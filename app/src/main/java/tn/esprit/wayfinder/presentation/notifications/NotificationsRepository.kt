@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 import tn.esprit.wayfinder.manager.CacheManager
 import tn.esprit.wayfinder.models.*
 import tn.esprit.wayfinder.network.ApiService
@@ -38,7 +39,14 @@ class NotificationsRepository(
             Log.d(TAG, "Fetched and cached ${notifications.size} notifications from API")
             notifications
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching notifications from API", e)
+            // Handle 401 Unauthorized - token expired, invalidate cache
+            if (e is HttpException && e.code() == 401) {
+                Log.w(TAG, "401 Unauthorized - clearing notification cache due to expired token")
+                cacheManager?.remove(cacheKey)
+                cacheManager?.remove(CacheManager.KEY_UNREAD_COUNT)
+            } else {
+                Log.e(TAG, "Error fetching notifications from API", e)
+            }
             // Return empty list on error (don't throw to prevent UI crashes)
             emptyList()
         }
@@ -60,7 +68,13 @@ class NotificationsRepository(
             Log.d(TAG, "Fetched and cached unread count from API: $count")
             count
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching unread count from API", e)
+            // Handle 401 Unauthorized - token expired, invalidate cache
+            if (e is HttpException && e.code() == 401) {
+                Log.w(TAG, "401 Unauthorized - clearing unread count cache due to expired token")
+                cacheManager?.remove(CacheManager.KEY_UNREAD_COUNT)
+            } else {
+                Log.e(TAG, "Error fetching unread count from API", e)
+            }
             0 // Return 0 on error
         }
     }
@@ -71,7 +85,13 @@ class NotificationsRepository(
             cacheManager?.put(cacheKey, notifications, CacheManager.TTL_SHORT)
             Log.d(TAG, "Background refresh: updated ${notifications.size} notifications")
         } catch (e: Exception) {
-            Log.w(TAG, "Background refresh failed for notifications", e)
+            // Handle 401 silently - token will be cleared by AuthInterceptor
+            if (e is HttpException && e.code() == 401) {
+                Log.w(TAG, "Background refresh failed: 401 Unauthorized (token expired)")
+                cacheManager?.remove(cacheKey)
+            } else {
+                Log.w(TAG, "Background refresh failed for notifications", e)
+            }
         }
     }
     
@@ -81,7 +101,13 @@ class NotificationsRepository(
             cacheManager?.put(CacheManager.KEY_UNREAD_COUNT, count, CacheManager.TTL_SHORT)
             Log.d(TAG, "Background refresh: updated unread count to $count")
         } catch (e: Exception) {
-            Log.w(TAG, "Background refresh failed for unread count", e)
+            // Handle 401 silently - token will be cleared by AuthInterceptor
+            if (e is HttpException && e.code() == 401) {
+                Log.w(TAG, "Background refresh failed: 401 Unauthorized (token expired)")
+                cacheManager?.remove(CacheManager.KEY_UNREAD_COUNT)
+            } else {
+                Log.w(TAG, "Background refresh failed for unread count", e)
+            }
         }
     }
 

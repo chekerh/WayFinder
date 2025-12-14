@@ -7,8 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -41,7 +43,8 @@ data class TripTypeOption(
     val id: String,
     val name: String,
     val description: String,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val cardColor: Color
 )
 
 /**
@@ -70,50 +73,58 @@ fun TripTypeSelectionScreen(
             TripTypeOption(
                 id = "business",
                 name = "Affaires",
-                description = "Voyages professionnels",
-                icon = Icons.Outlined.Work
+                description = "Voyages professionnels avec confort et efficacité",
+                icon = Icons.Outlined.Work,
+                cardColor = Color(0xFF1E3A5F) // Dark blue
             ),
             TripTypeOption(
                 id = "leisure",
                 name = "Loisirs",
-                description = "Détente et découverte",
-                icon = Icons.Outlined.WbSunny
+                description = "Détente et découverte sans contraintes",
+                icon = Icons.Outlined.WbSunny,
+                cardColor = Color(0xFF4A90E2) // Light blue
             ),
             TripTypeOption(
                 id = "honeymoon",
                 name = "Lune de miel",
-                description = "Escapade romantique",
-                icon = Icons.Outlined.FavoriteBorder
+                description = "Moments romantiques dans des lieux d'exception",
+                icon = Icons.Outlined.FavoriteBorder,
+                cardColor = Color(0xFFE91E63) // Pink
             ),
             TripTypeOption(
                 id = "family",
                 name = "Famille",
-                description = "Aventures en famille",
-                icon = Icons.Outlined.People
+                description = "Aventures pour petits et grands",
+                icon = Icons.Outlined.People,
+                cardColor = Color(0xFFFF9800) // Orange
             ),
             TripTypeOption(
                 id = "adventure",
                 name = "Aventure",
-                description = "Exploration nature",
-                icon = Icons.Outlined.Hiking
+                description = "Exploration et sensations fortes",
+                icon = Icons.Outlined.Hiking,
+                cardColor = Color(0xFF4CAF50) // Green
             ),
             TripTypeOption(
                 id = "solo",
                 name = "Solo",
-                description = "Voyage indépendant",
-                icon = Icons.Outlined.Person
+                description = "Liberté totale pour voyageur indépendant",
+                icon = Icons.Outlined.Person,
+                cardColor = Color(0xFF9C27B0) // Purple
             ),
             TripTypeOption(
                 id = "wellness",
                 name = "Bien-être",
-                description = "Repos et relaxation",
-                icon = Icons.Outlined.Spa
+                description = "Ressourcement corps et esprit",
+                icon = Icons.Outlined.Spa,
+                cardColor = Color(0xFF009688) // Teal
             ),
             TripTypeOption(
                 id = "backpacking",
                 name = "Backpacking",
-                description = "Voyage économique",
-                icon = Icons.Outlined.Backpack
+                description = "Voyage économique et authentique",
+                icon = Icons.Outlined.Backpack,
+                cardColor = Color(0xFF795548) // Brown
             )
         )
     }
@@ -183,34 +194,35 @@ fun TripTypeSelectionScreen(
             }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
+                .padding(horizontal = 20.dp)
         ) {
-            item {
-                Text(
-                    text = StringTranslator.translate(context, "Quel est le but de votre voyage ?"),
-                    fontSize = 15.sp,
-                    color = colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
             
-            items(tripTypes, key = { it.id }) { tripType ->
-                TripTypeCard(
-                    tripType = tripType,
-                    isSelected = selectedType == tripType.id,
-                    onClick = { selectedType = tripType.id }
-                )
-            }
+            Text(
+                text = StringTranslator.translate(context, "Quel est le but de votre voyage ?"),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
             
-            // Bottom spacing
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 100.dp)
+            ) {
+                items(tripTypes, key = { it.id }) { tripType ->
+                    TripTypeCard(
+                        tripType = tripType,
+                        isSelected = selectedType == tripType.id,
+                        onClick = { selectedType = tripType.id }
+                    )
+                }
             }
         }
     }
@@ -225,108 +237,95 @@ fun TripTypeCard(
     val colorScheme = MaterialTheme.colorScheme
     
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.02f else 1f,
+        targetValue = if (isSelected) 1.05f else 1f,
         animationSpec = tween(durationMillis = 200),
         label = "scale"
     )
     
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) colorScheme.primaryContainer else colorScheme.surfaceVariant,
+    val borderWidth by animateFloatAsState(
+        targetValue = if (isSelected) 3f else 0f,
         animationSpec = tween(durationMillis = 200),
-        label = "backgroundColor"
-    )
-    
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) colorScheme.primary else colorScheme.surfaceVariant,
-        animationSpec = tween(durationMillis = 200),
-        label = "borderColor"
-    )
-    
-    val iconTint by animateColorAsState(
-        targetValue = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 200),
-        label = "iconTint"
-    )
-    
-    val textColor by animateColorAsState(
-        targetValue = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
-        animationSpec = tween(durationMillis = 200),
-        label = "textColor"
+        label = "borderWidth"
     )
 
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
+            .height(140.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
-            .border(
-                width = 2.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(16.dp)
-            )
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = backgroundColor,
-        tonalElevation = if (isSelected) 4.dp else 0.dp
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = tripType.cardColor
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 8.dp else 4.dp
+        )
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = borderWidth.dp,
+                            color = Color.White,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
-            // Icon in circle
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isSelected) colorScheme.primary.copy(alpha = 0.15f) 
-                        else colorScheme.surface
-                    ),
-                contentAlignment = Alignment.Center
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
+                // Icon
                 Icon(
                     imageVector = tripType.icon,
                     contentDescription = null,
-                    modifier = Modifier.size(26.dp),
-                    tint = iconTint
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
                 )
+                
+                // Title and description
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = tripType.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = tripType.description,
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        lineHeight = 14.sp
+                    )
+                }
             }
             
-            // Title and description
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = tripType.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = textColor
-                )
-                Text(
-                    text = tripType.description,
-                    fontSize = 13.sp,
-                    color = colorScheme.onSurfaceVariant
-                )
-            }
-            
-            // Checkmark when selected
+            // Checkmark overlay when selected
             if (isSelected) {
                 Box(
                     modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(colorScheme.primary),
+                        .background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = "Selected",
                         modifier = Modifier.size(18.dp),
-                        tint = colorScheme.onPrimary
+                        tint = tripType.cardColor
                     )
                 }
             }

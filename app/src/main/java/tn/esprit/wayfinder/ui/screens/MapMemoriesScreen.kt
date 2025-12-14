@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.ui.components.AppTopBar
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -49,6 +50,7 @@ import tn.esprit.wayfinder.network.ApiService
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.SocialViewModel
+import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,24 +122,13 @@ fun MapMemoriesScreen(navController: NavController) {
         }
     }
 
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        StringTranslator.translate(context, "Mes Memories"),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            AppTopBar(
+                navController = navController,
+                notificationsViewModel = notificationsViewModel
             )
         },
         bottomBar = {

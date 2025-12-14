@@ -35,11 +35,13 @@ import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.manager.TokenManager
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.ui.components.AppTopBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.ChatViewModel
 import tn.esprit.wayfinder.viewmodels.ChatMessageUi
 import tn.esprit.wayfinder.viewmodels.ChatUiState
+import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import kotlin.math.roundToInt
 
@@ -72,43 +74,13 @@ fun ChatScreen(navController: NavController) {
         }
     }
 
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            StringTranslator.translate(context, "AI Travel Assistant"),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = selectedModel?.let { model ->
-                                availableModels.find { 
-                                    try {
-                                        ChatModel.valueOf(it.id.uppercase()) == model
-                                    } catch (e: Exception) {
-                                        false
-                                    }
-                                }?.name ?: "Hugging Face (Free)"
-                            } ?: "Select Model",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                },
-                navigationIcon = { 
-                    IconButton(onClick = { navController.popBackStack() }) { 
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") 
-                    } 
-                },
-                actions = {
-                    IconButton(onClick = { showModelSelector = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Select Model")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            AppTopBar(
+                navController = navController,
+                notificationsViewModel = notificationsViewModel
             )
         },
         bottomBar = {
@@ -158,15 +130,47 @@ fun ChatScreen(navController: NavController) {
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp),
                 state = listState
             ) {
+                // Title section
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                StringTranslator.translate(context, "AI Travel Assistant"),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                text = selectedModel?.let { model ->
+                                    availableModels.find { 
+                                        try {
+                                            ChatModel.valueOf(it.id.uppercase()) == model
+                                        } catch (e: Exception) {
+                                            false
+                                        }
+                                    }?.name ?: "Hugging Face (Free)"
+                                } ?: "Select Model",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+                
                 if (showOnboardingPrompt) {
                     item {
                         OnboardingReminderCard(

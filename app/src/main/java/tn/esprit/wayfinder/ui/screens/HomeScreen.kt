@@ -35,6 +35,11 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +68,7 @@ import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.components.SkeletonLoadingCard
 import tn.esprit.wayfinder.ui.components.CompactPointsBadge
+import tn.esprit.wayfinder.ui.components.AppTopBar
 import tn.esprit.wayfinder.utils.HapticFeedbackHelper
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.CatalogViewModel
@@ -156,31 +162,55 @@ fun HomeScreen(navController: NavController) {
         )
     )
 
+    val scrollState = rememberScrollState()
+    
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            AppTopBar(
+                navController = navController,
+                notificationsViewModel = notificationsViewModel
+            )
+        },
         bottomBar = { CustomBottomNavigationBar(navController = navController) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
-            Spacer(modifier = Modifier.height(48.dp)) // Status bar padding
-            TopBar(context = context, navController = navController, notificationsViewModel = notificationsViewModel)
-            Spacer(modifier = Modifier.height(28.dp))
-            
-            // Region filter chips - Make them visible at the top
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                RegionSection(
-                    regions = regions,
-                    selectedRegion = selectedRegion,
-                    onRegionSelected = { regionName ->
-                        selectedRegion = if (selectedRegion == regionName) null else regionName
-                    }
-                )
-                Spacer(modifier = Modifier.height(24.dp))
+            // Region filter section - Always visible between topbar and content
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                ) {
+                    // Title
+                    Text(
+                        text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        fontSize = 12.sp
+                    )
+                    
+                    // Region filter chips
+                    RegionSection(
+                        regions = regions,
+                        selectedRegion = selectedRegion,
+                        onRegionSelected = { regionName ->
+                            selectedRegion = if (selectedRegion == regionName) null else regionName
+                        }
+                    )
+                }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
             
             Column {
                 // Personalized section removed
@@ -496,157 +526,6 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
-@Composable
-fun TopBar(
-    context: android.content.Context,
-    navController: NavController,
-    notificationsViewModel: NotificationsViewModel
-) {
-    val tokenManager = remember { TokenManager(context) }
-    var user by remember { mutableStateOf(tokenManager.getUser()) }
-    val notificationsState by notificationsViewModel.uiState.collectAsState()
-    
-    // Get user's first name or username
-    val userName = user?.firstName?.takeIf { it.isNotBlank() } 
-        ?: user?.username?.takeIf { it.isNotBlank() }
-        ?: "Utilisateur"
-    
-    val unreadCount = when (val state = notificationsState) {
-        is NotificationsUiState.Success -> state.unreadCount
-        else -> 0
-    }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box {
-                val userImageUrl = user?.profileImageUrl?.let { url ->
-                    if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
-                }
-                if (userImageUrl != null) {
-                    AsyncImage(
-                        model = userImageUrl,
-                        contentDescription = "User Avatar",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { 
-                HapticFeedbackHelper.triggerButtonPress(context)
-                navController.navigate("profile") 
-            },
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.europe),
-                        error = painterResource(id = R.drawable.europe)
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.europe),
-                        contentDescription = "User Avatar",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { 
-                HapticFeedbackHelper.triggerButtonPress(context)
-                navController.navigate("profile") 
-            },
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                
-                // Show badge if onboarding was skipped
-                if (user?.onboardingSkipped == true) {
-                    OnboardingReminderBadge(
-                        onDismiss = {
-                            // Update user to remove skipped flag and hide badge immediately
-                            val updatedUser = user?.copy(onboardingSkipped = false)
-                            if (updatedUser != null) {
-                                user = updatedUser
-                                tokenManager.saveUser(updatedUser)
-                            }
-                        },
-                        onClick = {
-                            navController.navigate("onboarding")
-                        },
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
-                }
-            }
-            
-            // User name after photo
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 12.dp)
-            )
-        }
-        
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Favorites button
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                    .clickable { 
-                        HapticFeedbackHelper.triggerButtonPress(context)
-                        navController.navigate("favorites") 
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = "Favoris",
-                    tint = Color(0xFFFF1744)
-                )
-            }
-            
-            // Notifications button
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
-                    .clickable { 
-                        HapticFeedbackHelper.triggerButtonPress(context)
-                        navController.navigate("notifications") 
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color(0xFF0D47A1)
-                )
-                if (unreadCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF44336)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (unreadCount > 9) "9+" else unreadCount.toString(),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun RegionSection(
@@ -658,7 +537,7 @@ fun RegionSection(
     
     Row(
         modifier = Modifier.horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         regions.forEach { region -> 
             RegionChip(
@@ -681,10 +560,10 @@ fun RegionChip(
         modifier = Modifier
             .background(
                 if (isSelected) Color(0xFF1976D2) else colorScheme.surface,
-                RoundedCornerShape(20.dp)
+                RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Use icon for "Préférences", image for others
@@ -692,22 +571,23 @@ fun RegionChip(
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = region.name,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(16.dp),
                 tint = if (isSelected) Color.White else Color(0xFFFFC107)
             )
         } else {
             Image(
                 painter = painterResource(id = region.imageRes),
                 contentDescription = region.name,
-                modifier = Modifier.size(32.dp).clip(CircleShape)
+                modifier = Modifier.size(20.dp).clip(CircleShape)
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = region.name,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) Color.White else colorScheme.onSurface
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (isSelected) Color.White else colorScheme.onSurface,
+            fontSize = 12.sp
         )
     }
 }

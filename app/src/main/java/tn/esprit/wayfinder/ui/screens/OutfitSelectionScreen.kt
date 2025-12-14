@@ -26,8 +26,10 @@ import tn.esprit.wayfinder.models.Booking
 import tn.esprit.wayfinder.models.BookingStatus
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
+import tn.esprit.wayfinder.ui.components.AppTopBar
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.BookingUiState
+import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.utils.StringTranslator
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -50,23 +52,13 @@ fun OutfitSelectionScreen(navController: NavController) {
         else -> emptyList()
     }
 
+    val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        StringTranslator.translate(context, "Vérifier ma tenue"),
-                        fontWeight = FontWeight.Bold
-                    ) 
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+            AppTopBar(
+                navController = navController,
+                notificationsViewModel = notificationsViewModel
             )
         },
         bottomBar = {

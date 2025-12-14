@@ -24,9 +24,12 @@ class AuthInterceptor(context: Context) : Interceptor {
 
         val response = chain.proceed(requestBuilder.build())
         
-        // Log 401 errors for debugging
+        // Handle 401 Unauthorized errors - token is expired or invalid
         if (response.code == 401) {
             Log.w(TAG, "401 Unauthorized for ${chain.request().url} - Token may be expired or invalid")
+            // Clear the expired token to force re-authentication
+            tokenManager.deleteToken()
+            Log.d(TAG, "Expired token cleared - user will need to re-authenticate")
         }
         
         return response
