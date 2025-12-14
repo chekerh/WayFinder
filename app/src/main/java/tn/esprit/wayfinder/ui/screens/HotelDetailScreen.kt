@@ -37,13 +37,15 @@ import tn.esprit.wayfinder.models.Accommodation
 import tn.esprit.wayfinder.models.AccommodationReview
 import tn.esprit.wayfinder.models.FlightDestination
 import tn.esprit.wayfinder.models.Hotel
+import tn.esprit.wayfinder.models.HotelAddress
+import tn.esprit.wayfinder.models.HotelMedia
+import tn.esprit.wayfinder.models.HotelReview
 import tn.esprit.wayfinder.navigation.SELECTED_DESTINATION_KEY
 import tn.esprit.wayfinder.presentation.auth.ViewModelFactory
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.HotelDetailUiState
 import tn.esprit.wayfinder.viewmodels.HotelsViewModel
-import tn.esprit.wayfinder.models.HotelReview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,38 +74,59 @@ fun HotelDetailScreen(
         }
     }
     
-    // Convert Hotel to Accommodation for display
-    val hotel: Accommodation? = accommodation ?: run {
-        when (val state = hotelDetailState) {
-            is HotelDetailUiState.Success -> {
-                val h = state.hotel
-                Accommodation(
-                    id = h.id,
-                    name = h.name,
-                    type = h.type ?: "hotel",
-                    price = h.pricePerNight ?: 0.0,
-                    currency = h.currency ?: "EUR",
-                    rating = h.rating ?: h.googleRating ?: 0.0,
-                    imageUrl = h.media?.firstOrNull()?.uri,
-                    location = h.address?.cityName ?: h.cityCode ?: "",
-                    amenities = h.amenities,
-                    address = h.address?.lines?.joinToString(", ") ?: h.address?.cityName,
-                    description = h.description,
-                    photos = h.media?.map { it.uri } ?: emptyList(),
-                    reviews = state.reviews.map { r ->
-                        AccommodationReview(
-                            authorName = r.authorName ?: "Anonymous",
-                            rating = r.rating?.toDouble() ?: 0.0,
-                            text = r.text ?: "",
-                            time = r.time
-                        )
-                    },
-                    userRatingsTotal = h.googleReviewCount
-                )
-            }
-            else -> null
-        }
+    // Get Hotel object for display (needed for accessing Hotel properties like media, address, etc.)
+    val hotelForDisplay: Hotel? = accommodation?.let { acc ->
+        // Convert Accommodation to Hotel for display
+        Hotel(
+            id = acc.id,
+            hotelId = acc.id,
+            name = acc.name,
+            rating = acc.rating,
+            type = acc.type,
+            pricePerNight = acc.price,
+            currency = acc.currency,
+            amenities = acc.amenities,
+            address = HotelAddress(lines = listOfNotNull(acc.address, acc.location)),
+            description = acc.description,
+            media = acc.imageUrl?.let { listOf(HotelMedia(uri = it)) } ?: acc.photos.map { HotelMedia(uri = it) }
+        )
+    } ?: when (val state = hotelDetailState) {
+        is HotelDetailUiState.Success -> state.hotel
+        else -> null
     }
+    
+    // Convert Hotel to Accommodation for navigation (if needed)
+    val accommodationForNav: Accommodation? = accommodation ?: hotelForDisplay?.let { h ->
+        Accommodation(
+            id = h.id,
+            name = h.name,
+            type = h.type ?: "hotel",
+            price = h.pricePerNight ?: 0.0,
+            currency = h.currency ?: "EUR",
+            rating = h.rating ?: h.googleRating ?: 0.0,
+            imageUrl = h.media?.firstOrNull()?.uri,
+            location = h.address?.cityName ?: h.cityCode ?: "",
+            amenities = h.amenities,
+            address = h.address?.lines?.joinToString(", ") ?: h.address?.cityName,
+            description = h.description,
+            photos = h.media?.map { it.uri } ?: emptyList(),
+            reviews = when (val state = hotelDetailState) {
+                is HotelDetailUiState.Success -> state.reviews.map { r ->
+                    AccommodationReview(
+                        authorName = r.authorName ?: "Anonymous",
+                        rating = r.rating?.toDouble() ?: 0.0,
+                        text = r.text ?: "",
+                        time = r.time
+                    )
+                }
+                else -> emptyList()
+            },
+            userRatingsTotal = h.googleReviewCount
+        )
+    }
+    
+    // Use hotelForDisplay for display logic
+    val hotel = hotelForDisplay
     
     // Parallax effect calculations
     val imageHeight = 300.dp
@@ -113,8 +136,10 @@ fun HotelDetailScreen(
     
     // Photo gallery state
     var selectedPhotoIndex by remember { mutableStateOf(0) }
-    val photos = hotel?.photos?.takeIf { it.isNotEmpty() } 
-        ?: listOf("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800")
+    val photos: List<String> = remember(hotel) {
+        hotel?.media?.map { it.uri }?.takeIf { it.isNotEmpty() }
+            ?: listOf("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800")
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Hero Image with Parallax
@@ -253,7 +278,9 @@ fun HotelDetailScreen(
                                         tint = colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = hotel.address ?: hotel.location,
+                                        text = hotel.address?.lines?.firstOrNull() 
+                                            ?: hotel.address?.cityName 
+                                            ?: "Adresse non disponible",
                                         fontSize = 14.sp,
                                         color = colorScheme.onSurfaceVariant
                                     )
@@ -277,7 +304,7 @@ fun HotelDetailScreen(
                                         tint = colorScheme.primary
                                     )
                                     Text(
-                                        text = String.format("%.1f", hotel.rating),
+                                        text = String.format("%.1f", hotel.rating ?: hotel.googleRating ?: 0.0),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colorScheme.onPrimaryContainer
@@ -287,7 +314,7 @@ fun HotelDetailScreen(
                         }
                         
                         // Reviews count
-                        hotel.userRatingsTotal?.let { count ->
+                        hotel.googleReviewCount?.let { count ->
                             Text(
                                 text = "$count ${StringTranslator.translate(context, "avis")}",
                                 fontSize = 14.sp,
@@ -342,7 +369,7 @@ fun HotelDetailScreen(
                         }
                         
                         // Amenities
-                        if (hotel.amenitiesList.isNotEmpty()) {
+                        if (hotel.amenities.isNotEmpty()) {
                             Text(
                                 text = StringTranslator.translate(context, "Équipements"),
                                 fontSize = 18.sp,
@@ -353,37 +380,24 @@ fun HotelDetailScreen(
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(hotel.amenitiesList) { amenity ->
+                                items(hotel.amenities) { amenity ->
                                     AmenityChip(amenity = amenity)
                                 }
                             }
                         }
                         
-                        // Check-in/Check-out times
-                        if (hotel.checkInTime != null || hotel.checkOutTime != null) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                hotel.checkInTime?.let {
-                                    TimeInfoCard(
-                                        icon = Icons.Filled.Schedule,
-                                        label = StringTranslator.translate(context, "Check-in"),
-                                        time = it
-                                    )
-                                }
-                                hotel.checkOutTime?.let {
-                                    TimeInfoCard(
-                                        icon = Icons.Filled.EventBusy,
-                                        label = StringTranslator.translate(context, "Check-out"),
-                                        time = it
-                                    )
-                                }
-                            }
-                        }
+                        // Check-in/Check-out times - Note: These would come from hotel offers, not hotel details
+                        // This section is commented out as checkInTime/checkOutTime are not in Hotel model
+                        // They would be available in HotelOffer.policies
                         
                         // Reviews Section
-                        if (hotel.reviews.isNotEmpty()) {
+                        val reviews: List<HotelReview> = remember(hotelDetailState) {
+                            when (val state = hotelDetailState) {
+                                is HotelDetailUiState.Success -> state.reviews
+                                else -> emptyList()
+                            }
+                        }
+                        if (reviews.isNotEmpty()) {
                             Text(
                                 text = StringTranslator.translate(context, "Avis des clients"),
                                 fontSize = 18.sp,
@@ -391,7 +405,7 @@ fun HotelDetailScreen(
                                 color = colorScheme.onBackground
                             )
                             
-                            for (review in hotel.reviews.take(5)) {
+                            reviews.take(5).forEach { review: HotelReview ->
                                 ReviewCard(review = review)
                             }
                         }
@@ -427,7 +441,7 @@ fun HotelDetailScreen(
                             color = colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "${hotel.price.toInt()} ${hotel.currency}",
+                            text = "${hotel.pricePerNight?.toInt() ?: 0} ${hotel.currency ?: "EUR"}",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.primary
@@ -439,10 +453,10 @@ fun HotelDetailScreen(
                             // Save hotel selection and navigate to activities preview
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
                                 set(SELECTED_DESTINATION_KEY, destination)
-                                set("selected_accommodation", hotel)
+                                set("selected_accommodation", accommodationForNav)
                                 set("accommodation_name", hotel.name)
-                                set("accommodation_price", hotel.price)
-                                set("accommodation_type", hotel.type)
+                                set("accommodation_price", hotel.pricePerNight ?: 0.0)
+                                set("accommodation_type", hotel.type ?: "hotel")
                             }
                             navController.navigate("activities_preview/${destination?.id ?: hotelId}")
                         },
@@ -545,7 +559,7 @@ fun TimeInfoCard(
 }
 
 @Composable
-fun ReviewCard(review: AccommodationReview) {
+fun ReviewCard(review: HotelReview) {
     val colorScheme = MaterialTheme.colorScheme
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -573,14 +587,14 @@ fun ReviewCard(review: AccommodationReview) {
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = review.authorName.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
+                                text = review.authorName?.firstOrNull()?.uppercase() ?: "?",
                                 fontWeight = FontWeight.Bold,
                                 color = colorScheme.primary
                             )
                         }
                     }
                     Text(
-                        text = review.authorName,
+                        text = review.authorName ?: "Anonyme",
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
@@ -598,7 +612,7 @@ fun ReviewCard(review: AccommodationReview) {
                         tint = Color(0xFFFFC107)
                     )
                     Text(
-                        text = String.format("%.1f", review.rating),
+                        text = String.format("%.1f", review.rating?.toDouble() ?: 0.0),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
@@ -607,7 +621,7 @@ fun ReviewCard(review: AccommodationReview) {
             }
             
             Text(
-                text = review.text,
+                text = review.text ?: "",
                 fontSize = 14.sp,
                 color = colorScheme.onSurfaceVariant,
                 maxLines = 4,

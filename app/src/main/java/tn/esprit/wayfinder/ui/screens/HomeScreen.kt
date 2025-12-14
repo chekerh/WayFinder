@@ -95,15 +95,16 @@ fun HomeScreen(navController: NavController) {
         notificationsViewModel.refreshUnreadCount()
     }
     
-    // Load flights on first composition
+    // Load flights on first composition - request more results to ensure variety
     LaunchedEffect(Unit) {
-        catalogViewModel.loadRecommendedFlights(showAll = false)
+        catalogViewModel.loadRecommendedFlights(showAll = false, maxResults = 20)
     }
     
     // Reload flights when region changes to ensure fresh data for filtering
     LaunchedEffect(selectedRegion) {
         // Always reload when region changes to get fresh data for filtering
-        catalogViewModel.loadRecommendedFlights(showAll = false)
+        // Request more results to ensure we have destinations from all regions
+        catalogViewModel.loadRecommendedFlights(showAll = false, maxResults = 20)
     }
 
     // Regions data with country filters
@@ -121,12 +122,32 @@ fun HomeScreen(navController: NavController) {
         Region(
             name = StringTranslator.translate(context, "Asie"),
             imageRes = R.drawable.asia,
-            filterCountries = listOf("China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel")
+            filterCountries = listOf(
+                // English names (primary)
+                "China", "Japan", "India", "Thailand", "Singapore", "Malaysia", 
+                "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", 
+                "Saudi Arabia", "Turkey", "Israel",
+                // English variations
+                "United Arab Emirates", "Korea", "South Korea",
+                // French names
+                "Chine", "Japon", "Inde", "Thaïlande", "Singapour", "Malaisie",
+                "Indonésie", "Corée du Sud", "Corée", "Viêt Nam", "Philippines",
+                "EAU", "Émirats arabes unis", "Arabie saoudite", "Turquie", "Israël"
+            )
         ),
         Region(
             name = StringTranslator.translate(context, "Amerique"),
             imageRes = R.drawable.america,
-            filterCountries = listOf("United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru")
+            filterCountries = listOf(
+                // English names (primary)
+                "United States", "Canada", "Mexico", "Brazil", "Argentina", 
+                "Chile", "Colombia", "Peru",
+                // English variations
+                "USA", "US", "United States of America", "America",
+                // French names
+                "États-Unis", "États Unis", "États-Unis d'Amérique",
+                "Mexique", "Brésil", "Argentine", "Chili", "Colombie", "Pérou"
+            )
         ),
         Region(
             name = StringTranslator.translate(context, "Australie"),
@@ -148,6 +169,18 @@ fun HomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(48.dp)) // Status bar padding
             TopBar(context = context, navController = navController, notificationsViewModel = notificationsViewModel)
             Spacer(modifier = Modifier.height(28.dp))
+            
+            // Region filter chips - Make them visible at the top
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                RegionSection(
+                    regions = regions,
+                    selectedRegion = selectedRegion,
+                    onRegionSelected = { regionName ->
+                        selectedRegion = if (selectedRegion == regionName) null else regionName
+                    }
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
             
             Column {
                 // Personalized section removed
@@ -193,15 +226,155 @@ fun HomeScreen(navController: NavController) {
                             val filteredDestinations = if (selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
                                 val selectedRegionData = regions.find { it.name == selectedRegion }
                                 val filterCountries = selectedRegionData?.filterCountries ?: emptyList()
+                                
+                                // Debug: Log for troubleshooting
+                                android.util.Log.d("HomeScreen", "Selected region: $selectedRegion")
+                                android.util.Log.d("HomeScreen", "Filter countries: $filterCountries")
+                                android.util.Log.d("HomeScreen", "Total destinations before filter: ${state.destinations.size}")
+                                state.destinations.take(5).forEach { dest ->
+                                    android.util.Log.d("HomeScreen", "Destination: ${dest.name}, Country: ${dest.country}")
+                                }
+                                
                                 if (filterCountries.isNotEmpty()) {
-                                    state.destinations.filter { destination ->
-                                        filterCountries.any { country ->
-                                            // More robust country matching
-                                            destination.country.equals(country, ignoreCase = true) ||
-                                            destination.country.contains(country, ignoreCase = true) ||
-                                            country.contains(destination.country, ignoreCase = true)
+                                    // Create a comprehensive mapping for country name variations (French/English)
+                                    val countryMapping = mapOf(
+                                        // Europe - French to English
+                                        "France" to "France",
+                                        "Italie" to "Italy",
+                                        "Espagne" to "Spain",
+                                        "Royaume-Uni" to "United Kingdom",
+                                        "Pays-Bas" to "Netherlands",
+                                        "Allemagne" to "Germany",
+                                        "Suisse" to "Switzerland",
+                                        "Belgique" to "Belgium",
+                                        "Portugal" to "Portugal",
+                                        "Grèce" to "Greece",
+                                        "Autriche" to "Austria",
+                                        "Suède" to "Sweden",
+                                        "Norvège" to "Norway",
+                                        "Danemark" to "Denmark",
+                                        "Finlande" to "Finland",
+                                        "Pologne" to "Poland",
+                                        "République tchèque" to "Czech Republic",
+                                        "Hongrie" to "Hungary",
+                                        "Irlande" to "Ireland",
+                                        "Turquie" to "Turkey",
+                                        // Americas - French to English
+                                        "États-Unis" to "United States",
+                                        "États Unis" to "United States",
+                                        "États-Unis d'Amérique" to "United States",
+                                        "Mexique" to "Mexico",
+                                        "Brésil" to "Brazil",
+                                        "Argentine" to "Argentina",
+                                        "Chili" to "Chile",
+                                        "Colombie" to "Colombia",
+                                        "Pérou" to "Peru",
+                                        // Asia - French to English
+                                        "Chine" to "China",
+                                        "Japon" to "Japan",
+                                        "Inde" to "India",
+                                        "Thaïlande" to "Thailand",
+                                        "Singapour" to "Singapore",
+                                        "Malaisie" to "Malaysia",
+                                        "Indonésie" to "Indonesia",
+                                        "Corée du Sud" to "South Korea",
+                                        "Corée" to "South Korea",
+                                        "Viêt Nam" to "Vietnam",
+                                        "Philippines" to "Philippines",
+                                        "EAU" to "UAE",
+                                        "Émirats arabes unis" to "UAE",
+                                        "Arabie saoudite" to "Saudi Arabia",
+                                        "Israël" to "Israel",
+                                        "Tunisie" to "Tunisia",
+                                        // English variations
+                                        "USA" to "United States",
+                                        "US" to "United States",
+                                        "United States of America" to "United States",
+                                        "America" to "United States",
+                                        "UK" to "United Kingdom",
+                                        "UAE" to "UAE",
+                                        "United Arab Emirates" to "UAE",
+                                        "Korea" to "South Korea"
+                                    )
+                                    
+                                    // Simplified matching - check all variations
+                                    val filtered = state.destinations.filter { destination ->
+                                        val destCountry = destination.country.trim()
+                                        val destLower = destCountry.lowercase()
+                                        
+                                        // Normalize destination country
+                                        val normalizedDest = (countryMapping[destCountry] ?: destCountry).lowercase()
+                                        
+                                        // Check against all filter countries
+                                        val matches = filterCountries.any { filterCountry ->
+                                            val filterLower = filterCountry.lowercase()
+                                            val normalizedFilter = (countryMapping[filterCountry] ?: filterCountry).lowercase()
+                                            
+                                            // Multiple matching strategies
+                                            destLower == filterLower ||
+                                            normalizedDest == normalizedFilter ||
+                                            destLower == normalizedFilter ||
+                                            normalizedDest == filterLower ||
+                                            destLower.contains(filterLower) ||
+                                            filterLower.contains(destLower) ||
+                                            normalizedDest.contains(normalizedFilter) ||
+                                            normalizedFilter.contains(normalizedDest) ||
+                                            // Word-by-word matching
+                                            destLower.split(" ").any { destWord ->
+                                                destWord.length > 2 && (
+                                                    normalizedFilter.contains(destWord) ||
+                                                    filterLower.contains(destWord) ||
+                                                    normalizedFilter.split(" ").any { it == destWord } ||
+                                                    filterLower.split(" ").any { it == destWord }
+                                                )
+                                            } ||
+                                            normalizedDest.split(" ").any { destWord ->
+                                                destWord.length > 2 && (
+                                                    normalizedFilter.contains(destWord) ||
+                                                    filterLower.contains(destWord) ||
+                                                    normalizedFilter.split(" ").any { it == destWord } ||
+                                                    filterLower.split(" ").any { it == destWord }
+                                                )
+                                            }
+                                        } ||
+                                        // Special cases for abbreviations
+                                        when {
+                                            // UAE
+                                            (destLower.contains("uae") || normalizedDest.contains("uae")) &&
+                                            filterCountries.any { it.lowercase().contains("uae") || it.lowercase().contains("united arab") || it.lowercase().contains("émirats") || it.lowercase().contains("eau") } -> true
+                                            // United States
+                                            (destLower.contains("united states") || normalizedDest.contains("united states") || destLower.contains("usa") || normalizedDest.contains("usa")) &&
+                                            filterCountries.any { it.lowercase().contains("united states") || it.lowercase().contains("usa") || it.lowercase().contains("us") || it.lowercase().contains("états") || it.lowercase().contains("america") } -> true
+                                            // South Korea
+                                            (destLower.contains("korea") || normalizedDest.contains("korea")) &&
+                                            filterCountries.any { it.lowercase().contains("korea") || it.lowercase().contains("corée") } -> true
+                                            // Japan
+                                            (destLower.contains("japan") || normalizedDest.contains("japan")) &&
+                                            filterCountries.any { it.lowercase().contains("japan") || it.lowercase().contains("japon") } -> true
+                                            // Thailand
+                                            (destLower.contains("thailand") || normalizedDest.contains("thailand")) &&
+                                            filterCountries.any { it.lowercase().contains("thailand") || it.lowercase().contains("thaïlande") } -> true
+                                            // Singapore
+                                            (destLower.contains("singapore") || normalizedDest.contains("singapore")) &&
+                                            filterCountries.any { it.lowercase().contains("singapore") || it.lowercase().contains("singapour") } -> true
+                                            // Turkey
+                                            (destLower.contains("turkey") || normalizedDest.contains("turkey")) &&
+                                            filterCountries.any { it.lowercase().contains("turkey") || it.lowercase().contains("turquie") } -> true
+                                            else -> false
                                         }
+                                        
+                                        if (matches) {
+                                            android.util.Log.d("HomeScreen", "✓ Match: ${destination.name} (${destCountry})")
+                                        }
+                                        
+                                        matches
                                     }
+                                    
+                                    android.util.Log.d("HomeScreen", "Total destinations: ${state.destinations.size}, Filtered: ${filtered.size}")
+                                    if (filtered.isEmpty() && state.destinations.isNotEmpty()) {
+                                        android.util.Log.w("HomeScreen", "Filtering failed! Available countries: ${state.destinations.map { it.country }.distinct()}")
+                                    }
+                                    filtered
                                 } else {
                                     state.destinations
                                 }
@@ -211,15 +384,17 @@ fun HomeScreen(navController: NavController) {
                             }
                             
                             // Show at least 5-6 flights on home screen, or all if filtered results are fewer
-                            val displayDestinations = if (filteredDestinations.isEmpty() && selectedRegion != null) {
-                                // If no results after filtering, show loading or message
+                            val displayDestinations = if (filteredDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
+                                // If no results after filtering, show message but also log for debugging
+                                android.util.Log.w("HomeScreen", "No filtered destinations found for region: $selectedRegion")
+                                android.util.Log.w("HomeScreen", "Available destinations: ${state.destinations.map { "${it.name} (${it.country})" }}")
                                 emptyList()
                             } else {
                                 filteredDestinations.take(6)
                             }
                             
                             // Show message if no flights found for selected region
-                            if (displayDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
+                            if (displayDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences") && filteredDestinations.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -240,6 +415,15 @@ fun HomeScreen(navController: NavController) {
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
+                                        // Debug info (only in debug builds)
+                                        if (state.destinations.isNotEmpty()) {
+                                            Text(
+                                                text = "Debug: ${state.destinations.size} destinations disponibles",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontSize = 10.sp
+                                            )
+                                        }
                                     }
                                 }
                             } else {

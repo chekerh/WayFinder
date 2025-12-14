@@ -271,10 +271,9 @@ class CatalogViewModel(
 
     private fun getCountryName(airportCode: String): String {
         return when (airportCode) {
+            // Europe
             "CDG", "ORY" -> "France"
             "LHR", "LGW" -> "United Kingdom"
-            "JFK", "LGA", "LAX" -> "United States"
-            "DXB" -> "UAE"
             "FCO" -> "Italy"
             "MAD", "BCN" -> "Spain"
             "AMS" -> "Netherlands"
@@ -282,10 +281,29 @@ class CatalogViewModel(
             "IST" -> "Turkey"
             "CAI" -> "Egypt"
             "TUN" -> "Tunisia"
-            "NRT", "HND" -> "Japan"
-            "BKK" -> "Thailand"
+            // Americas
+            "JFK", "LGA", "LAX", "MIA", "ORD", "SFO", "DFW", "ATL", "BOS", "SEA", "DEN", "LAS" -> "United States"
+            "YYZ", "YVR", "YUL" -> "Canada"
+            "MEX", "CUN" -> "Mexico"
+            "GRU", "GIG", "BSB" -> "Brazil"
+            "EZE", "AEP" -> "Argentina"
+            "SCL" -> "Chile"
+            "BOG" -> "Colombia"
+            "LIM" -> "Peru"
+            // Asia
+            "NRT", "HND", "KIX", "NGO" -> "Japan"
+            "BKK", "DMK" -> "Thailand"
             "SIN" -> "Singapore"
-            "ICN" -> "South Korea"
+            "ICN", "GMP" -> "South Korea"
+            "DXB", "AUH" -> "UAE"
+            "PEK", "PVG", "CAN", "SZX" -> "China"
+            "DEL", "BOM", "BLR", "CCU" -> "India"
+            "KUL" -> "Malaysia"
+            "CGK", "DPS" -> "Indonesia"
+            "SGN", "HAN" -> "Vietnam"
+            "MNL" -> "Philippines"
+            "RUH", "JED" -> "Saudi Arabia"
+            "TLV" -> "Israel"
             else -> "Unknown"
         }
     }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.geometry.Offset
@@ -1076,7 +1077,7 @@ fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = review.userId.name.firstOrNull()?.uppercase() ?: "?",
+                            text = review.userId.username.firstOrNull()?.uppercaseChar()?.toString() ?: "?",
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.primary,
                             fontSize = 14.sp
@@ -1084,7 +1085,7 @@ fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
                     }
                     Column {
                         Text(
-                            text = review.userId.name,
+                            text = review.userId.username,
                             fontWeight = FontWeight.Medium,
                             fontSize = 14.sp,
                             color = colorScheme.onSurface

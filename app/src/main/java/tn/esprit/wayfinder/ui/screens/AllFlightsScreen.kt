@@ -67,8 +67,20 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
     val regions = listOf(
         "Préférences" to emptyList<String>(),
         "Europe" to listOf("France", "United Kingdom", "Italy", "Spain", "Netherlands", "Germany", "Switzerland", "Belgium", "Portugal", "Greece", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Czech Republic", "Hungary", "Ireland"),
-        "Asie" to listOf("China", "Japan", "India", "Thailand", "Singapore", "Malaysia", "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", "Saudi Arabia", "Turkey", "Israel"),
-        "Amerique" to listOf("United States", "Canada", "Mexico", "Brazil", "Argentina", "Chile", "Colombia", "Peru"),
+        "Asie" to listOf(
+            "China", "Japan", "India", "Thailand", "Singapore", "Malaysia", 
+            "Indonesia", "South Korea", "Vietnam", "Philippines", "UAE", 
+            "Saudi Arabia", "Turkey", "Israel",
+            // Variations
+            "United Arab Emirates", "Korea", "South Korea", "Corée du Sud",
+            "Thaïlande", "Singapour", "Corée", "EAU", "Émirats arabes unis"
+        ),
+        "Amerique" to listOf(
+            "United States", "Canada", "Mexico", "Brazil", "Argentina", 
+            "Chile", "Colombia", "Peru",
+            // Variations
+            "USA", "US", "États-Unis", "États Unis", "United States of America"
+        ),
         "Australie" to listOf("Australia", "New Zealand", "Fiji")
     )
     
@@ -172,9 +184,53 @@ fun AllFlightsScreen(navController: NavController, selectedRegion: String? = nul
                 var filteredDestinations = if (currentFilterRegion != null && currentFilterRegion != "Préférences") {
                     val filterCountries = regionCountries[currentFilterRegion] ?: emptyList()
                     if (filterCountries.isNotEmpty()) {
+                        // Create a mapping for country name variations (French/English)
+                        val countryMapping = mapOf(
+                            // French to English
+                            "France" to "France",
+                            "Italie" to "Italy",
+                            "Espagne" to "Spain",
+                            "Royaume-Uni" to "United Kingdom",
+                            "États-Unis" to "United States",
+                            "États Unis" to "United States",
+                            "EAU" to "UAE",
+                            "Émirats arabes unis" to "UAE",
+                            "Tunisie" to "Tunisia",
+                            "Corée du Sud" to "South Korea",
+                            "Corée" to "South Korea",
+                            "Thaïlande" to "Thailand",
+                            "Singapour" to "Singapore",
+                            // English variations
+                            "USA" to "United States",
+                            "US" to "United States",
+                            "United States of America" to "United States",
+                            "UK" to "United Kingdom",
+                            "UAE" to "UAE",
+                            "United Arab Emirates" to "UAE",
+                            "Korea" to "South Korea"
+                        )
+                        
                         state.destinations.filter { destination ->
-                            filterCountries.any { country ->
-                                destination.country.contains(country, ignoreCase = true)
+                            val destCountry = destination.country.trim()
+                            val normalizedDestCountry = countryMapping[destCountry] ?: destCountry
+                            
+                            filterCountries.any { filterCountry ->
+                                val normalizedFilterCountry = countryMapping[filterCountry] ?: filterCountry
+                                
+                                // More robust country matching
+                                normalizedDestCountry.equals(normalizedFilterCountry, ignoreCase = true) ||
+                                normalizedDestCountry.contains(normalizedFilterCountry, ignoreCase = true) ||
+                                normalizedFilterCountry.contains(normalizedDestCountry, ignoreCase = true) ||
+                                // Also check original names
+                                destCountry.equals(filterCountry, ignoreCase = true) ||
+                                destCountry.contains(filterCountry, ignoreCase = true) ||
+                                filterCountry.contains(destCountry, ignoreCase = true) ||
+                                // Partial word matching for compound names
+                                normalizedDestCountry.split(" ").any { word ->
+                                    normalizedFilterCountry.split(" ").any { filterWord ->
+                                        word.equals(filterWord, ignoreCase = true) && word.length > 3
+                                    }
+                                }
                             }
                         }
                     } else {
