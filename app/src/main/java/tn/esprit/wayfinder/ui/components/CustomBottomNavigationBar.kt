@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
@@ -77,7 +78,6 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
             .zIndex(1f) // Tab Bar background layer
             .shadow(
                 elevation = if (isDark) 8.dp else 4.dp,
@@ -87,12 +87,12 @@ fun CustomBottomNavigationBar(navController: NavController? = null) {
                 color = backgroundColor,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             )
-            // Remove vertical padding to prevent white band - bubble needs full height visibility
-            .padding(horizontal = 0.dp, vertical = 0.dp)
+            .systemBarsPadding() // Add safe area padding for system navigation bar
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .height(64.dp)
                 .align(Alignment.Center)
                 .zIndex(2f) // Icons layer - above background
                 // Ensure no clipping that would hide the bubble animation

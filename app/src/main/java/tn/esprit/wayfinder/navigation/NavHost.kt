@@ -442,5 +442,23 @@ fun AppNavigation() {
         composable("ticket") {
             TicketScreen(navController = navController)
         }
+        
+        // Flight Ticket Screen
+        composable(
+            "flight_ticket/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId")
+            FlightTicketScreen(navController = navController, bookingId = bookingId)
+        }
+        
+        // Hotel Ticket Screen
+        composable(
+            "hotel_ticket/{bookingId}",
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId")
+            HotelTicketScreen(navController = navController, bookingId = bookingId)
+        }
     }
 }

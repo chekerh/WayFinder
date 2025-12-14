@@ -58,8 +58,16 @@ fun AccommodationsListScreen(
     // Load hotels from API when screen opens
     LaunchedEffect(accommodationType, destination) {
         val cityCode = destination?.let { 
-            hotelsViewModel.getCityCode(it.city ?: it.name)
+            // Try to get city code from destination
+            val cityName = it.city ?: it.name ?: ""
+            if (cityName.isNotBlank()) {
+                hotelsViewModel.getCityCode(cityName)
+            } else {
+                "PAR" // Default to Paris
+            }
         } ?: "PAR" // Default to Paris
+        
+        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, type: $accommodationType")
         
         hotelsViewModel.searchHotels(
             cityCode = cityCode,

@@ -9,7 +9,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import android.app.DatePickerDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,6 +105,19 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
             ?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
     }
     
+    // Date selection
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_MONTH, 14) // Default: 2 weeks from now
+    val defaultDepartureDate = dateFormat.format(calendar.time)
+    calendar.add(Calendar.DAY_OF_MONTH, 3) // Default: 3 days after departure
+    val defaultReturnDate = dateFormat.format(calendar.time)
+    
+    var departureDate by remember { mutableStateOf(selectedDestination?.departureDate?.substringBefore("T") ?: defaultDepartureDate) }
+    var returnDate by remember { mutableStateOf(selectedDestination?.arrivalDate?.substringBefore("T") ?: defaultReturnDate) }
+    var showDepartureDatePicker by remember { mutableStateOf(false) }
+    var showReturnDatePicker by remember { mutableStateOf(false) }
+    
     var cardNumber by remember { mutableStateOf("") }
     var cardHolderName by remember { mutableStateOf("") }
     var expiryDate by remember { mutableStateOf("") }
@@ -108,6 +128,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     var cardHolderNameError by remember { mutableStateOf<String?>(null) }
     var expiryDateError by remember { mutableStateOf<String?>(null) }
     var cvvError by remember { mutableStateOf<String?>(null) }
+    var dateError by remember { mutableStateOf<String?>(null) }
     
     LaunchedEffect(destinationId) {
         if (destinationId.isNotBlank()) {
@@ -193,18 +214,133 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             text = "${destination.country} • ${destination.airline ?: StringTranslator.translate(context, "Compagnie inconnue")}",
                             color = Color.Gray
                         )
-                        if (destination.departureDate != null && destination.arrivalDate != null) {
-                            Text(
-                                text = "${StringTranslator.translate(context, "Départ :")} ${destination.departureDate.substringBefore("T")} | ${StringTranslator.translate(context, "Retour :")} ${destination.arrivalDate.substringBefore("T")}",
-                                color = Color.Gray
-                            )
-                        }
                         if (displayPrice > 0) {
                             Text(
                                 text = String.format(Locale.getDefault(), "%.2f %s", displayPrice, currency),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
+                    }
+                }
+            }
+            
+            // Date Selection Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarToday,
+                            contentDescription = null,
+                            tint = Color(0xFF1976D2)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = StringTranslator.translate(context, "Dates de voyage"),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Departure Date
+                    val departureCalendar = Calendar.getInstance()
+                    dateFormat.parse(departureDate)?.let { departureCalendar.time = it }
+                    
+                    OutlinedTextField(
+                        value = departureDate,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text(StringTranslator.translate(context, "Date de départ")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDepartureDatePicker = true },
+                        leadingIcon = {
+                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                        }
+                    )
+                    
+                    // Return Date
+                    val returnCalendar = Calendar.getInstance()
+                    dateFormat.parse(returnDate)?.let { returnCalendar.time = it }
+                    
+                    OutlinedTextField(
+                        value = returnDate,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text(StringTranslator.translate(context, "Date de retour")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showReturnDatePicker = true },
+                        leadingIcon = {
+                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                        },
+                        isError = dateError != null,
+                        supportingText = dateError?.let { { Text(it) } }
+                    )
+                    
+                    // Date Pickers using Android DatePickerDialog
+                    if (showDepartureDatePicker) {
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                val selectedDate = Calendar.getInstance().apply {
+                                    set(year, month, dayOfMonth)
+                                }
+                                departureDate = dateFormat.format(selectedDate.time)
+                                
+                                // Validate return date is after departure
+                                val returnDateParsed = dateFormat.parse(returnDate)?.time ?: 0L
+                                if (selectedDate.timeInMillis >= returnDateParsed) {
+                                    dateError = StringTranslator.translate(context, "La date de retour doit être après la date de départ")
+                                } else {
+                                    dateError = null
+                                }
+                                showDepartureDatePicker = false
+                            },
+                            departureCalendar.get(Calendar.YEAR),
+                            departureCalendar.get(Calendar.MONTH),
+                            departureCalendar.get(Calendar.DAY_OF_MONTH)
+                        ).show()
+                    }
+                    
+                    if (showReturnDatePicker) {
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                val selectedDate = Calendar.getInstance().apply {
+                                    set(year, month, dayOfMonth)
+                                }
+                                val departureDateParsed = dateFormat.parse(departureDate)?.time ?: 0L
+                                
+                                if (selectedDate.timeInMillis <= departureDateParsed) {
+                                    dateError = StringTranslator.translate(context, "La date de retour doit être après la date de départ")
+                                } else {
+                                    returnDate = dateFormat.format(selectedDate.time)
+                                    dateError = null
+                                }
+                                showReturnDatePicker = false
+                            },
+                            returnCalendar.get(Calendar.YEAR),
+                            returnCalendar.get(Calendar.MONTH),
+                            returnCalendar.get(Calendar.DAY_OF_MONTH)
+                        ).show()
                     }
                 }
             }
@@ -528,7 +664,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             expiryDateError == null &&
                             cvvError == null
 
-                    if (isValid && selectedDestination != null) {
+                    if (isValid && selectedDestination != null && dateError == null) {
                         navController.currentBackStackEntry?.savedStateHandle?.apply {
                             set(SELECTED_DESTINATION_KEY, selectedDestination)
                             set(BOOKING_TOTAL_KEY, total)
@@ -538,6 +674,9 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             set(BOOKING_CARD_NAME_KEY, cardHolderName.trim())
                             set(BOOKING_CARD_EXPIRY_KEY, expiryDate)
                             set(BOOKING_CARD_CVV_KEY, cvv)
+                            // Save dates
+                            set("departure_date", departureDate)
+                            set("return_date", returnDate)
                             // Save accommodation and upsells (only primitive types)
                             if (selectedAccommodation != null) {
                                 // Accommodation object already saved as primitive fields, just save the calculated price
@@ -568,7 +707,8 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             cardNumberError == null &&
                             cardHolderNameError == null &&
                             expiryDateError == null &&
-                            cvvError == null
+                            cvvError == null &&
+                            dateError == null
                 }
             ) {
                 Text(

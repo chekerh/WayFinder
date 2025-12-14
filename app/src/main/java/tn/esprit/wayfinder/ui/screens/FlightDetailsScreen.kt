@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,6 +66,194 @@ import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.R
 import androidx.compose.material.icons.filled.Favorite
+
+// Helper composable functions - defined before FlightDetailsScreen for proper resolution
+@Composable
+fun FlightTimeline(
+    originLabel: String,
+    destinationLabel: String,
+    airline: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
+                    )
+                )
+            )
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "Départ", 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = originLabel, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Arrivée", 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = destinationLabel, 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                thickness = 2.dp
+            )
+            Icon(
+                imageVector = Icons.Filled.Flight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Text(
+            text = airline,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun FlightAddOnChip(
+    title: String,
+    subtitle: String,
+    price: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .widthIn(min = 180.dp)
+            .heightIn(min = 110.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = title, 
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.weight(1f, fill = true))
+            Text(
+                text = price,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+/**
+ * Booking source button showing price comparison from different providers
+ */
+@Composable
+fun BookingSourceButton(
+    logoUrl: String,
+    sourceName: String,
+    price: String?,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Card(
+        modifier = Modifier
+            .width(80.dp)
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = colorScheme.surface.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            AsyncImage(
+                model = logoUrl,
+                contentDescription = sourceName,
+                modifier = Modifier
+                    .height(20.dp)
+                    .widthIn(max = 60.dp),
+                contentScale = ContentScale.Fit,
+                error = painterResource(id = R.drawable.europe)
+            )
+            if (price != null) {
+                Text(
+                    text = price,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.primary,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeatureItem(name: String, icon: ImageVector) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = name,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(32.dp)
+        )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
 @Composable
 fun FlightDetailsScreen(navController: NavController, destinationId: String) {
@@ -646,11 +835,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
 
         // Airline Logo Buttons on Right Side - Scroll with parallax and fade out
         if (headerAlpha > 0.1f) {
-        Column(
-            modifier = Modifier
+            Column(
+                modifier = Modifier
                     .align(Alignment.TopEnd)
-                .padding(end = 16.dp)
-                .statusBarsPadding()
+                    .padding(end = 16.dp)
+                    .statusBarsPadding()
                     .padding(top = 100.dp)
                     .graphicsLayer {
                         // Move up with parallax
@@ -658,33 +847,33 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         // Fade out with scroll
                         alpha = headerAlpha
                     },
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-                // Booking.com
-                BookingSourceButton(
-                    logoUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/Booking.com_logo.png",
-                    sourceName = "Booking.com",
-                    price = destination.price?.let { "${(it * 0.98).toInt()} ${destination.currency}" },
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+            // Booking.com
+            BookingSourceButton(
+                logoUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/Booking.com_logo.png",
+                sourceName = "Booking.com",
+                price = destination.price?.let { "${(it * 0.98).toInt()} ${destination.currency}" },
                 onClick = {
-                        // Show price comparison or open booking link
+                    // Show price comparison or open booking link
                 }
             )
-                // Expedia
-                BookingSourceButton(
-                    logoUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5b/Expedia_2012_logo.svg",
-                    sourceName = "Expedia",
-                    price = destination.price?.let { "${(it * 1.02).toInt()} ${destination.currency}" },
+            // Expedia
+            BookingSourceButton(
+                logoUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5b/Expedia_2012_logo.svg",
+                sourceName = "Expedia",
+                price = destination.price?.let { "${(it * 1.02).toInt()} ${destination.currency}" },
                 onClick = {
-                        // Show price comparison or open booking link
+                    // Show price comparison or open booking link
                 }
             )
-                // Skyscanner
-                BookingSourceButton(
-                    logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Skyscanner-Logo.png",
-                    sourceName = "Skyscanner",
-                    price = destination.price?.let { "${it.toInt()} ${destination.currency}" },
+            // Skyscanner
+            BookingSourceButton(
+                logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Skyscanner-Logo.png",
+                sourceName = "Skyscanner",
+                price = destination.price?.let { "${it.toInt()} ${destination.currency}" },
                 onClick = {
-                        // Show price comparison or open booking link
+                    // Show price comparison or open booking link
                 }
             )
             }
@@ -1110,6 +1299,7 @@ fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
                             fontSize = 14.sp,
                             color = colorScheme.onSurface
                         )
+                    }
                 }
                 
                 // Rating
@@ -1165,172 +1355,6 @@ fun AirlineLogoButton(
                     .padding(8.dp),
                 contentScale = ContentScale.Fit,
                 error = painterResource(id = R.drawable.europe)
-            )
-        }
-    }
-}
-
-/**
- * Booking source button showing price comparison from different providers
- */
-@Composable
-fun BookingSourceButton(
-    logoUrl: String,
-    sourceName: String,
-    price: String?,
-    onClick: () -> Unit
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier
-            .width(80.dp)
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colorScheme.surface.copy(alpha = 0.95f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            AsyncImage(
-                model = logoUrl,
-                contentDescription = sourceName,
-                modifier = Modifier
-                    .height(20.dp)
-                    .widthIn(max = 60.dp),
-                contentScale = ContentScale.Fit,
-                error = painterResource(id = R.drawable.europe)
-            )
-            if (price != null) {
-                Text(
-                    text = price,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colorScheme.primary,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun FlightTimeline(
-    originLabel: String,
-    destinationLabel: String,
-    airline: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f)
-                    )
-                )
-            )
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "Départ", 
-                    style = MaterialTheme.typography.labelSmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = originLabel, 
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Arrivée", 
-                    style = MaterialTheme.typography.labelSmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = destinationLabel, 
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                thickness = 2.dp
-            )
-            Icon(
-                imageVector = Icons.Filled.Flight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        Text(
-            text = airline,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-fun FlightAddOnChip(
-    title: String,
-    subtitle: String,
-    price: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .widthIn(min = 180.dp)
-            .heightIn(min = 110.dp),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = title, 
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-            Text(
-                text = price,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
             )
         }
     }

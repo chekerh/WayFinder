@@ -168,8 +168,17 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
             delay(1500)
             notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
 
-            navController.navigate("booking_confirmation/${booking.confirmationNumber}") {
+            // Navigate to flight ticket screen
+            navController.currentBackStackEntry?.savedStateHandle?.set("booking_id", booking.confirmationNumber)
+            navController.navigate("flight_ticket/${booking.confirmationNumber}") {
                 popUpTo("home") { inclusive = false }
+            }
+            
+            // If accommodation exists, also navigate to hotel ticket
+            val accommodationId = savedStateHandle?.get<String>("accommodation_id")
+            if (accommodationId != null) {
+                // Save hotel booking ID (can be same as flight booking or separate)
+                navController.currentBackStackEntry?.savedStateHandle?.set("hotel_booking_id", booking.confirmationNumber)
             }
             bookingViewModel.resetReservationState()
             }

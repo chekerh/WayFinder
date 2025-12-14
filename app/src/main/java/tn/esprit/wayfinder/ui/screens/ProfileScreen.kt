@@ -427,6 +427,13 @@ fun ProfileContent(
                 onClick = { onShowLanguageDialogChange(true) }
             )
             
+            // Discover the App
+            ProfileMenuItem(
+                icon = Icons.Filled.AutoAwesome,
+                text = StringTranslator.translate(context, "Découvrir l'application"),
+                onClick = { navController.navigate("onboarding") }
+            )
+            
             // Historique de réservations
             ProfileMenuItem(
                 icon = Icons.Filled.Schedule,

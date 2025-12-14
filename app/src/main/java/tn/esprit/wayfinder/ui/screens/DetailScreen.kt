@@ -178,7 +178,7 @@ fun CircularButton(icon: ImageVector, onClick: () -> Unit) {
 }
 
 @Composable
-fun FeatureItem(name: String, icon: ImageVector) {
+private fun FeatureItem(name: String, icon: ImageVector) {
     val colorScheme = MaterialTheme.colorScheme
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(

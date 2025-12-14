@@ -147,8 +147,12 @@ class HotelsViewModel(
     /**
      * Convert city name to IATA city code
      */
-    fun getCityCode(destination: String): String {
-        // Common city mappings
+    fun getCityCode(destination: String?): String {
+        if (destination.isNullOrBlank()) {
+            return "PAR" // Default to Paris
+        }
+        
+        // Common city mappings (expanded)
         val cityMappings = mapOf(
             "paris" to "PAR",
             "london" to "LON",
@@ -158,8 +162,8 @@ class HotelsViewModel(
             "barcelona" to "BCN",
             "barcelone" to "BCN",
             "dubai" to "DXB",
-            "dubai" to "DXB",
             "new york" to "NYC",
+            "new york city" to "NYC",
             "tokyo" to "TYO",
             "amsterdam" to "AMS",
             "madrid" to "MAD",
@@ -175,12 +179,35 @@ class HotelsViewModel(
             "bangkok" to "BKK",
             "singapore" to "SIN",
             "singapour" to "SIN",
-            "tunis" to "TUN"
+            "tunis" to "TUN",
+            "tunisia" to "TUN",
+            "cairo" to "CAI",
+            "doha" to "DOH",
+            "abu dhabi" to "AUH",
+            "riyadh" to "RUH",
+            "jeddah" to "JED",
+            "mumbai" to "BOM",
+            "delhi" to "DEL",
+            "bangalore" to "BLR",
+            "sydney" to "SYD",
+            "melbourne" to "MEL",
+            "toronto" to "YYZ",
+            "montreal" to "YUL",
+            "vancouver" to "YVR"
         )
         
         val normalized = destination.lowercase().trim()
-        return cityMappings[normalized] 
-            ?: normalized.take(3).uppercase() // Fallback: use first 3 chars
+        
+        // Try exact match first
+        cityMappings[normalized]?.let { return it }
+        
+        // Try partial match (contains)
+        cityMappings.entries.firstOrNull { 
+            normalized.contains(it.key) || it.key.contains(normalized)
+        }?.value?.let { return it }
+        
+        // Fallback: use first 3 chars uppercase
+        return normalized.take(3).uppercase().takeIf { it.length == 3 } ?: "PAR"
     }
 
     private fun getDefaultCheckInDate(): String {

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.animation.AnimatedVisibility
@@ -92,12 +93,30 @@ fun HomeScreen(navController: NavController) {
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
     val notificationsState by notificationsViewModel.uiState.collectAsState()
+    val tokenManager = remember { TokenManager(context) }
+    val currentUser = remember { tokenManager.getUser() }
 
-    // Selected region state
-    var selectedRegion by remember { mutableStateOf<String?>(null) }
+    // Selected region state - Default to "Préférences" if user completed onboarding
+    var selectedRegion by remember { 
+        mutableStateOf<String?>(
+            if (currentUser?.onboardingCompleted == true) {
+                StringTranslator.translate(context, "Préférences")
+            } else {
+                null
+            }
+        )
+    }
     
-    // Load notifications count on first composition
+    // Show popup dialog for first-time users who haven't completed onboarding
+    var showOnboardingDialog by remember { mutableStateOf(false) }
+    
     LaunchedEffect(Unit) {
+        // Check if user hasn't completed onboarding and show dialog
+        if (currentUser?.onboardingCompleted != true && currentUser?.onboardingSkipped != true) {
+            // Delay to show after screen loads
+            kotlinx.coroutines.delay(1000)
+            showOnboardingDialog = true
+        }
         notificationsViewModel.refreshUnreadCount()
     }
     
@@ -188,18 +207,9 @@ fun HomeScreen(navController: NavController) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    // Title
-                    Text(
-                        text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        fontSize = 12.sp
-                    )
-                    
-                    // Region filter chips
+                    // Region filter chips - Make them more prominent
                     RegionSection(
                         regions = regions,
                         selectedRegion = selectedRegion,
@@ -523,6 +533,61 @@ fun HomeScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+    
+    // Onboarding Dialog for first-time users
+    if (showOnboardingDialog) {
+        AlertDialog(
+            onDismissRequest = { showOnboardingDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = StringTranslator.translate(context, "Bienvenue sur WayFinder!"),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = StringTranslator.translate(context, "Personnalisez votre expérience de voyage en répondant à quelques questions rapides."),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = StringTranslator.translate(context, "Nous vous recommanderons des destinations parfaitement adaptées à vos préférences!"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showOnboardingDialog = false
+                        navController.navigate("onboarding")
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(StringTranslator.translate(context, "Commencer"))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showOnboardingDialog = false }
+                ) {
+                    Text(StringTranslator.translate(context, "Plus tard"))
+                }
+            }
+        )
     }
 }
 
