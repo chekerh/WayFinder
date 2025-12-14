@@ -98,8 +98,8 @@ final class FirebaseMessagingService: NSObject, ObservableObject {
         
         print("✅ [FCM] Starting notification polling - user is in main interface")
         
-        // Check for new notifications every 2 seconds when app is active for faster detection
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        // Check for new notifications every 30 seconds when app is active to avoid throttling (429 errors)
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.checkAndDisplayNewNotifications()
             }

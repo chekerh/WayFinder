@@ -17,11 +17,13 @@ final class BookingViewModel: ObservableObject {
     @Published var offersErrorMessage: String?
     
     private let service: BookingService
+    private var lastLoadTime: Date?
+    private let minimumTimeBetweenLoads: TimeInterval = 2.0 // 2 secondes minimum entre les appels
     
     nonisolated init(service: BookingService? = nil) {
         // Accéder à .shared depuis un contexte non isolé
         if let service = service {
-            self.service = service
+            self.service = service// Injection depuis l'extérieur
         } else {
             // Utiliser une fonction helper nonisolated pour accéder à .shared
             self.service = getBookingServiceShared()
@@ -30,8 +32,24 @@ final class BookingViewModel: ObservableObject {
     
     /// Charge l'historique des réservations
     func loadHistory() async {
-        guard !isLoading else { return }
+        // Vérifier si un chargement est déjà en cours
+        guard !isLoading else { 
+            print("⚠️ [BookingViewModel] Load already in progress, skipping")
+            return 
+        }
+        
+        // Vérifier le throttling - éviter les appels trop fréquents
+        if let lastLoad = lastLoadTime {
+            let timeSinceLastLoad = Date().timeIntervalSince(lastLoad)
+            if timeSinceLastLoad < minimumTimeBetweenLoads {
+                let waitTime = minimumTimeBetweenLoads - timeSinceLastLoad
+                print("⚠️ [BookingViewModel] Throttling: waiting \(waitTime)s before next load")
+                try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            }
+        }
+        
         isLoading = true
+        lastLoadTime = Date()
         defer { isLoading = false }
         errorMessage = nil
         
@@ -52,7 +70,18 @@ final class BookingViewModel: ObservableObject {
             bookings = allBookings
         } catch {
             print("❌ [BookingViewModel] Error loading history: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            
+            // Si c'est une erreur de rate limiting, afficher un message plus clair
+            if error.localizedDescription.contains("Too Many Requests") || 
+               error.localizedDescription.contains("ThrottlerException") {
+                errorMessage = "Trop de requêtes. Veuillez patienter quelques instants avant de réessayer."
+            } else if error.localizedDescription.contains("décodage JSON") || 
+                      error.localizedDescription.contains("decoding") ||
+                      error.localizedDescription.contains("format") {
+                errorMessage = "Erreur de décodage JSON: Impossible de lire les données car le format n'est pas correct."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
     

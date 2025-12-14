@@ -70,7 +70,9 @@ struct OutfitSelectionView: View {
                             .padding(.horizontal)
                         
                         Button(action: {
+                            // Ajouter un petit délai pour éviter les appels trop rapides
                             Task {
+                                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
                                 await bookingViewModel.loadHistory()
                             }
                         }) {
@@ -117,10 +119,8 @@ struct OutfitSelectionView: View {
             }
         }
         .navigationBarHidden(true)
-        .onAppear {
-            Task {
-                await bookingViewModel.loadHistory()
-            }
+        .task {
+            await bookingViewModel.loadHistory()
         }
     }
 }

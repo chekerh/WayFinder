@@ -20,7 +20,10 @@ final class RewardsViewModel: ObservableObject {
     
     /// Charge les points de l'utilisateur
     func loadUserPoints() async {
-        guard !isLoading else { return }
+        guard !isLoading else { 
+            print("⚠️ [RewardsViewModel] Load already in progress, skipping")
+            return 
+        }
         isLoading = true
         defer { isLoading = false }
         errorMessage = nil
@@ -31,7 +34,14 @@ final class RewardsViewModel: ObservableObject {
             print("✅ [RewardsViewModel] Loaded points: \(userPoints?.totalPoints ?? 0)")
         } catch {
             print("❌ [RewardsViewModel] Error loading points: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            
+            // Si c'est une erreur de rate limiting, afficher un message plus clair
+            if error.localizedDescription.contains("Too Many Requests") || 
+               error.localizedDescription.contains("ThrottlerException") {
+                errorMessage = "Trop de requêtes. Veuillez patienter quelques instants."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
     

@@ -73,6 +73,8 @@ struct ShareTripView: View {
                 Text("Votre voyage a été partagé avec succès !")
             }
             .task {
+                // Attendre un peu pour éviter les appels simultanés
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 secondes
                 await bookingViewModel.loadHistory()
             }
         }

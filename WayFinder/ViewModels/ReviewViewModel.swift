@@ -33,13 +33,30 @@ final class ReviewViewModel: ObservableObject {
         defer { isLoading = false }
         errorMessage = nil
         
-        print("🔄 [ReviewViewModel] Loading reviews")
+        print("🔄 [ReviewViewModel] Loading reviews for \(itemType.rawValue)/\(itemId)")
         do {
-            reviews = try await service.getReviews(itemType: itemType, itemId: itemId)
-            print("✅ [ReviewViewModel] Loaded \(reviews.count) reviews")
+            var loadedReviews = try await service.getReviews(itemType: itemType, itemId: itemId)
+            // Filter only visible reviews and sort by date (newest first)
+            loadedReviews = loadedReviews
+                .filter { $0.isVisible }
+                .sorted { review1, review2 in
+                    // Sort by createdAt, newest first
+                    let date1 = review1.createdAt ?? Date.distantPast
+                    let date2 = review2.createdAt ?? Date.distantPast
+                    return date1 > date2
+                }
+            reviews = loadedReviews
+            print("✅ [ReviewViewModel] Loaded \(reviews.count) visible reviews")
         } catch {
             print("❌ [ReviewViewModel] Error loading reviews: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
+            // Provide a more user-friendly error message
+            if error.localizedDescription.contains("décodage JSON") || 
+               error.localizedDescription.contains("decoding") ||
+               error.localizedDescription.contains("format") {
+                errorMessage = "Erreur de décodage JSON: Impossible de lire les données car le format n'est pas correct."
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
     
@@ -69,9 +86,10 @@ final class ReviewViewModel: ObservableObject {
                 comment: comment,
                 details: details
             )
-            reviews.append(review)
+            // Reload reviews to get the updated list from server
+            await loadReviews(itemType: itemType, itemId: itemId)
             await loadReviewStats(itemType: itemType, itemId: itemId)
-            print("✅ [ReviewViewModel] Review created")
+            print("✅ [ReviewViewModel] Review created and list refreshed")
         } catch {
             print("❌ [ReviewViewModel] Error creating review: \(error.localizedDescription)")
             errorMessage = error.localizedDescription

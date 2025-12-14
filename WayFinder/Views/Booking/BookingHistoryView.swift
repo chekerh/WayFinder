@@ -29,7 +29,9 @@ struct BookingHistoryView: View {
                         .padding(.horizontal)
                     
                     Button(action: {
+                        // Ajouter un délai pour éviter les appels trop rapides
                         Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 secondes
                             await viewModel.loadHistory()
                         }
                     }) {
@@ -110,9 +112,12 @@ struct BookingHistoryView: View {
         .navigationBarHidden(true)
         .safeAreaPadding(.horizontal)
         .task {
+            // Attendre un peu pour éviter les appels simultanés avec d'autres vues
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 secondes
             await viewModel.loadHistory()
         }
         .refreshable {
+            // Le refreshable a déjà un délai naturel, mais on ajoute une protection
             await viewModel.loadHistory()
         }
     }

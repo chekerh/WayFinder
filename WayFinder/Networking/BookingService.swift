@@ -90,10 +90,16 @@ final class BookingService {
         decoder.dateDecodingStrategy = .iso8601
         
         do {
-            // Decode as paginated response
-            let paginatedResponse = try decoder.decode(PaginatedResponse<Booking>.self, from: data)
-            print("✅ [BookingService] Successfully decoded \(paginatedResponse.data.count) bookings (page \(paginatedResponse.pagination.page)/\(paginatedResponse.pagination.totalPages))")
-            return paginatedResponse.data
+            // Try to decode as paginated response first
+            if let paginatedResponse = try? decoder.decode(PaginatedResponse<Booking>.self, from: data) {
+                print("✅ [BookingService] Successfully decoded \(paginatedResponse.data.count) bookings from paginated response (page \(paginatedResponse.pagination.page)/\(paginatedResponse.pagination.totalPages))")
+                return paginatedResponse.data
+            }
+            
+            // Fallback: try to decode as direct array (for backward compatibility)
+            let result = try decoder.decode([Booking].self, from: data)
+            print("✅ [BookingService] Successfully decoded \(result.count) bookings from array response")
+            return result
         } catch {
             print("❌ [BookingService] Decoding error for booking history: \(error)")
             if let decodingError = error as? DecodingError {
@@ -110,7 +116,10 @@ final class BookingService {
                     print("❌ [BookingService] Unknown decoding error: \(decodingError)")
                 }
             }
-            throw APIError.decodingError(error)
+            
+            // Provide a more user-friendly error message
+            let errorMessage = "Erreur de décodage JSON: \(error.localizedDescription)"
+            throw APIError.decodingError(NSError(domain: "BookingService", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage]))
         }
     }
     
