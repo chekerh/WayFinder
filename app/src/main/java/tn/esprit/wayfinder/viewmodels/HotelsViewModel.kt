@@ -57,6 +57,7 @@ class HotelsViewModel(
     fun searchHotels(
         cityCode: String,
         tripType: String? = null,
+        accommodationType: String? = null,
         checkInDate: String? = null,
         checkOutDate: String? = null,
         adults: Int = 2,
@@ -80,6 +81,7 @@ class HotelsViewModel(
                     checkOutDate = defaultCheckOut,
                     adults = adults,
                     tripType = tripType,
+                    accommodationType = accommodationType,
                     ratings = ratings,
                     limit = limit,
                     currency = currency

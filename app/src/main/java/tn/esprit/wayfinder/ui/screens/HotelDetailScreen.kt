@@ -454,9 +454,14 @@ fun HotelDetailScreen(
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
                                 set(SELECTED_DESTINATION_KEY, destination)
                                 set("selected_accommodation", accommodationForNav)
+                                set("accommodation_id", hotel.hotelId)
                                 set("accommodation_name", hotel.name)
                                 set("accommodation_price", hotel.pricePerNight ?: 0.0)
+                                set("accommodation_currency", hotel.currency ?: "EUR")
                                 set("accommodation_type", hotel.type ?: "hotel")
+                                set("accommodation_location", hotel.address?.cityName ?: destination?.city ?: "")
+                                set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
+                                set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
                             }
                             navController.navigate("activities_preview/${destination?.id ?: hotelId}")
                         },

@@ -26,6 +26,11 @@ import tn.esprit.wayfinder.ui.components.CustomBottomNavigationBar
 import tn.esprit.wayfinder.ui.theme.WayFinderTheme
 import tn.esprit.wayfinder.utils.StringTranslator
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.CalendarToday
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import android.app.DatePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +41,19 @@ fun LodgingChoiceScreen(
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     var selectedLodgingType by remember { mutableStateOf<String?>(null) }
+    
+    // Date selection state
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    calendar.add(Calendar.DAY_OF_MONTH, 14) // Default: 2 weeks from now
+    val defaultCheckIn = dateFormat.format(calendar.time)
+    calendar.add(Calendar.DAY_OF_MONTH, 3) // Default: 3 days after check-in
+    val defaultCheckOut = dateFormat.format(calendar.time)
+    
+    var checkInDate by remember { mutableStateOf(defaultCheckIn) }
+    var checkOutDate by remember { mutableStateOf(defaultCheckOut) }
+    var showCheckInDatePicker by remember { mutableStateOf(false) }
+    var showCheckOutDatePicker by remember { mutableStateOf(false) }
     
     val accommodationTypes = listOf(
         AccommodationType("hotel", "Hôtel", Icons.Filled.Hotel, "Confort et service professionnel"),
@@ -79,11 +97,155 @@ fun LodgingChoiceScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
+                text = StringTranslator.translate(context, "Sélectionnez les dates de séjour"),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            // Date Selection Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Check-in Date
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showCheckInDatePicker = true },
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.surfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarToday,
+                            contentDescription = null,
+                            tint = colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Arrivée"),
+                            fontSize = 12.sp,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatDateForDisplay(checkInDate, context),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                }
+                
+                // Check-out Date
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showCheckOutDatePicker = true },
+                    colors = CardDefaults.cardColors(
+                        containerColor = colorScheme.surfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarToday,
+                            contentDescription = null,
+                            tint = colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = StringTranslator.translate(context, "Départ"),
+                            fontSize = 12.sp,
+                            color = colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = formatDateForDisplay(checkOutDate, context),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
                 text = StringTranslator.translate(context, "Sélectionnez le type de logement souhaité"),
                 fontSize = 16.sp,
                 color = colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
+            
+            // Date Pickers
+            if (showCheckInDatePicker) {
+                val checkInCalendar = Calendar.getInstance()
+                dateFormat.parse(checkInDate)?.let { checkInCalendar.time = it }
+                
+                DatePickerDialog(
+                    context,
+                    { _, year, month, dayOfMonth ->
+                        val selectedDate = Calendar.getInstance().apply {
+                            set(year, month, dayOfMonth)
+                        }
+                        checkInDate = dateFormat.format(selectedDate.time)
+                        
+                        // Ensure check-out is after check-in
+                        val checkOutCal = Calendar.getInstance()
+                        dateFormat.parse(checkOutDate)?.let { checkOutCal.time = it }
+                        if (checkOutCal.before(selectedDate) || checkOutCal == selectedDate) {
+                            checkOutCal.time = selectedDate.time
+                            checkOutCal.add(Calendar.DAY_OF_MONTH, 1)
+                            checkOutDate = dateFormat.format(checkOutCal.time)
+                        }
+                        
+                        showCheckInDatePicker = false
+                    },
+                    checkInCalendar.get(Calendar.YEAR),
+                    checkInCalendar.get(Calendar.MONTH),
+                    checkInCalendar.get(Calendar.DAY_OF_MONTH)
+                ).apply {
+                    datePicker.minDate = Calendar.getInstance().timeInMillis
+                }.show()
+            }
+            
+            if (showCheckOutDatePicker) {
+                val checkOutCalendar = Calendar.getInstance()
+                dateFormat.parse(checkOutDate)?.let { checkOutCalendar.time = it }
+                val checkInCal = Calendar.getInstance()
+                dateFormat.parse(checkInDate)?.let { checkInCal.time = it }
+                
+                DatePickerDialog(
+                    context,
+                    { _, year, month, dayOfMonth ->
+                        val selectedDate = Calendar.getInstance().apply {
+                            set(year, month, dayOfMonth)
+                        }
+                        // Ensure check-out is after check-in
+                        if (selectedDate.after(checkInCal)) {
+                            checkOutDate = dateFormat.format(selectedDate.time)
+                        }
+                        showCheckOutDatePicker = false
+                    },
+                    checkOutCalendar.get(Calendar.YEAR),
+                    checkOutCalendar.get(Calendar.MONTH),
+                    checkOutCalendar.get(Calendar.DAY_OF_MONTH)
+                ).apply {
+                    datePicker.minDate = checkInCal.timeInMillis + (24 * 60 * 60 * 1000) // At least 1 day after check-in
+                }.show()
+            }
             
             accommodationTypes.forEach { type ->
                 AccommodationTypeCard(
@@ -91,10 +253,14 @@ fun LodgingChoiceScreen(
                     isSelected = selectedLodgingType == type.id,
                     onClick = {
                         selectedLodgingType = type.id
-                        // Navigate to accommodation listing screen
+                        // Save dates and accommodation type, then navigate
                         navController.currentBackStackEntry
                             ?.savedStateHandle
-                            ?.set("accommodation_type", type.id)
+                            ?.apply {
+                                set("accommodation_type", type.id)
+                                set("check_in_date", checkInDate)
+                                set("check_out_date", checkOutDate)
+                            }
                         navController.navigate("accommodations/${destinationId ?: ""}/${type.id}")
                     }
                 )
@@ -173,6 +339,18 @@ fun AccommodationTypeCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun formatDateForDisplay(dateString: String, context: android.content.Context): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val outputFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
+        val date = inputFormat.parse(dateString)
+        date?.let { outputFormat.format(it) } ?: dateString
+    } catch (e: Exception) {
+        dateString
     }
 }
 

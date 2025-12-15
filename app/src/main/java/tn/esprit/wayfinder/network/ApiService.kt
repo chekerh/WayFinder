@@ -167,6 +167,7 @@ interface ApiService {
         @Query("checkOutDate") checkOutDate: String,
         @Query("adults") adults: Int? = null,
         @Query("tripType") tripType: String? = null,
+        @Query("accommodationType") accommodationType: String? = null,
         @Query("ratings") ratings: String? = null,
         @Query("limit") limit: Int? = null,
         @Query("currency") currency: String? = null

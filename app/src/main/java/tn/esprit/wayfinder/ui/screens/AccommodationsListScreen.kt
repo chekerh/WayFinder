@@ -56,8 +56,13 @@ fun AccommodationsListScreen(
             ?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
     }
     
+    // Get dates from saved state (set in LodgingChoiceScreen)
+    val savedStateHandle = navController.previousBackStackEntry?.savedStateHandle
+    val checkInDate = savedStateHandle?.get<String>("check_in_date")
+    val checkOutDate = savedStateHandle?.get<String>("check_out_date")
+    
     // Load hotels from API when screen opens
-    LaunchedEffect(accommodationType, destination) {
+    LaunchedEffect(accommodationType, destination, checkInDate, checkOutDate) {
         val cityCode = destination?.let { 
             // Try to get city code from destination
             val cityName = it.city ?: it.name ?: ""
@@ -78,11 +83,14 @@ fun AccommodationsListScreen(
             null
         }
         
-        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, accommodationType: $accommodationType, tripType: $tripType")
+        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, accommodationType: $accommodationType, tripType: $tripType, checkIn: $checkInDate, checkOut: $checkOutDate")
         
         hotelsViewModel.searchHotels(
             cityCode = cityCode,
             tripType = tripType,
+            accommodationType = accommodationType,
+            checkInDate = checkInDate,
+            checkOutDate = checkOutDate,
             limit = 20
         )
     }
@@ -181,7 +189,7 @@ fun AccommodationsListScreen(
                         } ?: "PAR"
                         val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
                         val tripType = if (accommodationType in validTripTypes) accommodationType else null
-                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, limit = 20)
+                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, accommodationType = accommodationType, limit = 20)
                     }) {
                         Text(StringTranslator.translate(context, "Réessayer"))
                     }
@@ -220,18 +228,25 @@ fun AccommodationsListScreen(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = {
-                        val cityCode = destination?.let { 
-                            hotelsViewModel.getCityCode(it.city ?: it.name)
-                        } ?: "PAR"
-                        val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
-                        val tripType = if (accommodationType in validTripTypes) accommodationType else null
-                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, limit = 20)
+                    Button(
+                        onClick = {
+                            val cityCode = destination?.let { 
+                                hotelsViewModel.getCityCode(it.city ?: it.name)
+                            } ?: "PAR"
+                            val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+                            val tripType = if (accommodationType in validTripTypes) accommodationType else null
+                            hotelsViewModel.searchHotels(
+                                cityCode = cityCode, 
+                                tripType = tripType, 
+                                accommodationType = accommodationType,
+                                checkInDate = checkInDate,
+                                checkOutDate = checkOutDate,
+                                limit = 20
+                            )
+                        }
+                    ) {
+                        Text(StringTranslator.translate(context, "Réessayer"))
                     }
-                ) {
-                    Text(StringTranslator.translate(context, "Réessayer"))
-                }
             }
         } else {
                     Column(modifier = Modifier.padding(paddingValues)) {
@@ -285,8 +300,8 @@ fun AccommodationsListScreen(
                                                 set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
                                                 set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
                                 }
-                                        // Navigate to activities preview (new flow)
-                                        navController.navigate("activities_preview/${destinationId}")
+                                        // Navigate to hotel detail screen first
+                                        navController.navigate("hotel_detail/${hotel.hotelId}")
                         }
                     )
                 }
