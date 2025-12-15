@@ -200,12 +200,13 @@ struct ReviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Circle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 32, height: 32)
+                ProfileImageView(
+                    imageUrl: review.user?.profileImageUrl,
+                    size: 32
+                )
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("reviews_user")
+                    Text(review.user?.displayName ?? String(localized: "reviews_user"))
                         .font(.system(size: 14, weight: .bold))
                     
                     StarRating(rating: review.rating)
