@@ -210,17 +210,28 @@ fun HomeScreen(navController: NavController) {
                 .verticalScroll(scrollState)
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
-            // Region filter section - Always visible between topbar and content
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    // Region filter chips - Make them more prominent
+            Column {
+                // Personalized section (matching iOS design exactly)
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    // Main title: "Personnalisé par Gemini" - iOS size 34, weight bold
+                    Text(
+                        text = StringTranslator.translate(context, "Personnalisé par Gemini"),
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    // Subtitle: "Voyages adaptés à vos préférences" - iOS body font
+                    Text(
+                        text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                // Region section (matching iOS - padding horizontal 24)
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     RegionSection(
                         regions = regions,
                         selectedRegion = selectedRegion,
@@ -229,78 +240,39 @@ fun HomeScreen(navController: NavController) {
                         }
                     )
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Column {
-                // Personalized section removed
                 
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Comparator section (matching iOS design exactly)
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        // "Comparateur avec Gemini" - iOS size 22, weight bold
                         Text(
-                            text = StringTranslator.translate(context, "Comparateur avec ChatGPT"),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            text = StringTranslator.translate(context, "Comparateur avec Gemini"),
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Compare prices button (inspired by Skyscanner)
-                            TextButton(
-                                onClick = {
-                                    navController.navigate("all_flights/${selectedRegion ?: "null"}")
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = Color(0xFF1976D2)
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.TrendingDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = StringTranslator.translate(context, "Comparer"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            
-                            Text(
-                                text = StringTranslator.translate(context, "Voir tous"),
-                                color = Color(0xFF1976D2),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.clickable {
-                                    val route = if (selectedRegion != null) {
-                                        "all_flights/${selectedRegion}"
-                                    } else {
-                                        "all_flights/null"
-                                    }
-                                    navController.navigate(route)
+                        // "Voir tous" link - matching iOS (blue text, body font)
+                        Text(
+                            text = StringTranslator.translate(context, "Voir tous"),
+                            color = Color(0xFF1976D2), // iOS blue: Color(red: 0.098, green: 0.463, blue: 0.824)
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.clickable {
+                                val route = if (selectedRegion != null) {
+                                    "all_flights/${selectedRegion}"
+                                } else {
+                                    "all_flights/null"
                                 }
-                            )
-                        }
+                                navController.navigate(route)
+                            }
+                        )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Quick Filters (inspired by Skyscanner, Kayak)
-                    QuickFiltersSection(
-                        selectedFilter = selectedFilter,
-                        onFilterSelected = { filterType ->
-                            selectedFilter = filterType
-                            android.util.Log.d("HomeScreen", "Filter selected: $filterType")
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     when (val state = uiState) {
                         is CatalogUiState.Loading -> {
@@ -567,53 +539,6 @@ fun HomeScreen(navController: NavController) {
                                 )
                             }
                             
-                            // Powered by ChatGPT Badge with enhanced design
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Color(0xFF10A37F).copy(alpha = 0.15f),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        Color(0xFF10A37F).copy(alpha = 0.3f)
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = Color(0xFF10A37F),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Column(
-                                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                                        ) {
-                                            Text(
-                                                text = StringTranslator.translate(context, "Powered by ChatGPT"),
-                                                color = Color(0xFF10A37F),
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = StringTranslator.translate(context, "Recommandations personnalisées"),
-                                                color = Color(0xFF10A37F).copy(alpha = 0.7f),
-                                                fontSize = 10.sp
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            
                                 EnhancedDestinationsSection(
                                     destinations = displayDestinations,
                                     navController = navController,
@@ -646,18 +571,18 @@ fun HomeScreen(navController: NavController) {
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // AI Travel Video Generator Section
+            // Travel Reels Feed Section - Modern reels/posts feed
+            TravelReelsFeed(navController = navController)
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // AI Travel Video Generator Section - Moved below reels
             AiTravelVideoGenerator(
                 onVideoGenerated = { videoUrl ->
                     // Optionally navigate to video player or show in reels
                     android.util.Log.d("HomeScreen", "AI Video generated: $videoUrl")
                 }
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Travel Reels Feed Section - Modern reels/posts feed
-            TravelReelsFeed(navController = navController)
             
             Spacer(modifier = Modifier.height(32.dp))
             }
