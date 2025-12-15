@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -120,13 +121,13 @@ fun FlightTicketScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.Start) {
                             Text(
-                                text = destination?.originCode ?: "TUN",
+                                text = "TUN", // Origin code - can be extracted from destination if available
                                 color = Color.White,
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = destination?.origin ?: "Tunis",
+                                text = "Tunis", // Origin city
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontSize = 14.sp
                             )
@@ -141,7 +142,7 @@ fun FlightTicketScreen(
                         
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = destination?.destinationCode ?: "PAR",
+                                text = destination?.city?.take(3)?.uppercase() ?: "PAR",
                                 color = Color.White,
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold
@@ -161,12 +162,12 @@ fun FlightTicketScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TicketInfo(
+                        FlightTicketInfo(
                             title = StringTranslator.translate(context, "Passager"),
                             value = passengerName,
                             color = Color.White
                         )
-                        TicketInfo(
+                        FlightTicketInfo(
                             title = StringTranslator.translate(context, "Date"),
                             value = formatDate(departureDate),
                             color = Color.White
@@ -177,12 +178,14 @@ fun FlightTicketScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TicketInfo(
+                        FlightTicketInfo(
                             title = StringTranslator.translate(context, "Heure"),
-                            value = destination?.departureTime ?: "12:30",
+                            value = destination?.departureDate?.substringAfter("T")?.substringBefore(":")?.let { 
+                                "${it.substring(0, 2)}:${it.substring(2, 4)}"
+                            } ?: "12:30",
                             color = Color.White
                         )
-                        TicketInfo(
+                        FlightTicketInfo(
                             title = StringTranslator.translate(context, "Porte"),
                             value = "A12",
                             color = Color.White
@@ -195,12 +198,12 @@ fun FlightTicketScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            TicketInfo(
+                            FlightTicketInfo(
                                 title = StringTranslator.translate(context, "Retour"),
                                 value = formatDate(returnDate),
                                 color = Color.White
                             )
-                            TicketInfo(
+                            FlightTicketInfo(
                                 title = StringTranslator.translate(context, "Compagnie"),
                                 value = destination?.airline ?: "Airline",
                                 color = Color.White
@@ -265,7 +268,7 @@ fun FlightTicketScreen(
 }
 
 @Composable
-fun TicketInfo(title: String, value: String, color: Color) {
+fun FlightTicketInfo(title: String, value: String, color: Color) {
     Column {
         Text(
             text = title.uppercase(),

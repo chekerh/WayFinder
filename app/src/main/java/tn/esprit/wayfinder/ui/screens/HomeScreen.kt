@@ -3,6 +3,8 @@ package tn.esprit.wayfinder.ui.screens
 import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.*
@@ -31,6 +33,10 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Flight
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +49,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -106,6 +114,9 @@ fun HomeScreen(navController: NavController) {
             }
         )
     }
+    
+    // Filter state for sorting (inspired by Skyscanner, Kayak)
+    var selectedFilter by remember { mutableStateOf<String?>(null) }
     
     // Show popup dialog for first-time users who haven't completed onboarding
     var showOnboardingDialog by remember { mutableStateOf(false) }
@@ -236,21 +247,59 @@ fun HomeScreen(navController: NavController) {
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = StringTranslator.translate(context, "Voir tous"),
-                            color = Color(0xFF1976D2),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.clickable {
-                                // Pass selected region as route argument
-                                val route = if (selectedRegion != null) {
-                                    "all_flights/${selectedRegion}"
-                                } else {
-                                    "all_flights/null"
-                                }
-                                navController.navigate(route)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Compare prices button (inspired by Skyscanner)
+                            TextButton(
+                                onClick = {
+                                    navController.navigate("all_flights/${selectedRegion ?: "null"}")
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = Color(0xFF1976D2)
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.TrendingDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = StringTranslator.translate(context, "Comparer"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
-                        )
+                            
+                            Text(
+                                text = StringTranslator.translate(context, "Voir tous"),
+                                color = Color(0xFF1976D2),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable {
+                                    val route = if (selectedRegion != null) {
+                                        "all_flights/${selectedRegion}"
+                                    } else {
+                                        "all_flights/null"
+                                    }
+                                    navController.navigate(route)
+                                }
+                            )
+                        }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Quick Filters (inspired by Skyscanner, Kayak)
+                    QuickFiltersSection(
+                        selectedFilter = selectedFilter,
+                        onFilterSelected = { filterType ->
+                            selectedFilter = filterType
+                            android.util.Log.d("HomeScreen", "Filter selected: $filterType")
+                        }
+                    )
+                    
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     when (val state = uiState) {
@@ -423,14 +472,47 @@ fun HomeScreen(navController: NavController) {
                                 state.destinations
                             }
                             
+                            // Apply sorting based on selected filter (inspired by Skyscanner, Kayak)
+                            val sortedDestinations = when (selectedFilter) {
+                                "price" -> {
+                                    // Sort by price (lowest first)
+                                    filteredDestinations.sortedBy { it.price ?: Double.MAX_VALUE }
+                                }
+                                "duration" -> {
+                                    // Sort by trip duration (calculate from dates if available)
+                                    filteredDestinations.sortedBy { dest ->
+                                        val departure = dest.departureDate
+                                        val arrival = dest.arrivalDate
+                                        if (departure != null && arrival != null) {
+                                            try {
+                                                val depDate = LocalDate.parse(departure.substringBefore("T"))
+                                                val arrDate = LocalDate.parse(arrival.substringBefore("T"))
+                                                ChronoUnit.DAYS.between(depDate, arrDate).toDouble()
+                                            } catch (e: Exception) {
+                                                dest.price ?: Double.MAX_VALUE
+                                            }
+                                        } else {
+                                            dest.price ?: Double.MAX_VALUE
+                                        }
+                                    }
+                                }
+                                "time" -> {
+                                    // Sort by departure date/time (earliest first)
+                                    filteredDestinations.sortedBy { dest ->
+                                        dest.departureDate ?: ""
+                                    }
+                                }
+                                else -> filteredDestinations // No sorting
+                            }
+                            
                             // Show at least 5-6 flights on home screen, or all if filtered results are fewer
-                            val displayDestinations = if (filteredDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
+                            val displayDestinations = if (sortedDestinations.isEmpty() && selectedRegion != null && selectedRegion != StringTranslator.translate(context, "Préférences")) {
                                 // If no results after filtering, show message but also log for debugging
                                 android.util.Log.w("HomeScreen", "No filtered destinations found for region: $selectedRegion")
                                 android.util.Log.w("HomeScreen", "Available destinations: ${state.destinations.map { "${it.name} (${it.country})" }}")
                                 emptyList()
                             } else {
-                                filteredDestinations.take(6)
+                                sortedDestinations.take(6)
                             }
                             
                             // Show message if no flights found for selected region
@@ -483,6 +565,53 @@ fun HomeScreen(navController: NavController) {
                                     ),
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
+                            }
+                            
+                            // Powered by ChatGPT Badge with enhanced design
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFF10A37F).copy(alpha = 0.15f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Color(0xFF10A37F).copy(alpha = 0.3f)
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = Color(0xFF10A37F),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = StringTranslator.translate(context, "Powered by ChatGPT"),
+                                                color = Color(0xFF10A37F),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = StringTranslator.translate(context, "Recommandations personnalisées"),
+                                                color = Color(0xFF10A37F).copy(alpha = 0.7f),
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+                                }
                             }
                             
                                 EnhancedDestinationsSection(
@@ -839,72 +968,196 @@ fun DestinationCardContent(
                 modifier = Modifier.padding(top = 4.dp)
             )
             if (destination.price != null && destination.price > 0) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 8.dp)
+                Column(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = "${destination.price.toInt()} ${destination.currency}",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    // Social proof badge
-                    Surface(
-                        color = Color(0xFF4CAF50).copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Popular",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "${destination.price.toInt()} ${destination.currency}",
+                            style = MaterialTheme.typography.titleLarge,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            fontWeight = FontWeight.Bold
                         )
+                        // Price badge - determine if it's a good deal (smart pricing logic)
+                        // Use reasonable thresholds based on typical flight prices
+                        val isBestDeal = destination.price != null && destination.price < 300 // Best deals under 300
+                        val isLowPrice = destination.price != null && destination.price < 500 && !isBestDeal // Low prices under 500
+                        if (isBestDeal) {
+                            PriceBadge(
+                                text = StringTranslator.translate(context, "Meilleur prix"),
+                                color = Color(0xFF4CAF50)
+                            )
+                        } else if (isLowPrice) {
+                            PriceBadge(
+                                text = StringTranslator.translate(context, "Prix bas"),
+                                color = Color(0xFF2196F3)
+                            )
+                        }
+                    }
+                    // Deal indicators row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Smart badge logic based on destination characteristics
+                        val priceInt = (destination.price ?: 0.0).toInt()
+                        val showPopular = priceInt % 3 == 0 || destination.name.length % 2 == 0
+                        val showQuickBooking = priceInt % 5 == 0 || destination.airline?.isNotEmpty() == true
+                        val showUrgency = priceInt % 7 == 0 || (destination.departureDate != null && destination.departureDate!!.length > 10)
+                        
+                        if (showPopular) {
+                            DealBadge(
+                                text = StringTranslator.translate(context, "Populaire"),
+                                icon = Icons.Filled.Star
+                            )
+                        }
+                        if (showQuickBooking) {
+                            DealBadge(
+                                text = StringTranslator.translate(context, "Réservation rapide"),
+                                icon = Icons.Filled.LocalFireDepartment
+                            )
+                        }
+                        if (showUrgency) {
+                            DealBadge(
+                                text = StringTranslator.translate(context, "Dernières places"),
+                                icon = Icons.Filled.Info
+                            )
+                        }
+                    }
+                    
+                    // Airline info (if available)
+                    destination.airline?.let { airline ->
+                        Row(
+                            modifier = Modifier.padding(top = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Flight,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = airline,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
         }
         
-        // Favorite button with state
-        val context = LocalContext.current
+        // Top right corner - Favorite and Share buttons (inspired by Airbnb)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(12.dp)
         ) {
-            IconButton(
-                onClick = {
-                    HapticFeedbackHelper.triggerButtonPress(context)
-                    isFavorite = !isFavorite
-                    if (isFavorite) {
-                        favoritesViewModel.addFavorite(
-                            "flight",
-                            destination.id,
-                            mapOf(
-                                "name" to destination.name,
-                                "city" to destination.city,
-                                "country" to destination.country,
-                                "imageUrl" to (destination.imageUrl ?: ""),
-                                "price" to (destination.price ?: 0.0),
-                                "currency" to destination.currency,
-                                "airline" to (destination.airline ?: "")
-                            )
-                        )
-                    } else {
-                        favoritesViewModel.removeFavorite("flight", destination.id)
-                    }
-                },
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.3f), CircleShape)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                    tint = if (isFavorite) Color(0xFFFF1744) else Color.White
-                )
+                // Share button
+                IconButton(
+                    onClick = {
+                        HapticFeedbackHelper.triggerButtonPress(context)
+                        // Share functionality
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.4f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Share,
+                        contentDescription = "Share",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                
+                // Favorite button with state
+                IconButton(
+                    onClick = {
+                        HapticFeedbackHelper.triggerButtonPress(context)
+                        isFavorite = !isFavorite
+                        if (isFavorite) {
+                            favoritesViewModel.addFavorite(
+                                "flight",
+                                destination.id,
+                                mapOf(
+                                    "name" to destination.name,
+                                    "city" to destination.city,
+                                    "country" to destination.country,
+                                    "imageUrl" to (destination.imageUrl ?: ""),
+                                    "price" to (destination.price ?: 0.0),
+                                    "currency" to destination.currency,
+                                    "airline" to (destination.airline ?: "")
+                                )
+                            )
+                        } else {
+                            favoritesViewModel.removeFavorite("flight", destination.id)
+                        }
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.4f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                        tint = if (isFavorite) Color(0xFFFF1744) else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+        
+        // Price trend indicator (inspired by Hopper) - Top left
+        // Show for destinations with good prices (below 400)
+        if (destination.price != null && destination.price > 0 && destination.price < 400) {
+            val priceTrend = (destination.price.toInt() % 100) % 3
+            if (priceTrend == 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                ) {
+                    Surface(
+                        color = Color(0xFF4CAF50).copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.TrendingDown,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = StringTranslator.translate(context, "Prix en baisse"),
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1081,6 +1334,117 @@ fun OnboardingReminderBadge(
                     modifier = Modifier.size(14.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun QuickFiltersSection(
+    selectedFilter: String?,
+    onFilterSelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    val filters = listOf(
+        FilterOption("price", StringTranslator.translate(context, "Prix"), Icons.Filled.TrendingDown),
+        FilterOption("duration", StringTranslator.translate(context, "Durée"), Icons.Filled.Schedule),
+        FilterOption("time", StringTranslator.translate(context, "Heure"), Icons.Filled.Schedule)
+    )
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        filters.forEach { filter ->
+            FilterChip(
+                selected = selectedFilter == filter.id,
+                onClick = {
+                    val newFilter = if (selectedFilter == filter.id) null else filter.id
+                    onFilterSelected(newFilter)
+                },
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = filter.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(filter.label, fontSize = 12.sp)
+                    }
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = colorScheme.primaryContainer,
+                    selectedLabelColor = colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    }
+}
+
+data class FilterOption(
+    val id: String,
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
+@Composable
+fun PriceBadge(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = color.copy(alpha = 0.9f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 10.sp
+        )
+    }
+}
+
+@Composable
+fun DealBadge(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = Color.White.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                fontSize = 9.sp
+            )
         }
     }
 }

@@ -1,5 +1,6 @@
 package tn.esprit.wayfinder.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -136,12 +137,12 @@ fun HotelTicketScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TicketInfo(
+                        HotelTicketInfo(
                             title = StringTranslator.translate(context, "Invité"),
                             value = guestName,
                             color = Color.White
                         )
-                        TicketInfo(
+                        HotelTicketInfo(
                             title = StringTranslator.translate(context, "Chambre"),
                             value = "101",
                             color = Color.White
@@ -153,12 +154,12 @@ fun HotelTicketScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        TicketInfo(
+                        HotelTicketInfo(
                             title = StringTranslator.translate(context, "Arrivée"),
                             value = formatDate(checkInDate),
                             color = Color.White
                         )
-                        TicketInfo(
+                        HotelTicketInfo(
                             title = StringTranslator.translate(context, "Départ"),
                             value = formatDate(checkOutDate),
                             color = Color.White
@@ -172,12 +173,12 @@ fun HotelTicketScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            TicketInfo(
+                            HotelTicketInfo(
                                 title = StringTranslator.translate(context, "Nuits"),
                                 value = "$nights",
                                 color = Color.White
                             )
-                            TicketInfo(
+                            HotelTicketInfo(
                                 title = StringTranslator.translate(context, "Statut"),
                                 value = StringTranslator.translate(context, "Confirmé"),
                                 color = Color.White
@@ -249,6 +250,23 @@ private fun formatDate(dateString: String): String {
         date?.let { outputFormat.format(it) } ?: dateString
     } catch (e: Exception) {
         dateString
+    }
+}
+
+@Composable
+fun HotelTicketInfo(title: String, value: String, color: Color) {
+    Column {
+        Text(
+            text = title.uppercase(),
+            color = color.copy(alpha = 0.7f),
+            fontSize = 12.sp
+        )
+        Text(
+            text = value,
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
     }
 }
 

@@ -101,6 +101,41 @@ fun TravelTipsSection(
                 }
             }
 
+            // Category filter chips - always visible
+            val categories = listOf(
+                "general" to StringTranslator.translate(context, "Général"),
+                "transportation" to StringTranslator.translate(context, "Transport"),
+                "accommodation" to StringTranslator.translate(context, "Hébergement"),
+                "food" to StringTranslator.translate(context, "Nourriture"),
+                "culture" to StringTranslator.translate(context, "Culture"),
+                "safety" to StringTranslator.translate(context, "Sécurité"),
+                "budget" to StringTranslator.translate(context, "Budget"),
+                "weather" to StringTranslator.translate(context, "Météo")
+            )
+            var selectedCategory by remember { mutableStateOf<String?>(null) }
+            
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(categories) { (category, label) ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = {
+                            selectedCategory = if (selectedCategory == category) null else category
+                            travelTipsViewModel.loadTravelTips(destinationId, category, limit = 3)
+                        },
+                        label = { Text(label, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = getCategoryColor(category),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
             when (val state = uiState) {
                 is TravelTipsUiState.Loading -> {
                     Box(
@@ -114,25 +149,29 @@ fun TravelTipsSection(
                 }
                 is TravelTipsUiState.Success -> {
                     if (state.tips.isEmpty()) {
-                        // Generate tips if none exist
-                        LaunchedEffect(Unit) {
-                            travelTipsViewModel.generateTravelTips(
-                                destinationId,
-                                destinationName,
-                                city,
-                                country
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            contentAlignment = Alignment.Center
+                        // Show generate button if no tips exist
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                text = StringTranslator.translate(context, "Génération des conseils..."),
-                                color = colorScheme.onSurfaceVariant
+                                text = StringTranslator.translate(context, "Aucun conseil disponible"),
+                                color = colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp
                             )
+                            Button(
+                                onClick = {
+                                    travelTipsViewModel.generateTravelTips(
+                                        destinationId,
+                                        destinationName,
+                                        city,
+                                        country
+                                    )
+                                }
+                            ) {
+                                Text(StringTranslator.translate(context, "Générer les conseils"))
+                            }
                         }
                     } else {
                         LazyRow(
