@@ -6,8 +6,8 @@ struct BookingDetailScreen: View {
     let booking: Booking
     @ObservedObject var viewModel: BookingViewModel
     
-    @State private var showDeleteAlert = false
-    @State private var isDeleting = false
+    @State private var showCancelAlert = false
+    @State private var isCancelling = false
     @State private var isReBooking = false
     @State private var showReBookingError = false
     @State private var reBookingErrorMessage: String?
@@ -29,7 +29,7 @@ struct BookingDetailScreen: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header avec bouton retour, titre et icône corbeille
+                // Header avec bouton retour, titre et icône d'annulation
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
@@ -44,15 +44,18 @@ struct BookingDetailScreen: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        showDeleteAlert = true
-                    }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.red)
+                    // Bouton texte \"Annuler\" (affiché seulement si la réservation n'est pas déjà annulée)
+                    if booking.status != .cancelled {
+                        Button(action: {
+                            showCancelAlert = true
+                        }) {
+                            Text("Annuler")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isCancelling)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isDeleting)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
@@ -134,7 +137,7 @@ struct BookingDetailScreen: View {
                                 .background(ThemeColors.accent())
                                 .clipShape(Capsule())
                             }
-                            .disabled(isDeleting)
+                            .disabled(isCancelling)
                             .padding(.top, 8)
                         }
                     }
@@ -145,18 +148,18 @@ struct BookingDetailScreen: View {
         }
         .navigationBarHidden(true)
         .safeAreaPadding(.horizontal)
-        .alert("Supprimer la réservation", isPresented: $showDeleteAlert) {
-            Button("Annuler", role: .cancel) { }
-            Button("Supprimer", role: .destructive) {
+        .alert("Annuler la réservation", isPresented: $showCancelAlert) {
+            Button("Retour", role: .cancel) { }
+            Button("Confirmer l'annulation", role: .destructive) {
                 Task {
-                    await deleteBooking()
+                    await cancelBooking()
                 }
             }
         } message: {
-            Text("Êtes-vous sûr de vouloir supprimer cette réservation ?")
+            Text("Êtes-vous sûr de vouloir annuler cette réservation ?")
         }
         .overlay {
-            if isDeleting || isReBooking {
+            if isCancelling || isReBooking {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.opacity(0.3))
@@ -171,16 +174,16 @@ struct BookingDetailScreen: View {
         }
     }
     
-    private func deleteBooking() async {
-        isDeleting = true
-        defer { isDeleting = false }
+    private func cancelBooking() async {
+        isCancelling = true
+        defer { isCancelling = false }
         
         do {
-            try await viewModel.deleteBooking(id: booking.id)
-            // Naviguer vers l'historique après suppression réussie
+            try await viewModel.cancelBooking(id: booking.id)
+            // Naviguer vers l'historique après annulation réussie
             dismiss()
         } catch {
-            print("❌ [BookingDetailScreen] Error deleting booking: \(error.localizedDescription)")
+            print("❌ [BookingDetailScreen] Error cancelling booking: \(error.localizedDescription)")
             // TODO: Afficher une alerte d'erreur si nécessaire
         }
     }
