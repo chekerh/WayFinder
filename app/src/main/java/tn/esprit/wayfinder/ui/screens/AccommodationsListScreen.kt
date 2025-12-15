@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,11 +68,21 @@ fun AccommodationsListScreen(
             }
         } ?: "PAR" // Default to Paris
         
-        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, type: $accommodationType")
+        // Map accommodation types to trip types, or use null if it's not a valid trip type
+        // Valid trip types: business, honeymoon, family, adventure, leisure, solo, wellness, backpacking
+        val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+        val tripType = if (accommodationType in validTripTypes) {
+            accommodationType
+        } else {
+            // For accommodation types (hotel, airbnb, hostel, resort, apartment), don't filter by tripType
+            null
+        }
+        
+        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, accommodationType: $accommodationType, tripType: $tripType")
         
         hotelsViewModel.searchHotels(
             cityCode = cityCode,
-            tripType = accommodationType,
+            tripType = tripType,
             limit = 20
         )
     }
@@ -168,7 +179,9 @@ fun AccommodationsListScreen(
                         val cityCode = destination?.let { 
                             hotelsViewModel.getCityCode(it.city ?: it.name)
                         } ?: "PAR"
-                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = accommodationType)
+                        val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+                        val tripType = if (accommodationType in validTripTypes) accommodationType else null
+                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, limit = 20)
                     }) {
                         Text(StringTranslator.translate(context, "Réessayer"))
                     }
@@ -194,8 +207,31 @@ fun AccommodationsListScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = StringTranslator.translate(context, "Aucun logement disponible pour le moment"),
-                    color = colorScheme.onSurfaceVariant
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurface,
+                    textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = StringTranslator.translate(context, "Essayez une autre destination ou un autre type de logement"),
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        val cityCode = destination?.let { 
+                            hotelsViewModel.getCityCode(it.city ?: it.name)
+                        } ?: "PAR"
+                        val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+                        val tripType = if (accommodationType in validTripTypes) accommodationType else null
+                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, limit = 20)
+                    }
+                ) {
+                    Text(StringTranslator.translate(context, "Réessayer"))
+                }
             }
         } else {
                     Column(modifier = Modifier.padding(paddingValues)) {
