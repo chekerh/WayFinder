@@ -85,6 +85,8 @@ import tn.esprit.wayfinder.viewmodels.CatalogUiState
 import tn.esprit.wayfinder.viewmodels.FavoritesViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsUiState
+import tn.esprit.wayfinder.viewmodels.BookingViewModel
+import tn.esprit.wayfinder.viewmodels.BookingUiState
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 import tn.esprit.wayfinder.ui.components.TravelReelsFeed
@@ -99,10 +101,38 @@ fun HomeScreen(navController: NavController) {
     val catalogViewModel: CatalogViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val bookingViewModel: BookingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
     val notificationsState by notificationsViewModel.uiState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
     val currentUser = remember { tokenManager.getUser() }
+    
+    // Check for active bookings
+    var hasActiveBookings by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        bookingViewModel.loadBookingHistory()
+    }
+    
+    val bookingState by bookingViewModel.bookingHistoryState.collectAsState()
+    
+    LaunchedEffect(bookingState) {
+        if (bookingState is BookingUiState.Success) {
+            val bookings = (bookingState as BookingUiState.Success).bookings
+            val now = System.currentTimeMillis()
+            hasActiveBookings = bookings.any { booking ->
+                booking.tripDetails?.departureDate?.let { departureDate ->
+                    // Check if departure date is in the future
+                    try {
+                        val departureTime = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(departureDate)?.time ?: 0L
+                        departureTime > now
+                    } catch (e: Exception) {
+                        false
+                    }
+                } ?: false
+            }
+        }
+    }
 
     // Selected region state - Default to "Préférences" if user completed onboarding
     var selectedRegion by remember { 
@@ -522,23 +552,23 @@ fun HomeScreen(navController: NavController) {
                                 }
                             } else {
                                 if (state.fromCache) {
-                                AssistChip(
-                                    onClick = { catalogViewModel.loadRecommendedFlights(showAll = false) },
-                                    label = { Text(StringTranslator.translate(context, "Affichage hors ligne (cache)")) },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.CloudOff,
-                                            contentDescription = "Mode hors ligne"
-                                        )
-                                    },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = Color(0xFFFFF3E0),
-                                        labelColor = Color(0xFFEF6C00)
-                                    ),
-                                    modifier = Modifier.padding(bottom = 12.dp)
-                                )
-                            }
-                            
+                                    AssistChip(
+                                        onClick = { catalogViewModel.loadRecommendedFlights(showAll = false) },
+                                        label = { Text(StringTranslator.translate(context, "Affichage hors ligne (cache)")) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudOff,
+                                                contentDescription = "Mode hors ligne"
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = Color(0xFFFFF3E0),
+                                            labelColor = Color(0xFFEF6C00)
+                                        ),
+                                        modifier = Modifier.padding(bottom = 12.dp)
+                                    )
+                                }
+                                
                                 EnhancedDestinationsSection(
                                     destinations = displayDestinations,
                                     navController = navController,
@@ -566,25 +596,109 @@ fun HomeScreen(navController: NavController) {
                             }
                         }
                         else -> {}
+                    }
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Travel Reels Feed Section - Modern reels/posts feed
-            TravelReelsFeed(navController = navController)
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // AI Travel Video Generator Section - Moved below reels
-            AiTravelVideoGenerator(
-                onVideoGenerated = { videoUrl ->
-                    // Optionally navigate to video player or show in reels
-                    android.util.Log.d("HomeScreen", "AI Video generated: $videoUrl")
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Travel Reels Feed Section - Modern reels/posts feed
+                TravelReelsFeed(navController = navController)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // "Lors du Voyage" Section (matching iOS) - only show if user has bookings
+                if (hasActiveBookings) {
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = StringTranslator.translate(context, "Lors du Voyage"),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = StringTranslator.translate(context, "Voir tout"),
+                                color = Color(0xFF1976D2),
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.clickable {
+                                    navController.navigate("during_travel")
+                                }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Quick preview card
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate("during_travel")
+                                },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Flight,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1976D2),
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            Color(0xFF1976D2).copy(alpha = 0.1f),
+                                            CircleShape
+                                        )
+                                        .padding(12.dp)
+                                )
+                                
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = StringTranslator.translate(context, "Découvrez des activités"),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = StringTranslator.translate(context, "Explorez votre destination"),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1976D2),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
                 }
-            )
-            
-            Spacer(modifier = Modifier.height(32.dp))
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // AI Travel Video Generator Section - Moved below reels
+                AiTravelVideoGenerator(
+                    onVideoGenerated = { videoUrl ->
+                        // Optionally navigate to video player or show in reels
+                        android.util.Log.d("HomeScreen", "AI Video generated: $videoUrl")
+                    }
+                )
+                
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -864,9 +978,9 @@ fun DestinationCardContent(
         )
         
         // Gradient overlay for better text readability
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
@@ -875,9 +989,9 @@ fun DestinationCardContent(
                 )
         )
         
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
                 .padding(24.dp)
         ) {
             Text(

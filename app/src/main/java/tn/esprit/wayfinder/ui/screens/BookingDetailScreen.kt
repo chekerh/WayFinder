@@ -58,12 +58,14 @@ fun BookingDetailScreen(navController: NavController, bookingId: String) {
                     }
                 },
                 actions = {
-                    when (val state = bookingState) {
+                    when (bookingState) {
                         is ReservationUiState.Success -> {
-                            if (state.booking.status != BookingStatus.CANCELLED) {
-                                IconButton(onClick = { showCancelDialog = true }) {
-                                    Icon(Icons.Filled.Delete, contentDescription = "Cancel", tint = Color.Red)
-                                }
+                            IconButton(onClick = { showCancelDialog = true }) {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = "Annuler la réservation",
+                                    tint = Color.Red
+                                )
                             }
                         }
                         else -> {}
@@ -112,6 +114,7 @@ fun BookingDetailScreen(navController: NavController, bookingId: String) {
                 BookingDetailContent(
                     booking = state.booking,
                     onCancel = {
+                        // Use cancellation endpoint so that refund emails are triggered
                         bookingViewModel.cancelBooking(bookingId)
                         showCancelDialog = false
                     },
@@ -126,7 +129,7 @@ fun BookingDetailScreen(navController: NavController, bookingId: String) {
                     AlertDialog(
                         onDismissRequest = { showCancelDialog = false },
                         title = { Text("Annuler la réservation") },
-                        text = { Text("Êtes-vous sûr de vouloir annuler cette réservation ?") },
+                        text = { Text("Êtes-vous sûr de vouloir annuler cette réservation ? Un remboursement sera initié et vous recevrez un email de confirmation.") },
                         confirmButton = {
                             TextButton(
                                 onClick = {

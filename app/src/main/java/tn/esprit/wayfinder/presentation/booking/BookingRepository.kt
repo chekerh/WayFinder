@@ -48,13 +48,15 @@ class BookingRepository(
         offerId: String,
         paymentDetails: Map<String, String>,
         totalPrice: Double? = null,
-        tripDetails: TripDetails? = null
+        tripDetails: TripDetails? = null,
+        accommodation: tn.esprit.wayfinder.models.AccommodationRequest? = null
     ): Booking {
         val request = ConfirmBookingRequest(
             offerId = offerId,
             paymentDetails = paymentDetails,
             totalPrice = totalPrice,
-            tripDetails = tripDetails
+            tripDetails = tripDetails,
+            accommodation = accommodation
         )
         val booking = apiService.confirmBooking(request)
         // Invalidate booking history cache
@@ -95,6 +97,15 @@ class BookingRepository(
         // Invalidate booking history cache
         cacheManager?.remove(CacheManager.KEY_BOOKING_HISTORY)
         return booking
+    }
+
+    suspend fun deleteBooking(bookingId: String) {
+        // Call permanent delete endpoint
+        apiService.deleteBooking(bookingId)
+        // Invalidate booking history cache
+        cacheManager?.remove(CacheManager.KEY_BOOKING_HISTORY)
+        // Also remove any cached single-booking entry
+        cacheManager?.remove("cache_booking_$bookingId")
     }
 
     suspend fun getBooking(bookingId: String): Booking {

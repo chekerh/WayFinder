@@ -184,7 +184,8 @@ class CatalogRepository(
     // ============ HOTELS ============
 
     suspend fun searchHotels(
-        cityCode: String,
+        cityCode: String? = null,
+        cityName: String? = null,
         checkInDate: String,
         checkOutDate: String,
         adults: Int? = null,
@@ -194,17 +195,17 @@ class CatalogRepository(
         limit: Int? = null,
         currency: String? = null
     ): HotelSearchResponse = withContext(Dispatchers.IO) {
-        val cacheKey = "hotels_${cityCode}_${checkInDate}_${checkOutDate}_${tripType}_${accommodationType}_${ratings}_${limit}"
+        val cacheKey = "hotels_${cityCode ?: cityName}_${checkInDate}_${checkOutDate}_${tripType}_${accommodationType}_${ratings}_${limit}"
         
         // Try cache first
         cacheManager?.get<HotelSearchResponse>(cacheKey)?.let { cached ->
-            Log.d(TAG, "Returning cached hotels for $cityCode")
+            Log.d(TAG, "Returning cached hotels for ${cityCode ?: cityName}")
             return@withContext cached
         }
         
         try {
             val response = apiService.searchHotels(
-                cityCode, checkInDate, checkOutDate, adults, tripType, accommodationType, ratings, limit, currency
+                cityCode, cityName, checkInDate, checkOutDate, adults, tripType, accommodationType, ratings, limit, currency
             )
             cacheManager?.put(cacheKey, response, CacheManager.TTL_MEDIUM)
             Log.d(TAG, "Fetched and cached hotels from API for $cityCode")

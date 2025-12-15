@@ -73,7 +73,13 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
         cardHolderName: String? = null,
         totalPrice: Double,
         destination: String? = null, // Destination name (e.g., "Paris, France")
-        destinationCountry: String? = null // Destination country (e.g., "France")
+        destinationCountry: String? = null, // Destination country (e.g., "France")
+        accommodationId: String? = null,
+        accommodationName: String? = null,
+        accommodationPrice: Double? = null,
+        accommodationCurrency: String? = null,
+        checkInDate: String? = null,
+        checkOutDate: String? = null
     ) {
         // Prevent multiple simultaneous requests
         if (_reservationState.value is ReservationUiState.Loading) {
@@ -115,20 +121,37 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
                 }
                 
                 // Create trip_details if destination is provided
+                // Include check-in/check-out dates for accommodation bookings
                 val tripDetails = if (destination != null && destination.isNotBlank()) {
                     val destinationName = if (destinationCountry != null && destinationCountry.isNotBlank()) {
                         "$destination, $destinationCountry"
                     } else {
                         destination
                     }
-                    TripDetails(destination = destinationName)
+                    TripDetails(
+                        destination = destinationName,
+                        departureDate = checkInDate, // Use check-in date as departure_date for accommodation
+                        returnDate = checkOutDate // Use check-out date as return_date for accommodation
+                    )
                 } else {
                     null
                 }
                 
-                android.util.Log.d("BookingViewModel", "Confirming booking: offerId=$offerId, totalPrice=$totalPrice, destination=$destination, tripDetails=$tripDetails")
+                // Create accommodation request if accommodation data is provided
+                val accommodationRequest = if (accommodationId != null && accommodationName != null && accommodationPrice != null && accommodationCurrency != null) {
+                    tn.esprit.wayfinder.models.AccommodationRequest(
+                        id = accommodationId,
+                        name = accommodationName,
+                        price = accommodationPrice,
+                        currency = accommodationCurrency
+                    )
+                } else {
+                    null
+                }
                 
-                val booking = bookingRepository.confirmBooking(offerId, paymentDetails, totalPrice, tripDetails)
+                android.util.Log.d("BookingViewModel", "Confirming booking: offerId=$offerId, totalPrice=$totalPrice, destination=$destination, tripDetails=$tripDetails, accommodation=$accommodationRequest")
+                
+                val booking = bookingRepository.confirmBooking(offerId, paymentDetails, totalPrice, tripDetails, accommodationRequest)
                 _reservationState.value = ReservationUiState.Success(booking)
             } catch (e: Exception) {
                 val errorMessage = parseError(e)
@@ -241,6 +264,23 @@ class BookingViewModel(private val bookingRepository: BookingRepository) : ViewM
                 _singleBookingState.value = ReservationUiState.Success(booking)
                 // Refresh booking history
                 loadBookingHistory()
+            } catch (e: Exception) {
+                _singleBookingState.value = ReservationUiState.Error(
+                    parseError(e)
+                )
+            }
+        }
+    }
+
+    fun deleteBooking(bookingId: String) {
+        viewModelScope.launch {
+            try {
+                _singleBookingState.value = ReservationUiState.Loading
+                bookingRepository.deleteBooking(bookingId)
+                // After permanent delete, refresh booking history so the item disappears
+                loadBookingHistory()
+                // Reset single booking state since this booking no longer exists
+                _singleBookingState.value = ReservationUiState.Idle
             } catch (e: Exception) {
                 _singleBookingState.value = ReservationUiState.Error(
                     parseError(e)

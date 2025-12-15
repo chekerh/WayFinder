@@ -64,39 +64,104 @@ fun HotelDetailScreen(
     
     // Get saved data from navigation
     val savedStateHandle = navController.previousBackStackEntry?.savedStateHandle
-    val destination = savedStateHandle?.get<FlightDestination>(SELECTED_DESTINATION_KEY)
-    val accommodation = savedStateHandle?.get<Accommodation>("selected_accommodation")
+    // Reconstruct destination from primitives (can't save complex objects to SavedStateHandle)
+    val destination: FlightDestination? = remember(savedStateHandle) {
+        val id = savedStateHandle?.get<String>("destination_id")
+        val name = savedStateHandle?.get<String>("destination_name")
+        val city = savedStateHandle?.get<String>("destination_city")
+        val country = savedStateHandle?.get<String>("destination_country")
+        val price = savedStateHandle?.get<Double>("destination_price")
+        val currency = savedStateHandle?.get<String>("destination_currency") ?: "EUR"
+        val imageUrl = savedStateHandle?.get<String>("destination_image_url")
+        val airline = savedStateHandle?.get<String>("destination_airline")
+        
+        if (id != null && name != null && city != null && country != null) {
+            FlightDestination(
+                id = id,
+                name = name,
+                city = city,
+                country = country,
+                imageUrl = imageUrl,
+                price = price,
+                currency = currency,
+                description = null,
+                departureDate = null,
+                arrivalDate = null,
+                airline = airline
+            )
+        } else {
+            null
+        }
+    }
+    // Don't try to get Accommodation directly - it's not Parcelable
+    // val accommodation = savedStateHandle?.get<Accommodation>("selected_accommodation")
     
-    // Fetch hotel details if not already loaded
+    // Reconstruct Hotel object from saved primitive fields (SavedStateHandle can't store complex objects)
+    val savedHotel: Hotel? = remember(savedStateHandle) {
+        val id = savedStateHandle?.get<String>("hotel_id")
+        val hotelId = savedStateHandle?.get<String>("accommodation_id")
+        val name = savedStateHandle?.get<String>("accommodation_name")
+        val price = savedStateHandle?.get<Double>("accommodation_price")
+        val currency = savedStateHandle?.get<String>("accommodation_currency")
+        val rating = savedStateHandle?.get<Double>("accommodation_rating")
+        val type = savedStateHandle?.get<String>("accommodation_type")
+        val cityCode = savedStateHandle?.get<String>("hotel_city_code")
+        val description = savedStateHandle?.get<String>("hotel_description")
+        val amenitiesStr = savedStateHandle?.get<String>("hotel_amenities")
+        val mediaUrisStr = savedStateHandle?.get<String>("hotel_media_uris")
+        val addressLinesStr = savedStateHandle?.get<String>("hotel_address_lines")
+        val addressCity = savedStateHandle?.get<String>("hotel_address_city")
+        val addressCountry = savedStateHandle?.get<String>("hotel_address_country")
+        val addressPostal = savedStateHandle?.get<String>("hotel_address_postal")
+        val googleRating = savedStateHandle?.get<Double>("hotel_google_rating")
+        val googleReviewCount = savedStateHandle?.get<Int>("hotel_google_review_count")
+        val googlePlaceId = savedStateHandle?.get<String>("hotel_google_place_id")
+        
+        if (id != null && hotelId != null && name != null && price != null && currency != null) {
+            Hotel(
+                id = id,
+                hotelId = hotelId,
+                name = name,
+                cityCode = cityCode?.takeIf { it.isNotEmpty() },
+                rating = rating?.takeIf { it > 0 },
+                type = type?.takeIf { it.isNotEmpty() },
+                pricePerNight = price,
+                currency = currency,
+                amenities = amenitiesStr?.split(",")?.filter { it.isNotEmpty() } ?: emptyList(),
+                address = if (addressLinesStr != null || addressCity != null) {
+                    HotelAddress(
+                        lines = addressLinesStr?.split("|")?.filter { it.isNotEmpty() },
+                        cityName = addressCity?.takeIf { it.isNotEmpty() },
+                        countryCode = addressCountry?.takeIf { it.isNotEmpty() },
+                        postalCode = addressPostal?.takeIf { it.isNotEmpty() }
+                    )
+                } else null,
+                description = description?.takeIf { it.isNotEmpty() },
+                media = mediaUrisStr?.split(",")?.filter { it.isNotEmpty() }?.map { HotelMedia(uri = it) } ?: emptyList(),
+                googleRating = googleRating?.takeIf { it > 0 },
+                googleReviewCount = googleReviewCount?.takeIf { it > 0 },
+                googlePlaceId = googlePlaceId?.takeIf { it.isNotEmpty() }
+            )
+        } else {
+            null
+        }
+    }
+    
+    // Fetch hotel details if not already loaded and we don't have the hotel from list
     LaunchedEffect(hotelId) {
-        if (accommodation == null) {
+        if (savedHotel == null) {
             hotelsViewModel.getHotelDetails(hotelId)
         }
     }
     
-    // Get Hotel object for display (needed for accessing Hotel properties like media, address, etc.)
-    val hotelForDisplay: Hotel? = accommodation?.let { acc ->
-        // Convert Accommodation to Hotel for display
-        Hotel(
-            id = acc.id,
-            hotelId = acc.id,
-            name = acc.name,
-            rating = acc.rating,
-            type = acc.type,
-            pricePerNight = acc.price,
-            currency = acc.currency,
-            amenities = acc.amenities,
-            address = HotelAddress(lines = listOfNotNull(acc.address, acc.location)),
-            description = acc.description,
-            media = acc.imageUrl?.let { listOf(HotelMedia(uri = it)) } ?: acc.photos.map { HotelMedia(uri = it) }
-        )
-    } ?: when (val state = hotelDetailState) {
+    // Get Hotel object for display (prioritize saved hotel from list, then fetched details)
+    val hotelForDisplay: Hotel? = savedHotel ?: when (val state = hotelDetailState) {
         is HotelDetailUiState.Success -> state.hotel
         else -> null
     }
     
     // Convert Hotel to Accommodation for navigation (if needed)
-    val accommodationForNav: Accommodation? = accommodation ?: hotelForDisplay?.let { h ->
+    val accommodationForNav: Accommodation? = hotelForDisplay?.let { h ->
         Accommodation(
             id = h.id,
             name = h.name,
@@ -451,9 +516,20 @@ fun HotelDetailScreen(
                     Button(
                         onClick = {
                             // Save hotel selection and navigate to activities preview
+                            // Note: Can't save complex objects like Accommodation or FlightDestination to SavedStateHandle
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
-                                set(SELECTED_DESTINATION_KEY, destination)
-                                set("selected_accommodation", accommodationForNav)
+                                // Save destination fields as primitives instead of the object
+                                destination?.let { dest ->
+                                    set("destination_id", dest.id)
+                                    set("destination_name", dest.name)
+                                    set("destination_city", dest.city)
+                                    set("destination_country", dest.country)
+                                    set("destination_price", dest.price ?: 0.0)
+                                    set("destination_currency", dest.currency)
+                                    set("destination_image_url", dest.imageUrl ?: "")
+                                    set("destination_airline", dest.airline ?: "")
+                                }
+                                // Save all accommodation fields as primitives
                                 set("accommodation_id", hotel.hotelId)
                                 set("accommodation_name", hotel.name)
                                 set("accommodation_price", hotel.pricePerNight ?: 0.0)
@@ -462,8 +538,14 @@ fun HotelDetailScreen(
                                 set("accommodation_location", hotel.address?.cityName ?: destination?.city ?: "")
                                 set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
                                 set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
+                                // Save additional fields for accommodation reconstruction if needed
+                                set("accommodation_address", hotel.address?.lines?.joinToString(", ") ?: hotel.address?.cityName ?: "")
+                                set("accommodation_description", hotel.description ?: "")
+                                set("accommodation_amenities", hotel.amenities.joinToString(","))
+                                set("accommodation_photos", hotel.media?.map { it.uri }?.joinToString(",") ?: "")
                             }
-                            navController.navigate("activities_preview/${destination?.id ?: hotelId}")
+                            // Navigate directly to ReservationScreen (matching iOS flow)
+                            navController.navigate("booking/${destination?.id ?: hotelId}")
                         },
                         modifier = Modifier.height(56.dp),
                         shape = RoundedCornerShape(16.dp),

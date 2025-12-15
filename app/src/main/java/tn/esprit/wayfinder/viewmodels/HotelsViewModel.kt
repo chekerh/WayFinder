@@ -55,7 +55,8 @@ class HotelsViewModel(
      * Search for hotels in a city
      */
     fun searchHotels(
-        cityCode: String,
+        cityCode: String? = null,
+        cityName: String? = null,
         tripType: String? = null,
         accommodationType: String? = null,
         checkInDate: String? = null,
@@ -73,10 +74,15 @@ class HotelsViewModel(
                 val defaultCheckIn = checkInDate ?: getDefaultCheckInDate()
                 val defaultCheckOut = checkOutDate ?: getDefaultCheckOutDate()
                 
-                Log.d(TAG, "Searching hotels: city=$cityCode, tripType=$tripType, checkIn=$defaultCheckIn, checkOut=$defaultCheckOut")
+                // If cityName is provided, use it; otherwise use cityCode
+                val finalCityName = cityName ?: (if (cityCode?.length == 3) null else cityCode)
+                val finalCityCode = if (cityName != null) null else cityCode
+                
+                Log.d(TAG, "Searching hotels: cityCode=$finalCityCode, cityName=$finalCityName, tripType=$tripType, checkIn=$defaultCheckIn, checkOut=$defaultCheckOut")
                 
                 val response = catalogRepository.searchHotels(
-                    cityCode = cityCode,
+                    cityCode = finalCityCode,
+                    cityName = finalCityName,
                     checkInDate = defaultCheckIn,
                     checkOutDate = defaultCheckOut,
                     adults = adults,

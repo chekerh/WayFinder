@@ -13,13 +13,21 @@ data class Offer(
 )
 
 @Serializable
+data class OfferBreakdown(
+    @SerialName("base_price") val basePrice: Double? = null,
+    val taxes: Double? = null,
+    @SerialName("baggage_fees") val baggageFees: Double? = null,
+    @SerialName("service_fees") val serviceFees: Double? = null,
+    val currency: String? = null
+)
+
+@Serializable
 data class OfferComparison(
     @SerialName("offer_id") val offerId: String,
-    @SerialName("base_price") val basePrice: Double,
-    val taxes: Double,
-    val baggage: Double,
-    @SerialName("service_fees") val serviceFees: Double,
-    val total: Double
+    val breakdown: OfferBreakdown? = null,
+    val total: Double? = null,
+    val savings: Double? = null,
+    val notes: String? = null
 )
 
 @Serializable
@@ -67,11 +75,20 @@ data class CreateBookingRequest(
 )
 
 @Serializable
+data class AccommodationRequest(
+    val id: String,
+    val name: String,
+    val price: Double,
+    val currency: String
+)
+
+@Serializable
 data class ConfirmBookingRequest(
     @SerialName("offer_id") val offerId: String,
     @SerialName("payment_details") val paymentDetails: Map<String, String>,
     @SerialName("total_price") val totalPrice: Double? = null,
-    @SerialName("trip_details") val tripDetails: TripDetails? = null
+    @SerialName("trip_details") val tripDetails: TripDetails? = null,
+    val accommodation: AccommodationRequest? = null
 )
 
 @Serializable

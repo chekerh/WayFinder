@@ -81,6 +81,9 @@ interface ApiService {
     @DELETE("booking/{id}")
     suspend fun cancelBooking(@Path("id") id: String): Booking
 
+    @DELETE("booking/{id}/permanent")
+    suspend fun deleteBooking(@Path("id") id: String): retrofit2.Response<Unit>
+
     // --- PAYMENT --- //
     @GET("payment/history")
     suspend fun getPaymentHistory(): List<Payment>
@@ -162,7 +165,8 @@ interface ApiService {
     // --- HOTELS --- //
     @GET("catalog/hotels")
     suspend fun searchHotels(
-        @Query("cityCode") cityCode: String,
+        @Query("cityCode") cityCode: String? = null,
+        @Query("cityName") cityName: String? = null,
         @Query("checkInDate") checkInDate: String,
         @Query("checkOutDate") checkOutDate: String,
         @Query("adults") adults: Int? = null,

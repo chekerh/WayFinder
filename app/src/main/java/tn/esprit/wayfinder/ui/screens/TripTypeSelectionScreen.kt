@@ -169,10 +169,14 @@ fun TripTypeSelectionScreen(
                 ) {
                     Button(
                         onClick = {
-                            // Save trip type and navigate to accommodations
+                            // Save trip type and destination on this back stack entry,
+                            // so Accommodations and Reservation screens can reliably read it
                             navController.currentBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("trip_type", selectedType)
+                                ?.apply {
+                                    set("trip_type", selectedType)
+                                    destination?.let { set(SELECTED_DESTINATION_KEY, it) }
+                                }
                             navController.navigate("accommodations/${destinationId ?: ""}/$selectedType")
                         },
                         modifier = Modifier

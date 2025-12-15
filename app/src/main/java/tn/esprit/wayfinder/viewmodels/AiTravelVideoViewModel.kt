@@ -416,12 +416,14 @@ class AiTravelVideoViewModel(
      * Generate a travel video with images and music
      */
     fun generateVideoWithMedia(prompt: String) {
-        if (prompt.isBlank()) {
-            _uiState.value = AiVideoUiState.Error("Please enter a prompt")
+        val hasImages = _selectedImages.value.isNotEmpty()
+
+        if (prompt.isBlank() && !hasImages) {
+            _uiState.value = AiVideoUiState.Error("Please enter a prompt or add at least one photo")
             return
         }
 
-        if (prompt.length < 5) {
+        if (!hasImages && prompt.length < 5) {
             _uiState.value = AiVideoUiState.Error("Prompt must be at least 5 characters")
             return
         }

@@ -333,13 +333,25 @@ fun PaymentSummaryScreen(
                 onClick = {
                     if (!isProcessing) {
                         isProcessing = true
-                        // Save all booking data and navigate to existing booking flow
+                        // Save all booking data including dates and navigate to existing booking flow
                         navController.currentBackStackEntry?.savedStateHandle?.apply {
                             set(SELECTED_DESTINATION_KEY, destination)
                             set("total_price", totalPrice)
                             set("service_fee", serviceFee)
                             set("accommodation_name", accommodationName)
                             set("accommodation_price", hotelTotal)
+                            // Pass through dates from LodgingChoiceScreen
+                            val checkInDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("check_in_date")
+                            val checkOutDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("check_out_date")
+                            checkInDate?.let { set("check_in_date", it) }
+                            checkOutDate?.let { set("check_out_date", it) }
+                            // Pass through accommodation details
+                            val accommodationId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("accommodation_id")
+                            val accommodationCurrency = navController.previousBackStackEntry?.savedStateHandle?.get<String>("accommodation_currency")
+                            val accommodationType = navController.previousBackStackEntry?.savedStateHandle?.get<String>("accommodation_type")
+                            accommodationId?.let { set("accommodation_id", it) }
+                            accommodationCurrency?.let { set("accommodation_currency", it) }
+                            accommodationType?.let { set("accommodation_type", it) }
                         }
                         navController.navigate("booking/${destinationId}")
                     }

@@ -118,6 +118,8 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
     val selectedUpsells = savedStateHandle?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
     val accommodationPrice = savedStateHandle?.get<Double>("accommodation_price") ?: 0.0
     val upsellTotal = savedStateHandle?.get<Double>("upsell_total") ?: 0.0
+    val checkInDate = savedStateHandle?.get<String>("check_in_date")
+    val checkOutDate = savedStateHandle?.get<String>("check_out_date")
 
     LaunchedEffect(reservationState) {
         val currentState = reservationState
@@ -325,13 +327,28 @@ fun ReviewBookingScreen(navController: NavController, destinationId: String) {
                     // Prevent multiple clicks
                     if (reservationState !is ReservationUiState.Loading && reservationState !is ReservationUiState.Success) {
                     // Use final total price with commission, accommodation, and upsells
+                    // For hotel-only bookings, use hotel ID as offerId; otherwise use destinationId
+                    val bookingOfferId = if (selectedAccommodation != null && accommodationPrice > 0 && (totalPrice - accommodationPrice - upsellTotal) <= 0) {
+                        // Hotel-only booking (no flight)
+                        selectedAccommodation.id
+                    } else {
+                        // Flight booking (with or without hotel)
+                        destinationId
+                    }
+                    
                     bookingViewModel.confirmBooking(
-                        offerId = destinationId,
+                        offerId = bookingOfferId,
                         cardNumber = cardNumber,
                         cardHolderName = cardHolder,
                         totalPrice = finalTotal, // Total includes flight, accommodation, upsells, and commission
                         destination = destination.name,
-                        destinationCountry = destination.country
+                        destinationCountry = destination.country,
+                        accommodationId = selectedAccommodation?.id,
+                        accommodationName = selectedAccommodation?.name,
+                        accommodationPrice = if (accommodationPrice > 0) accommodationPrice else null,
+                        accommodationCurrency = selectedAccommodation?.currency,
+                        checkInDate = checkInDate,
+                        checkOutDate = checkOutDate
                     )
                     }
                 },

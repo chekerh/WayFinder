@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -50,6 +51,9 @@ fun AccommodationsListScreen(
     )
     val hotelsState by hotelsViewModel.hotelsState.collectAsStateWithLifecycle()
     
+    // Track selected hotel (matching iOS behavior)
+    var selectedHotel by remember { mutableStateOf<Hotel?>(null) }
+    
     val destination = remember(destinationId) {
         navController.previousBackStackEntry
             ?.savedStateHandle
@@ -61,17 +65,22 @@ fun AccommodationsListScreen(
     val checkInDate = savedStateHandle?.get<String>("check_in_date")
     val checkOutDate = savedStateHandle?.get<String>("check_out_date")
     
+    // Ensure the selected destination is also stored on this back stack entry
+    // so that downstream screens like ReservationScreen can reliably retrieve it
+    LaunchedEffect(destinationId, destination) {
+        destination?.let {
+            navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.set(SELECTED_DESTINATION_KEY, it)
+        }
+    }
+    
     // Load hotels from API when screen opens
     LaunchedEffect(accommodationType, destination, checkInDate, checkOutDate) {
-        val cityCode = destination?.let { 
-            // Try to get city code from destination
-            val cityName = it.city ?: it.name ?: ""
-            if (cityName.isNotBlank()) {
-                hotelsViewModel.getCityCode(cityName)
-            } else {
-                "PAR" // Default to Paris
-            }
-        } ?: "PAR" // Default to Paris
+        val cityName = destination?.let { 
+            // Use city name directly from destination
+            it.city ?: it.name ?: ""
+        } ?: ""
         
         // Map accommodation types to trip types, or use null if it's not a valid trip type
         // Valid trip types: business, honeymoon, family, adventure, leisure, solo, wellness, backpacking
@@ -83,10 +92,10 @@ fun AccommodationsListScreen(
             null
         }
         
-        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityCode: $cityCode, accommodationType: $accommodationType, tripType: $tripType, checkIn: $checkInDate, checkOut: $checkOutDate")
+        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityName: $cityName, accommodationType: $accommodationType, tripType: $tripType, checkIn: $checkInDate, checkOut: $checkOutDate")
         
         hotelsViewModel.searchHotels(
-            cityCode = cityCode,
+            cityName = cityName.takeIf { it.isNotBlank() },
             tripType = tripType,
             accommodationType = accommodationType,
             checkInDate = checkInDate,
@@ -184,12 +193,12 @@ fun AccommodationsListScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
-                        val cityCode = destination?.let { 
-                            hotelsViewModel.getCityCode(it.city ?: it.name)
-                        } ?: "PAR"
+                        val cityName = destination?.let { 
+                            it.city ?: it.name
+                        } ?: ""
                         val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
                         val tripType = if (accommodationType in validTripTypes) accommodationType else null
-                        hotelsViewModel.searchHotels(cityCode = cityCode, tripType = tripType, accommodationType = accommodationType, limit = 20)
+                        hotelsViewModel.searchHotels(cityName = cityName.takeIf { it.isNotBlank() }, tripType = tripType, accommodationType = accommodationType, limit = 20)
                     }) {
                         Text(StringTranslator.translate(context, "Réessayer"))
                     }
@@ -230,13 +239,13 @@ fun AccommodationsListScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
-                            val cityCode = destination?.let { 
-                                hotelsViewModel.getCityCode(it.city ?: it.name)
-                            } ?: "PAR"
+                            val cityName = destination?.let { 
+                                it.city ?: it.name
+                            } ?: ""
                             val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
                             val tripType = if (accommodationType in validTripTypes) accommodationType else null
                             hotelsViewModel.searchHotels(
-                                cityCode = cityCode, 
+                                cityName = cityName.takeIf { it.isNotBlank() }, 
                                 tripType = tripType, 
                                 accommodationType = accommodationType,
                                 checkInDate = checkInDate,
@@ -286,11 +295,15 @@ fun AccommodationsListScreen(
                             items(state.hotels, key = { it.hotelId }) { hotel ->
                                 HotelCard(
                                     hotel = hotel,
-                        onClick = {
-                                        // Save hotel selection and navigate
-                            navController.currentBackStackEntry
-                                ?.savedStateHandle
-                                ?.apply {
+                                    isSelected = selectedHotel?.hotelId == hotel.hotelId,
+                                    onClick = {
+                                        // Select hotel and navigate directly to booking so user can reserve
+                                        selectedHotel = hotel
+
+                                        navController.currentBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.apply {
+                                                // Save individual fields (SavedStateHandle can't store complex objects)
                                                 set("accommodation_id", hotel.hotelId)
                                                 set("accommodation_price", hotel.pricePerNight ?: 0.0)
                                                 set("accommodation_currency", hotel.currency ?: "EUR")
@@ -299,19 +312,107 @@ fun AccommodationsListScreen(
                                                 set("accommodation_location", hotel.address?.cityName ?: "")
                                                 set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
                                                 set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
-                                }
-                                        // Navigate to hotel detail screen first
-                                        navController.navigate("hotel_detail/${hotel.hotelId}")
+                                                // Save additional hotel fields for reconstruction
+                                                set("hotel_id", hotel.id)
+                                                set("hotel_city_code", hotel.cityCode ?: "")
+                                                set("hotel_description", hotel.description ?: "")
+                                                set("hotel_amenities", hotel.amenities.joinToString(","))
+                                                set("hotel_media_uris", hotel.media?.map { it.uri }?.joinToString(",") ?: "")
+                                                set("hotel_address_lines", hotel.address?.lines?.joinToString("|") ?: "")
+                                                set("hotel_address_city", hotel.address?.cityName ?: "")
+                                                set("hotel_address_country", hotel.address?.countryCode ?: "")
+                                                set("hotel_address_postal", hotel.address?.postalCode ?: "")
+                                                set("hotel_google_rating", hotel.googleRating ?: 0.0)
+                                                set("hotel_google_review_count", hotel.googleReviewCount ?: 0)
+                                                set("hotel_google_place_id", hotel.googlePlaceId ?: "")
+                                            }
+
+                                        navController.navigate("booking/$destinationId")
+                                    }
+                                )
+                            }
                         }
-                    )
+                        
+                        // Bottom continue button (matching iOS)
+                        if (state.hotels.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    // Save selected hotel and navigate to ReservationScreen
+                                    selectedHotel?.let { hotel ->
+                                        navController.currentBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.apply {
+                                                // Save individual fields (SavedStateHandle can't store complex objects)
+                                                set("accommodation_id", hotel.hotelId)
+                                                set("accommodation_price", hotel.pricePerNight ?: 0.0)
+                                                set("accommodation_currency", hotel.currency ?: "EUR")
+                                                set("accommodation_name", hotel.name)
+                                                set("accommodation_type", hotel.type ?: "hotel")
+                                                set("accommodation_location", hotel.address?.cityName ?: "")
+                                                set("accommodation_rating", hotel.googleRating ?: hotel.rating ?: 0.0)
+                                                set("accommodation_image_url", hotel.media?.firstOrNull()?.uri ?: "")
+                                                // Save additional hotel fields for reconstruction
+                                                set("hotel_id", hotel.id)
+                                                set("hotel_city_code", hotel.cityCode ?: "")
+                                                set("hotel_description", hotel.description ?: "")
+                                                set("hotel_amenities", hotel.amenities.joinToString(","))
+                                                set("hotel_media_uris", hotel.media?.map { it.uri }?.joinToString(",") ?: "")
+                                                set("hotel_address_lines", hotel.address?.lines?.joinToString("|") ?: "")
+                                                set("hotel_address_city", hotel.address?.cityName ?: "")
+                                                set("hotel_address_country", hotel.address?.countryCode ?: "")
+                                                set("hotel_address_postal", hotel.address?.postalCode ?: "")
+                                                set("hotel_google_rating", hotel.googleRating ?: 0.0)
+                                                set("hotel_google_review_count", hotel.googleReviewCount ?: 0)
+                                                set("hotel_google_place_id", hotel.googlePlaceId ?: "")
+                                            }
+                                        // Navigate directly to ReservationScreen (matching iOS flow)
+                                        navController.navigate("booking/$destinationId")
+                                    } ?: run {
+                                        // Continue without accommodation (matching iOS)
+                                        navController.navigate("booking/$destinationId")
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selectedHotel != null) 
+                                        Color(0xFF1976D2) 
+                                    else 
+                                        Color(0xFF1976D2).copy(alpha = 0.6f)
+                                )
+                            ) {
+                                Text(
+                                    text = if (selectedHotel != null) {
+                                        StringTranslator.translate(context, "Continuer avec cet hébergement")
+                                    } else {
+                                        StringTranslator.translate(context, "Continuer sans hébergement")
+                                    },
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-
-            else -> {
+            
+            is HotelsUiState.Idle -> {
                 // Idle state - show nothing or skeleton
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = StringTranslator.translate(context, "Sélectionnez une ville pour commencer"),
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -323,6 +424,7 @@ fun AccommodationsListScreen(
 @Composable
 fun HotelCard(
     hotel: Hotel,
+    isSelected: Boolean = false,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -342,9 +444,15 @@ fun HotelCard(
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = colorScheme.surface
+            containerColor = if (isSelected) 
+                Color(0xFF1976D2).copy(alpha = 0.1f) 
+            else 
+                colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp),
+        border = if (isSelected) {
+            androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1976D2))
+        } else null,
         onClick = onClick
     ) {
         Column(
@@ -435,13 +543,28 @@ fun HotelCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = hotel.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colorScheme.onSurface,
-                    maxLines = 2
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = hotel.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) Color(0xFF1976D2) else colorScheme.onSurface,
+                        maxLines = 2,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF1976D2),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
                 
                 // Location
                 val location = hotel.address?.let { addr ->

@@ -7,11 +7,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Bed
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.size
+import androidx.compose.material3.CircularProgressIndicator
+import tn.esprit.wayfinder.viewmodels.ReservationUiState
+import kotlin.math.max
 import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -26,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.size
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -72,6 +82,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     val savedStateHandle = remember(destinationId) {
         navController.previousBackStackEntry?.savedStateHandle
     }
+    
     val selectedAccommodation = remember(destinationId) {
         val id = savedStateHandle?.get<String>("accommodation_id")
         val name = savedStateHandle?.get<String>("accommodation_name")
@@ -100,23 +111,29 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     }
     
     val selectedUpsells = remember(destinationId) {
-        navController.previousBackStackEntry
-            ?.savedStateHandle
-            ?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
+        savedStateHandle?.get<List<SelectedUpsell>>("selected_upsells") ?: emptyList()
     }
     
-    // Date selection
+    // Get dates from saved state (set in LodgingChoiceScreen)
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance()
-    calendar.add(Calendar.DAY_OF_MONTH, 14) // Default: 2 weeks from now
-    val defaultDepartureDate = dateFormat.format(calendar.time)
-    calendar.add(Calendar.DAY_OF_MONTH, 3) // Default: 3 days after departure
-    val defaultReturnDate = dateFormat.format(calendar.time)
+    val checkInDate = savedStateHandle?.get<String>("check_in_date")
+    val checkOutDate = savedStateHandle?.get<String>("check_out_date")
     
-    var departureDate by remember { mutableStateOf(selectedDestination?.departureDate?.substringBefore("T") ?: defaultDepartureDate) }
-    var returnDate by remember { mutableStateOf(selectedDestination?.arrivalDate?.substringBefore("T") ?: defaultReturnDate) }
-    var showDepartureDatePicker by remember { mutableStateOf(false) }
-    var showReturnDatePicker by remember { mutableStateOf(false) }
+    // Calculate number of nights
+    val nights = remember(checkInDate, checkOutDate) {
+        if (checkInDate != null && checkOutDate != null) {
+            try {
+                val checkIn = dateFormat.parse(checkInDate)
+                val checkOut = dateFormat.parse(checkOutDate)
+                if (checkIn != null && checkOut != null) {
+                    val diff = checkOut.time - checkIn.time
+                    max(1, (diff / (1000 * 60 * 60 * 24)).toInt())
+                } else 7 // Default to 7 nights
+            } catch (e: Exception) {
+                7 // Default to 7 nights
+            }
+        } else 7 // Default to 7 nights if dates not set
+    }
     
     var cardNumber by remember { mutableStateOf("") }
     var cardHolderName by remember { mutableStateOf("") }
@@ -128,7 +145,6 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     var cardHolderNameError by remember { mutableStateOf<String?>(null) }
     var expiryDateError by remember { mutableStateOf<String?>(null) }
     var cvvError by remember { mutableStateOf<String?>(null) }
-    var dateError by remember { mutableStateOf<String?>(null) }
     
     LaunchedEffect(destinationId) {
         if (destinationId.isNotBlank()) {
@@ -140,22 +156,34 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
     val currency = selectedDestination?.currency ?: selectedAccommodation?.currency ?: "EUR"
     val comparison = (comparisonState as? OfferComparisonUiState.Success)?.comparison
     val destinationPrice = selectedDestination?.price ?: 0.0
-    val basePrice = if (destinationPrice > 0) destinationPrice else comparison?.basePrice ?: 0.0
-    val taxes = comparison?.taxes ?: (basePrice * 0.15)
-    val baggage = comparison?.baggage ?: 0.0
-    val serviceFees = comparison?.serviceFees ?: 10.0
+    val breakdown = comparison?.breakdown
+    val basePrice = if (destinationPrice > 0) {
+        destinationPrice
+    } else {
+        breakdown?.basePrice ?: 0.0
+    }
+    val taxes = breakdown?.taxes ?: (basePrice * 0.15)
+    val baggage = breakdown?.baggageFees ?: 0.0
+    val serviceFees = breakdown?.serviceFees ?: 10.0
     
-    // Calculate accommodation price (per night, assume 7 nights default)
-    val accommodationPrice = selectedAccommodation?.let { it.price * 7 } ?: 0.0
+    // Calculate accommodation price based on number of nights
+    val accommodationPrice = selectedAccommodation?.let { it.price * nights } ?: 0.0
     
     // Calculate upsell total
     val upsellTotal = selectedUpsells.sumOf { it.price * it.quantity }
     
-    // Calculate commission
+    // Calculate commission on upsells (used for analytics, not added separately to total)
     val commission = selectedUpsells.sumOf { it.commissionAmount * it.quantity }
     
-    // Total includes flight, accommodation, upsells, taxes, fees
-    val total = basePrice + taxes + baggage + serviceFees + accommodationPrice + upsellTotal
+    // Subtotal before WayFinder platform fee
+    val subtotal = basePrice + taxes + baggage + serviceFees + accommodationPrice + upsellTotal
+    
+    // WayFinder platform fee: 5% of subtotal
+    val platformFeeRate = 0.05
+    val platformFee = subtotal * platformFeeRate
+    
+    // Total includes flight, accommodation, upsells, taxes, fees, and platform fee
+    val total = subtotal + platformFee
     val displayPrice = basePrice
 
     Scaffold(
@@ -194,6 +222,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
             }
             
             selectedDestination?.let { destination ->
+                // Destination Card (matching iOS)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -207,24 +236,27 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                     ) {
                         Text(
                             text = destination.name,
-                            fontSize = 22.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${destination.country} • ${destination.airline ?: StringTranslator.translate(context, "Compagnie inconnue")}",
-                            color = Color.Gray
+                            text = "${destination.country} • ${destination.airline ?: StringTranslator.translate(context, "N/A")}",
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (displayPrice > 0) {
                             Text(
                                 text = String.format(Locale.getDefault(), "%.2f %s", displayPrice, currency),
-                                fontWeight = FontWeight.SemiBold
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     }
                 }
             }
             
-            // Date Selection Card
+            // Accommodation Choice Card (matching iOS)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -241,106 +273,118 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.CalendarToday,
+                            imageVector = Icons.Filled.Bed,
                             contentDescription = null,
-                            tint = Color(0xFF1976D2)
+                            tint = Color(0xFF1976D2),
+                            modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = StringTranslator.translate(context, "Dates de voyage"),
+                            text = StringTranslator.translate(context, "Hébergement"),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     
-                    // Departure Date
-                    val departureCalendar = Calendar.getInstance()
-                    dateFormat.parse(departureDate)?.let { departureCalendar.time = it }
-                    
-                    OutlinedTextField(
-                        value = departureDate,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text(StringTranslator.translate(context, "Date de départ")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showDepartureDatePicker = true },
-                        leadingIcon = {
-                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
+                    if (selectedAccommodation != null) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = selectedAccommodation.name,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Star,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = Color(0xFFFFC107)
+                                        )
+                                        Text(
+                                            text = String.format("%.1f", selectedAccommodation.rating),
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text("•", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(
+                                            text = selectedAccommodation.location,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = String.format("%.2f %s/nuit", selectedAccommodation.price, selectedAccommodation.currency),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            
+                            TextButton(
+                                onClick = {
+                                    // Navigate back to accommodations list to change selection
+                                    navController.navigate("accommodations/${destinationId}/${selectedAccommodation.type}")
+                                }
+                            ) {
+                                Text(
+                                    text = StringTranslator.translate(context, "Changer d'hébergement"),
+                                    color = Color(0xFF1976D2)
+                                )
+                            }
                         }
-                    )
-                    
-                    // Return Date
-                    val returnCalendar = Calendar.getInstance()
-                    dateFormat.parse(returnDate)?.let { returnCalendar.time = it }
-                    
-                    OutlinedTextField(
-                        value = returnDate,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text(StringTranslator.translate(context, "Date de retour")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showReturnDatePicker = true },
-                        leadingIcon = {
-                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            Icon(Icons.Filled.CalendarToday, contentDescription = null)
-                        },
-                        isError = dateError != null,
-                        supportingText = dateError?.let { { Text(it) } }
-                    )
-                    
-                    // Date Pickers using Android DatePickerDialog
-                    if (showDepartureDatePicker) {
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                val selectedDate = Calendar.getInstance().apply {
-                                    set(year, month, dayOfMonth)
-                                }
-                                departureDate = dateFormat.format(selectedDate.time)
-                                
-                                // Validate return date is after departure
-                                val returnDateParsed = dateFormat.parse(returnDate)?.time ?: 0L
-                                if (selectedDate.timeInMillis >= returnDateParsed) {
-                                    dateError = StringTranslator.translate(context, "La date de retour doit être après la date de départ")
-                                } else {
-                                    dateError = null
-                                }
-                                showDepartureDatePicker = false
+                    } else {
+                        Button(
+                            onClick = {
+                                // Navigate to lodging choice
+                                navController.navigate("lodging_choice/$destinationId")
                             },
-                            departureCalendar.get(Calendar.YEAR),
-                            departureCalendar.get(Calendar.MONTH),
-                            departureCalendar.get(Calendar.DAY_OF_MONTH)
-                        ).show()
-                    }
-                    
-                    if (showReturnDatePicker) {
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                val selectedDate = Calendar.getInstance().apply {
-                                    set(year, month, dayOfMonth)
-                                }
-                                val departureDateParsed = dateFormat.parse(departureDate)?.time ?: 0L
-                                
-                                if (selectedDate.timeInMillis <= departureDateParsed) {
-                                    dateError = StringTranslator.translate(context, "La date de retour doit être après la date de départ")
-                                } else {
-                                    returnDate = dateFormat.format(selectedDate.time)
-                                    dateError = null
-                                }
-                                showReturnDatePicker = false
-                            },
-                            returnCalendar.get(Calendar.YEAR),
-                            returnCalendar.get(Calendar.MONTH),
-                            returnCalendar.get(Calendar.DAY_OF_MONTH)
-                        ).show()
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Add,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1976D2)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = StringTranslator.translate(context, "Choisir un hébergement"),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -554,7 +598,7 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         Text(String.format(Locale.getDefault(), "%.2f %s", taxes, currency), fontWeight = FontWeight.Medium)
                     }
                     
-                    // Accommodation
+                    // Accommodation (matching iOS format)
                     if (accommodationPrice > 0 && selectedAccommodation != null) {
                         HorizontalDivider()
                         Row(
@@ -623,6 +667,22 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                         Text(String.format(Locale.getDefault(), "%.2f %s", baggage + serviceFees, currency), fontWeight = FontWeight.Medium)
                     }
 
+                    // WayFinder platform fee (5%)
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = StringTranslator.translate(context, "Frais WayFinder (5%)"),
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = String.format(Locale.getDefault(), "%.2f %s", platformFee, currency),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
                     if (comparisonState is OfferComparisonUiState.Error) {
                         Text(
                             text = (comparisonState as OfferComparisonUiState.Error).message,
@@ -652,6 +712,75 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 }
             }
             
+            // Confirm Button (matching iOS - confirms booking directly)
+            LaunchedEffect(reservationState) {
+                when (val state = reservationState) {
+                    is ReservationUiState.Success -> {
+                        val booking = state.booking
+                        // Save booking details
+                        navController.currentBackStackEntry?.savedStateHandle?.apply {
+                            set(BOOKING_TOTAL_KEY, booking.totalPrice)
+                            set(BOOKING_DESTINATION_NAME_KEY, selectedDestination?.name)
+                            set(BOOKING_CURRENCY_KEY, currency)
+                            set("booking_id", booking.confirmationNumber)
+                        }
+                        
+                        // Show notification
+                        val languageManager = LanguageManager(context)
+                        val destinationName = selectedDestination?.name ?: StringTranslator.translate(context, "votre destination")
+                        val notificationTitle = StringTranslator.translate(context, "Réservation confirmée")
+                        val reservationFor = StringTranslator.translate(context, "Votre réservation pour")
+                        val hasBeenConfirmed = StringTranslator.translate(context, "a été confirmée")
+                        val confirmationNumberLabel = StringTranslator.translate(context, "Numéro de confirmation")
+                        val notificationMessage = "$reservationFor $destinationName $hasBeenConfirmed. $confirmationNumberLabel: ${booking.confirmationNumber}"
+                        
+                        NotificationHelper.showSimpleNotification(
+                            context,
+                            notificationTitle,
+                            notificationMessage,
+                            type = "booking_confirmed"
+                        )
+                        
+                        delay(1500)
+                        notificationsViewModel.loadNotifications(unreadOnly = true, showSystemNotifications = true)
+                        
+                        // Navigate to confirmation screen
+                        navController.navigate("booking_confirmation/${booking.confirmationNumber}") {
+                            popUpTo("home") { inclusive = false }
+                        }
+                        bookingViewModel.resetReservationState()
+                    }
+                    is ReservationUiState.Error -> {
+                        // Error is handled in UI below
+                        android.util.Log.e("ReservationScreen", "Booking confirmation error: ${state.message}")
+                    }
+                    else -> {
+                        // Loading or Idle state - no action needed
+                    }
+                }
+            }
+            
+            // Show error message if booking confirmation failed
+            when (val errorState = reservationState) {
+                is ReservationUiState.Error -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            text = errorState.message,
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                else -> {}
+            }
+            
             Button(
                 onClick = {
                     val cardNumberDigits = cardNumber.replace(" ", "")
@@ -664,31 +793,29 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             expiryDateError == null &&
                             cvvError == null
 
-                    if (isValid && selectedDestination != null && dateError == null) {
-                        navController.currentBackStackEntry?.savedStateHandle?.apply {
-                            set(SELECTED_DESTINATION_KEY, selectedDestination)
-                            set(BOOKING_TOTAL_KEY, total)
-                            set(BOOKING_CURRENCY_KEY, currency)
-                            set(BOOKING_DESTINATION_NAME_KEY, selectedDestination.name)
-                            set(BOOKING_CARD_NUMBER_KEY, cardNumberDigits)
-                            set(BOOKING_CARD_NAME_KEY, cardHolderName.trim())
-                            set(BOOKING_CARD_EXPIRY_KEY, expiryDate)
-                            set(BOOKING_CARD_CVV_KEY, cvv)
-                            // Save dates
-                            set("departure_date", departureDate)
-                            set("return_date", returnDate)
-                            // Save accommodation and upsells (only primitive types)
-                            if (selectedAccommodation != null) {
-                                // Accommodation object already saved as primitive fields, just save the calculated price
-                                set("accommodation_price", accommodationPrice)
-                            }
-                            if (selectedUpsells.isNotEmpty()) {
-                                set("selected_upsells", selectedUpsells)
-                                set("upsell_total", upsellTotal)
-                                set("commission_total", commission)
-                            }
-                        }
-                        navController.navigate("review_booking/${selectedDestination.id}")
+                    if (isValid && selectedDestination != null) {
+                        // Calculate final total (including accommodation and upsells)
+                        val checkInDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("check_in_date")
+                        val checkOutDate = navController.previousBackStackEntry?.savedStateHandle?.get<String>("check_out_date")
+                        
+                        val finalAccommodationPrice = accommodationPrice
+                        val finalTotal = basePrice + taxes + baggage + serviceFees + finalAccommodationPrice + upsellTotal
+                        
+                        // Confirm booking directly (matching iOS flow)
+                        bookingViewModel.confirmBooking(
+                            offerId = destinationId,
+                            cardNumber = cardNumberDigits,
+                            cardHolderName = cardHolderName.trim(),
+                            totalPrice = finalTotal,
+                            destination = selectedDestination.name,
+                            destinationCountry = selectedDestination.country,
+                            accommodationId = selectedAccommodation?.id,
+                            accommodationName = selectedAccommodation?.name,
+                            accommodationPrice = if (finalAccommodationPrice > 0) finalAccommodationPrice else null,
+                            accommodationCurrency = selectedAccommodation?.currency,
+                            checkInDate = checkInDate,
+                            checkOutDate = checkOutDate
+                        )
                     }
                 },
                 modifier = Modifier
@@ -698,7 +825,9 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF1976D2)
                 ),
-                enabled = selectedDestination != null && run {
+                enabled = selectedDestination != null && 
+                    reservationState !is ReservationUiState.Loading && 
+                    reservationState !is ReservationUiState.Success && run {
                     val cardNumberDigits = cardNumber.replace(" ", "")
                     cardNumberDigits.length == 16 &&
                             cardHolderName.trim().length >= 2 &&
@@ -707,15 +836,21 @@ fun ReservationScreen(navController: NavController, destinationId: String) {
                             cardNumberError == null &&
                             cardHolderNameError == null &&
                             expiryDateError == null &&
-                            cvvError == null &&
-                            dateError == null
+                            cvvError == null
                 }
             ) {
-                Text(
-                    text = StringTranslator.translate(context, "Continuer"),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                if (reservationState is ReservationUiState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        text = StringTranslator.translate(context, "Confirmer et payer"),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
