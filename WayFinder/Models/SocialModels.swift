@@ -56,7 +56,7 @@ struct UserPreview: Codable {
     }
 }
 
-struct SharedTrip: Decodable, Identifiable {
+struct SharedTrip: Codable, Identifiable {
     let id: String
     let userId: UserPreview
     let title: String
@@ -130,6 +130,26 @@ struct SharedTrip: Decodable, Identifiable {
         // Handle date fields - try both snake_case and camelCase
         createdAt = (try? container.decode(String.self, forKey: .createdAt)) ?? ISO8601DateFormatter().string(from: Date())
         updatedAt = (try? container.decode(String.self, forKey: .updatedAt)) ?? ISO8601DateFormatter().string(from: Date())
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(tripType, forKey: .tripType)
+        try container.encodeIfPresent(tripId, forKey: .tripId)
+        try container.encode(images, forKey: .images)
+        try container.encode(tags, forKey: .tags)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encode(likesCount, forKey: .likesCount)
+        try container.encode(commentsCount, forKey: .commentsCount)
+        try container.encode(sharesCount, forKey: .sharesCount)
+        try container.encode(isPublic, forKey: .isPublic)
+        try container.encode(isVisible, forKey: .isVisible)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
     }
 }
 
@@ -217,15 +237,88 @@ struct CountryMemory: Codable, Identifiable {
     }
 }
 
+struct MapMemory: Codable, Identifiable {
+    let id: String
+    let lat: Double
+    let lng: Double
+    let country: String
+    let trip: SharedTrip
+    
+    init(from decoder: Decoder) throws {
+        // Decode from root container (all fields are at root level)
+        let container = try decoder.container(keyedBy: SharedTrip.CodingKeys.self)
+        
+        // Decode _id (from SharedTrip.CodingKeys)
+        if let idString = try? container.decode(String.self, forKey: .id) {
+            id = idString
+        } else {
+            id = try container.decode(String.self, forKey: .id)
+        }
+        
+        // Decode lat, lng, country (these are not in SharedTrip.CodingKeys, so use AnyCodingKey)
+        let allKeysContainer = try decoder.container(keyedBy: AnyCodingKey.self)
+        lat = try allKeysContainer.decode(Double.self, forKey: AnyCodingKey(stringValue: "lat")!)
+        lng = try allKeysContainer.decode(Double.self, forKey: AnyCodingKey(stringValue: "lng")!)
+        country = try allKeysContainer.decode(String.self, forKey: AnyCodingKey(stringValue: "country")!)
+        
+        // Decode SharedTrip from the same decoder (all fields are at root level)
+        trip = try SharedTrip(from: decoder)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: AnyCodingKey.self)
+        try container.encode(id, forKey: AnyCodingKey(stringValue: "_id")!)
+        try container.encode(lat, forKey: AnyCodingKey(stringValue: "lat")!)
+        try container.encode(lng, forKey: AnyCodingKey(stringValue: "lng")!)
+        try container.encode(country, forKey: AnyCodingKey(stringValue: "country")!)
+        // Encode trip fields at root level
+        try trip.encode(to: encoder)
+    }
+}
+
+// Helper for dynamic coding keys
+struct AnyCodingKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+    
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+    
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
 struct MapMemoriesResponse: Codable {
     let countries: [CountryMemory]
+    let memories: [MapMemory]? // Individual memories for Snapchat-style display
     let totalCountries: Int
     let totalMemories: Int
     
     enum CodingKeys: String, CodingKey {
         case countries
+        case memories
         case totalCountries
         case totalMemories
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        countries = try container.decode([CountryMemory].self, forKey: .countries)
+        memories = try container.decodeIfPresent([MapMemory].self, forKey: .memories)
+        totalCountries = try container.decode(Int.self, forKey: .totalCountries)
+        totalMemories = try container.decode(Int.self, forKey: .totalMemories)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(countries, forKey: .countries)
+        try container.encodeIfPresent(memories, forKey: .memories)
+        try container.encode(totalCountries, forKey: .totalCountries)
+        try container.encode(totalMemories, forKey: .totalMemories)
     }
 }
 

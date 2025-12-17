@@ -7,6 +7,8 @@ struct MapMemoriesView: View {
     @StateObject private var viewModel = MapMemoriesViewModel()
     @State private var selectedCountry: CountryMemory?
     @State private var showCountryMemories = false
+    @State private var selectedMemory: MapMemory?
+    @State private var showMemoryDetail = false
     @State private var cameraPosition = MapCameraPosition.region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 50.0, longitude: 10.0), // Europe center
         span: MKCoordinateSpan(latitudeDelta: 60.0, longitudeDelta: 60.0)
@@ -40,6 +42,7 @@ struct MapMemoriesView: View {
             ZStack {
                 // Map
                 Map(position: $cameraPosition) {
+                    // Afficher par pays (comme avant) - avec les photos des voyages dans les marqueurs
                     let countries = viewModel.mapMemories?.countries ?? []
                     ForEach(countries) { country in
                         Annotation(country.country, coordinate: CLLocationCoordinate2D(latitude: country.lat, longitude: country.lng)) {
@@ -125,7 +128,9 @@ struct MapMemoriesView: View {
                 }
                 
                 // Empty state
-                if viewModel.mapMemories?.countries.isEmpty == true && !viewModel.isLoading && viewModel.errorMessage == nil {
+                if (viewModel.mapMemories?.countries.isEmpty ?? true) && 
+                   !viewModel.isLoading && 
+                   viewModel.errorMessage == nil {
                     VStack(spacing: 16) {
                         Image(systemName: "map")
                             .font(.system(size: 64))
@@ -189,9 +194,90 @@ struct MapMemoriesView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showMemoryDetail) {
+                if let memory = selectedMemory {
+                    MemoryDetailSheet(
+                        memory: memory,
+                        onDismiss: {
+                            showMemoryDetail = false
+                            selectedMemory = nil
+                        }
+                    )
+                }
+            }
             .task {
                 await viewModel.loadGoogleMapsApiKey()
                 await viewModel.loadMapMemories()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("JourneyShared"))) { _ in
+                // Rafraîchir la carte quand un voyage est partagé
+                Task {
+                    await viewModel.loadMapMemories()
+                }
+            }
+        }
+    }
+}
+
+// Marker pour les mémoires individuelles (style Snapchat)
+struct MemoryMarker: View {
+    let memory: MapMemory
+    @State private var image: UIImage?
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            // Marker image - photo du voyage partagé
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 70, height: 70)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 3)
+            } else {
+                Circle()
+                    .fill(ThemeColors.accent())
+                    .frame(width: 70, height: 70)
+                    .overlay(
+                        Image(systemName: "photo.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 28))
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 3)
+                    )
+                    .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 3)
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+    
+    private func loadImage() {
+        // Charger la première image du voyage
+        guard let firstImageUrl = memory.trip.images.first,
+              let url = URL(string: firstImageUrl) else {
+            return
+        }
+        
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let uiImage = UIImage(data: data) {
+                    await MainActor.run {
+                        self.image = uiImage
+                    }
+                }
+            } catch {
+                print("Failed to load memory marker image: \(error)")
             }
         }
     }
@@ -341,6 +427,113 @@ struct CountryChip: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
+        }
+    }
+}
+
+struct MemoryDetailSheet: View {
+    let memory: MapMemory
+    let onDismiss: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Images du voyage
+                    if !memory.trip.images.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(Array(memory.trip.images.enumerated()), id: \.offset) { index, imageUrl in
+                                    if let url = URL(string: imageUrl) {
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .scaledToFill()
+                                            case .failure, .empty:
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(ThemeColors.surface(colorScheme))
+                                                    .overlay(
+                                                        Image(systemName: "photo")
+                                                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                                                    )
+                                            @unknown default:
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(ThemeColors.surface(colorScheme))
+                                            }
+                                        }
+                                        .frame(width: 300, height: 300)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                    }
+                    
+                    // Titre
+                    Text(memory.trip.title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(ThemeColors.primaryText(colorScheme))
+                    
+                    // Description
+                    if let description = memory.trip.description, !description.isEmpty {
+                        Text(description)
+                            .font(.body)
+                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                    }
+                    
+                    // Tags
+                    if !memory.trip.tags.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(memory.trip.tags, id: \.self) { tag in
+                                    Text("#\(tag)")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(ThemeColors.accent())
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(ThemeColors.accent().opacity(0.1))
+                                        )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Stats
+                    HStack(spacing: 24) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "heart.fill")
+                                .foregroundColor(.red)
+                            Text("\(memory.trip.likesCount)")
+                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .foregroundColor(ThemeColors.accent())
+                            Text("\(memory.trip.commentsCount)")
+                                .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        }
+                    }
+                    .font(.system(size: 16))
+                }
+                .padding()
+            }
+            .navigationTitle(memory.trip.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: onDismiss) {
+                        Text(String(localized: "generic_ok"))
+                    }
+                }
+            }
         }
     }
 }
