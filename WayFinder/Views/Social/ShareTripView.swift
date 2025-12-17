@@ -52,6 +52,7 @@ struct ShareTripView: View {
             }
             .navigationTitle("Partager mon voyage")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Retour") {
