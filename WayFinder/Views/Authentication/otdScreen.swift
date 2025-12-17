@@ -18,7 +18,7 @@ struct OTPScreenView: View {
     @State private var showHome = false
     @State private var loggedInUserName: String?
     @State private var timer: Timer?
-    @State private var remainingSeconds = 60
+    @State private var remainingSeconds = 300 // 5 minutes
     @State private var canResend = false
     @FocusState private var focusedField: Int?
     
@@ -78,7 +78,7 @@ struct OTPScreenView: View {
                     }
                     .padding(.vertical, 8)
                 } else if remainingSeconds > 0 {
-                    Text("Renvoyer le code dans \(remainingSeconds)s")
+                    Text("Renvoyer le code dans \(formatTime(remainingSeconds))")
                         .font(.system(size: 14))
                         .foregroundColor(.gray)
                         .padding(.vertical, 8)
@@ -230,14 +230,26 @@ struct OTPScreenView: View {
         errorMessage = nil
         defer { isVerifying = false }
         
-        let otpCode = codeDigits.joined()
+        // Joindre les chiffres et nettoyer le code
+        let otpCode = codeDigits.joined().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        print("🔄 [OTPScreen] Verifying OTP code: \(otpCode) for email: \(email)")
         
         do {
             let user = try await AuthService.shared.verifyOTP(email: email, code: otpCode)
+            print("✅ [OTPScreen] OTP verification successful")
             loggedInUserName = user.firstName ?? user.username ?? (user.email?.split(separator: "@").first.map(String.init))
             showHome = true
         } catch {
-            errorMessage = "Code incorrect. Veuillez réessayer."
+            print("❌ [OTPScreen] OTP verification failed: \(error.localizedDescription)")
+            let errorMsg = error.localizedDescription.lowercased()
+            if errorMsg.contains("code") && (errorMsg.contains("incorrect") || errorMsg.contains("invalid") || errorMsg.contains("invalide")) {
+                errorMessage = "Code incorrect. Veuillez réessayer."
+            } else if errorMsg.contains("expiré") || errorMsg.contains("expired") {
+                errorMessage = "Le code a expiré. Veuillez demander un nouveau code."
+            } else {
+                errorMessage = "Erreur lors de la vérification. Veuillez réessayer."
+            }
             // Clear OTP fields on error
             codeDigits = Array(repeating: "", count: 4)
             focusedField = 0
@@ -246,7 +258,7 @@ struct OTPScreenView: View {
     
     private func startResendTimer() {
         canResend = false
-        remainingSeconds = 60
+        remainingSeconds = 300 // 5 minutes
         
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
@@ -255,6 +267,16 @@ struct OTPScreenView: View {
                 canResend = true
                 timer.invalidate()
             }
+        }
+    }
+    
+    private func formatTime(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        if minutes > 0 {
+            return String(format: "%dm %02ds", minutes, secs)
+        } else {
+            return "\(secs)s"
         }
     }
     

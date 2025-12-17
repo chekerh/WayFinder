@@ -21,7 +21,7 @@ struct RegistrationOTPVerificationView: View {
     @State private var isVerifying = false
     @State private var errorMessage: String?
     @State private var timer: Timer?
-    @State private var remainingSeconds = 60
+    @State private var remainingSeconds = 300 // 5 minutes
     @State private var canResend = false
     @FocusState private var focusedField: Int?
     
@@ -142,7 +142,7 @@ struct RegistrationOTPVerificationView: View {
                             }
                             .disabled(isLoading)
                         } else {
-                            Text("Renvoyer le code dans \(remainingSeconds)s")
+                            Text("Renvoyer le code dans \(formatTime(remainingSeconds))")
                                 .font(.system(size: 14))
                                 .foregroundColor(ThemeColors.secondaryText(colorScheme))
                         }
@@ -178,7 +178,7 @@ struct RegistrationOTPVerificationView: View {
     }
     
     private func startTimer() {
-        remainingSeconds = 60
+        remainingSeconds = 300 // 5 minutes
         canResend = false
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -188,6 +188,16 @@ struct RegistrationOTPVerificationView: View {
                 canResend = true
                 timer?.invalidate()
             }
+        }
+    }
+    
+    private func formatTime(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secs = seconds % 60
+        if minutes > 0 {
+            return String(format: "%dm %02ds", minutes, secs)
+        } else {
+            return "\(secs)s"
         }
     }
     
@@ -213,7 +223,10 @@ struct RegistrationOTPVerificationView: View {
         isVerifying = true
         errorMessage = nil
         
-        let otpCode = codeDigits.joined()
+        // Joindre les chiffres et nettoyer le code
+        let otpCode = codeDigits.joined().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        print("🔄 [RegistrationOTP] Verifying OTP code: \(otpCode) for email: \(email)")
         
         Task {
             do {
