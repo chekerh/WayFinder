@@ -18,28 +18,28 @@ struct MySharedTripsView: View {
                 } else if viewModel.sharedTrips.isEmpty && !viewModel.isLoading {
                     emptyState
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(viewModel.sharedTrips) { trip in
-                                SharedTripCard(trip: trip, onDelete: {
+                    List {
+                        ForEach(viewModel.sharedTrips) { trip in
+                            SharedTripCard(trip: trip, onDelete: {
+                                Task {
+                                    await viewModel.deleteTrip(trip.id)
+                                }
+                            })
+                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
                                     Task {
                                         await viewModel.deleteTrip(trip.id)
                                     }
-                                })
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        Task {
-                                            await viewModel.deleteTrip(trip.id)
-                                        }
-                                    } label: {
-                                        Label("Supprimer", systemImage: "trash")
-                                    }
+                                } label: {
+                                    Label("Supprimer", systemImage: "trash")
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
                 
                 if let error = viewModel.errorMessage {
