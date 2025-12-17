@@ -54,12 +54,10 @@ struct ShareTripView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
+                    Button("Retour") {
                         dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(ThemeColors.accent())
                     }
+                    .foregroundColor(ThemeColors.accent())
                 }
             }
             .alert("Erreur", isPresented: $showError) {
