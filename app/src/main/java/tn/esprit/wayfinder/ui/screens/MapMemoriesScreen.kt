@@ -68,6 +68,22 @@ fun MapMemoriesScreen(navController: NavController) {
     // Default camera position (Europe)
     val defaultLocation = remember { LatLng(50.0, 10.0) }
     val cameraPositionState = rememberCameraPositionState()
+    
+    // Track zoom level for emoji indicator
+    var currentZoom by remember { mutableStateOf(3f) }
+    
+    // Calculate zoom emoji based on zoom level (Google Maps zoom: 0=world, 20=very close)
+    // Adjusted thresholds to match Google Maps zoom levels
+    val zoomEmoji: String = remember(currentZoom) {
+        when {
+            currentZoom >= 15f -> "🐛" // Very close - insect on ground (zoom 15-20: street level)
+            currentZoom >= 12f -> "🦋" // Close but a bit far - butterfly flying low (zoom 12-15: city level)
+            currentZoom >= 8f -> "🪁" // A bit far - kite flying at medium altitude (zoom 8-12: region level)
+            currentZoom >= 5f -> "☁️" // Far - cloud in the sky (zoom 5-8: country level)
+            currentZoom >= 2f -> "🌙" // Very far - moon in space (zoom 2-5: continent level)
+            else -> "🌍" // Entire planet - Earth view (zoom 0-2: world level)
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -84,9 +100,16 @@ fun MapMemoriesScreen(navController: NavController) {
                 // Fallback without animation if duration value is rejected on some devices
                 cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(defaultLocation, 3f))
             }
+            // Initialize zoom level
+            currentZoom = cameraPositionState.position.zoom
         } catch (e: Exception) {
             android.util.Log.e("MapMemoriesScreen", "Error initializing map", e)
         }
+    }
+    
+    // Track camera position changes to update zoom emoji
+    LaunchedEffect(cameraPositionState.position) {
+        currentZoom = cameraPositionState.position.zoom
     }
     
     // Prepare custom marker icons asynchronously when countries change
@@ -205,6 +228,30 @@ fun MapMemoriesScreen(navController: NavController) {
                             }
                         }
                         
+                    // Zoom indicator emoji (top right) - like iOS
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 60.dp, end = 16.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(56.dp),
+                            shape = CircleShape,
+                            color = Color.White,
+                            shadowElevation = 8.dp
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text = zoomEmoji,
+                                    fontSize = 40.sp
+                                )
+                            }
+                        }
+                    }
+                    
                     // Show empty state overlay if no countries
                     if (countries.isEmpty()) {
                         Box(

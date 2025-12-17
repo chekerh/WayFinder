@@ -189,7 +189,12 @@ fun ShareJourneyScreen(navController: NavController) {
             TopAppBar(
                 title = { Text(StringTranslator.translate(context, "Partager mon voyage")) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { 
+                        // Naviguer vers profile et supprimer share_journey de la pile de navigation
+                        navController.navigate("profile") {
+                            popUpTo("share_journey") { inclusive = true }
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },

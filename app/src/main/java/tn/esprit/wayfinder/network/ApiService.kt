@@ -198,8 +198,8 @@ interface ApiService {
     // --- DISCUSSION --- //
     @GET("discussion/posts")
     suspend fun getPosts(
+        @Query("page") page: Int? = null,
         @Query("limit") limit: Int? = null,
-        @Query("skip") skip: Int? = null,
         @Query("destination") destination: String? = null
     ): PostsResponse
 
@@ -221,8 +221,8 @@ interface ApiService {
     @GET("discussion/posts/{id}/comments")
     suspend fun getComments(
         @Path("id") postId: String,
-        @Query("limit") limit: Int? = null,
-        @Query("skip") skip: Int? = null
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
     ): CommentsResponse
 
     @POST("discussion/posts/{id}/comments")

@@ -37,7 +37,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Date
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -59,6 +60,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +89,9 @@ import tn.esprit.wayfinder.viewmodels.NotificationsViewModel
 import tn.esprit.wayfinder.viewmodels.NotificationsUiState
 import tn.esprit.wayfinder.viewmodels.BookingViewModel
 import tn.esprit.wayfinder.viewmodels.BookingUiState
+import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
+import tn.esprit.wayfinder.viewmodels.DiscussionUiState
+import tn.esprit.wayfinder.models.DiscussionPost
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 import tn.esprit.wayfinder.ui.components.TravelReelsFeed
@@ -102,6 +107,7 @@ fun HomeScreen(navController: NavController) {
     val favoritesViewModel: FavoritesViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val notificationsViewModel: NotificationsViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val bookingViewModel: BookingViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
+    val discussionViewModel: DiscussionViewModel = viewModel(factory = ViewModelFactory(context.applicationContext as Application))
     val uiState by catalogViewModel.uiState.collectAsState()
     val notificationsState by notificationsViewModel.uiState.collectAsState()
     val tokenManager = remember { TokenManager(context) }
@@ -603,6 +609,15 @@ fun HomeScreen(navController: NavController) {
                 
                 // Travel Reels Feed Section - Modern reels/posts feed
                 TravelReelsFeed(navController = navController)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Community Discussion Section - like iOS with recent posts preview
+                CommunityDiscussionSection(
+                    navController = navController,
+                    discussionViewModel = discussionViewModel,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -1202,69 +1217,6 @@ fun DestinationCardContent(
     }
 }
 
-
-@Composable
-fun DiscussionCard(navController: NavController) {
-    val context = LocalContext.current
-    val colorScheme = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                navController.navigate("discussions")
-            },
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                // Discussion Icon - Blue speech bubbles (directly, no circle background)
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = "Discussions",
-                    tint = Color(0xFF1976D2),
-                    modifier = Modifier.size(32.dp)
-                )
-                
-                Column {
-                    Text(
-                        text = StringTranslator.translate(context, "Discussions de la communauté"),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Partagez vos expériences et découvrez les conseils des voyageurs"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-            
-            // Arrow icon on the right
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "View more",
-                tint = Color(0xFF1976D2),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
 @Composable
 fun InstagramReelsCard(navController: NavController) {
     val context = LocalContext.current
@@ -1483,6 +1435,302 @@ fun DealBadge(
                 color = Color.White,
                 fontWeight = FontWeight.Medium,
                 fontSize = 9.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun CommunityDiscussionSection(
+    navController: NavController,
+    discussionViewModel: DiscussionViewModel,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val uiState by discussionViewModel.uiState.collectAsState()
+    
+    // Load posts on first composition
+    LaunchedEffect(Unit) {
+        discussionViewModel.loadPosts(refresh = false)
+    }
+    
+    Column(modifier = modifier) {
+        // Header with title and "Voir tout" button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = StringTranslator.translate(context, "home_community_discussions"),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            TextButton(onClick = { navController.navigate("discussions") }) {
+                Text(
+                    text = StringTranslator.translate(context, "voir_tout"),
+                    color = Color(0xFF1976D2)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        when (val state = uiState) {
+            is DiscussionUiState.Success -> {
+                val recentPosts = state.posts.take(3) // Show max 3 recent posts
+                if (recentPosts.isEmpty()) {
+                    // Empty state - show card to navigate
+                    DiscussionCard(navController = navController)
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        recentPosts.forEach { post ->
+                            CompactPostCard(
+                                post = post,
+                                onClick = {
+                                    navController.navigate("post_detail/${post.id}")
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            is DiscussionUiState.Loading -> {
+                // Show loading skeleton
+                repeat(2) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+            else -> {
+                // Error or idle - show card to navigate
+                DiscussionCard(navController = navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun CompactPostCard(
+    post: tn.esprit.wayfinder.models.DiscussionPost,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // User info and timestamp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = post.userId.profileImageUrl?.let { url ->
+                            if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                        } ?: "https://i.pravatar.cc/150?img=${post.userId.id.hashCode() % 70}",
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Column {
+                        Text(
+                            text = "${post.userId.firstName} ${post.userId.lastName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = formatDate(post.createdAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+            
+            // Title
+            Text(
+                text = post.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            // Content preview
+            if (post.content.isNotBlank()) {
+                Text(
+                    text = post.content,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            // Interactions
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (post.likedBy.isNotEmpty()) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (post.likedBy.isNotEmpty()) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${post.likesCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Forum,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${post.commentsCount} ${StringTranslator.translate(context, "commentaires")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+        inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        val date = inputFormat.parse(dateString)
+        val outputFormat = java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale("fr", "FR"))
+        outputFormat.format(date ?: Date())
+    } catch (e: Exception) {
+        dateString
+    }
+}
+
+@Composable
+fun DiscussionCard(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable {
+                navController.navigate("discussions")
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icon circle
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        Color(0xFF1976D2).copy(alpha = 0.1f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Forum,
+                    contentDescription = null,
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            
+            // Text content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = StringTranslator.translate(context, "home_community_discussions"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = StringTranslator.translate(context, "home_community_subtitle"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            // Arrow icon
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = Color(0xFF1976D2),
+                modifier = Modifier.size(24.dp)
             )
         }
     }

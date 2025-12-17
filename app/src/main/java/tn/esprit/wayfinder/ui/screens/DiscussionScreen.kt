@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,7 +17,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -28,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -63,10 +67,19 @@ fun DiscussionScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(StringTranslator.translate(context, "Discussions"), fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        StringTranslator.translate(context, "Discussions"), 
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "Back",
+                            tint = Color(0xFF1976D2)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -77,9 +90,15 @@ fun DiscussionScreen(navController: NavController) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreatePostDialog = true },
-                containerColor = Color(0xFF1976D2)
+                containerColor = Color(0xFF1976D2),
+                modifier = Modifier
+                    .padding(end = 20.dp, bottom = 20.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "Create Post", tint = Color.White)
+                Icon(
+                    Icons.Filled.Add, 
+                    contentDescription = "Create Post", 
+                    tint = Color.White
+                )
             }
         },
         bottomBar = {
@@ -87,79 +106,109 @@ fun DiscussionScreen(navController: NavController) {
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Quick access button to test AI video generation from shared journeys
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = { navController.navigate("journey_feed") }) {
-                    Icon(
-                        imageVector = Icons.Filled.VideoLibrary,
-                        contentDescription = "Tester les vidéos AI",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = StringTranslator.translate(context, "Tester les vidéos AI"),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
             when (val state = uiState) {
                 is DiscussionUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(), 
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator()
                     }
                 }
                 is DiscussionUiState.Success -> {
                     if (state.posts.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = StringTranslator.translate(context, "Aucune discussion pour le moment"),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge
+                        // Empty state - exactly like iOS
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // Icon: bubble.left.and.bubble.right
+                                Icon(
+                                    imageVector = Icons.Filled.ChatBubbleOutline,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = { showCreatePostDialog = true }) {
-                                    Text(StringTranslator.translate(context, "Créer la première discussion"))
-                                }
+                                
+                                Text(
+                                    text = StringTranslator.translate(context, "Discussions"),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                
+                                Text(
+                                    text = StringTranslator.translate(context, "discussions_will_appear_here"),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(state.posts) { post ->
-                                PostCard(
-                                    post = post,
-                                    currentUserId = currentUser?.id,
-                                    onLikeClick = { discussionViewModel.likePost(post.id, currentUser?.id) },
-                                    onClick = {
-                                        navController.navigate("post_detail/${post.id}")
-                                    },
-                                    onDeleteClick = {
-                                        discussionViewModel.deletePost(post.id)
-                                    }
+                        // Posts list - exactly like iOS
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Header with title (like iOS line 92-100)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = StringTranslator.translate(context, "Discussions"),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
+                                Spacer(modifier = Modifier)
                             }
-                            if (state.hasMore) {
-                                item {
-                                    Button(
-                                        onClick = { discussionViewModel.loadPosts() },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(StringTranslator.translate(context, "Charger plus"))
+                            
+                            // Posts list
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    bottom = 100.dp // Space for FAB
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(state.posts) { post ->
+                                    PostCard(
+                                        post = post,
+                                        currentUserId = currentUser?.id,
+                                        onLikeClick = { 
+                                            discussionViewModel.likePost(post.id, currentUser?.id) 
+                                        },
+                                        onClick = {
+                                            navController.navigate("post_detail/${post.id}")
+                                        },
+                                        onDeleteClick = {
+                                            discussionViewModel.deletePost(post.id)
+                                        }
+                                    )
+                                }
+                                
+                                if (state.hasMore) {
+                                    item {
+                                        Button(
+                                            onClick = { discussionViewModel.loadPosts() },
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(StringTranslator.translate(context, "Charger plus"))
+                                        }
                                     }
                                 }
                             }
@@ -167,12 +216,41 @@ fun DiscussionScreen(navController: NavController) {
                     }
                 }
                 is DiscussionUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(state.message, color = Color.Red)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = { discussionViewModel.retry() }) {
-                                Text(StringTranslator.translate(context, "Réessayer"))
+                    Box(
+                        modifier = Modifier.fillMaxSize(), 
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = Color(0xFFFF9800)
+                            )
+                            Text(
+                                text = StringTranslator.translate(context, "Erreur"),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            Button(
+                                onClick = { discussionViewModel.retry() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1976D2)
+                                )
+                            ) {
+                                Text(
+                                    StringTranslator.translate(context, "Réessayer"),
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -190,14 +268,6 @@ fun DiscussionScreen(navController: NavController) {
                 showCreatePostDialog = false
             }
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DiscussionScreenPreview() {
-    WayFinderTheme {
-        DiscussionScreen(rememberNavController())
     }
 }
 
@@ -219,17 +289,22 @@ fun PostCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // User Info
+            // User Info Header (like iOS lines 274-308)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     val userImageUrl = post.userId.profileImageUrl?.let { url ->
                         if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
                     }
@@ -240,31 +315,37 @@ fun PostCard(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape),
-                            contentScale = ContentScale.Crop,
-                            placeholder = painterResource(id = R.drawable.europe),
-                            error = painterResource(id = R.drawable.europe)
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = R.drawable.europe),
-                            contentDescription = "User Avatar",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = "User Avatar",
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.White
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    
                     Column {
                         Text(
                             text = "${post.userId.firstName} ${post.userId.lastName}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = formatDate(post.createdAt),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -283,87 +364,119 @@ fun PostCard(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Post Title
+            // Post Title (like iOS line 311-313)
             Text(
                 text = post.title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Post Content
+            // Post Content (like iOS line 316-319)
             Text(
                 text = post.content,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             
-            // Post Image
-            post.imageUrl?.let { imageUrl ->
-                Spacer(modifier = Modifier.height(12.dp))
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = "Post Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop,
-                    placeholder = painterResource(id = R.drawable.travel_image),
-                    error = painterResource(id = R.drawable.travel_image)
-                )
-            }
-            
-            // Tags
-            if (post.tags.isNotEmpty()) {
+            // Destination with red pin (like iOS lines 322-331)
+            post.destination?.let { destination ->
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    post.tags.take(3).forEach { tag ->
-                        AssistChip(
-                            onClick = { },
-                            label = { Text(tag, style = MaterialTheme.typography.labelSmall) }
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.Red
+                    )
+                    Text(
+                        text = destination,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
                 }
             }
             
-            // Destination
-            post.destination?.let { destination ->
+            // Tags (like iOS lines 334-350)
+            if (post.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "📍 $destination",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF1976D2)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                ) {
+                    post.tags.forEach { tag ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF1976D2).copy(alpha = 0.1f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF1976D2),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Actions
+            // Likes and Comments (like iOS lines 353-383)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onLikeClick) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "Like",
-                            tint = if (isLiked) Color(0xFFFF1744) else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                // Like button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.clickable(onClick = onLikeClick)
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Like",
+                        modifier = Modifier.size(14.dp),
+                        tint = if (isLiked) Color(0xFFFF1744) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = "${post.likesCount}",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 12.sp
                     )
                 }
-                Text(
-                    text = "${post.commentsCount} ${StringTranslator.translate(context, "commentaires")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                
+                // Comments button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.clickable(onClick = onClick)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ChatBubbleOutline,
+                        contentDescription = "Comments",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${post.commentsCount} ${StringTranslator.translate(context, "commentaires")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                }
+                
+                Spacer(modifier = Modifier)
             }
         }
     }
@@ -372,8 +485,17 @@ fun PostCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text(StringTranslator.translate(context, "Supprimer le post")) },
-            text = { Text(StringTranslator.translate(context, "Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.")) },
+            title = { 
+                Text(StringTranslator.translate(context, "supprimer_le_post")) 
+            },
+            text = { 
+                Text(
+                    StringTranslator.translate(
+                        context, 
+                        "confirmation_suppression_post"
+                    )
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -381,7 +503,10 @@ fun PostCard(
                         onDeleteClick()
                     }
                 ) {
-                    Text(StringTranslator.translate(context, "Supprimer"), color = Color.Red)
+                    Text(
+                        StringTranslator.translate(context, "Supprimer"), 
+                        color = Color.Red
+                    )
                 }
             },
             dismissButton = {
@@ -405,20 +530,27 @@ fun CreatePostDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(StringTranslator.translate(context, "Créer une discussion"), fontWeight = FontWeight.Bold) },
+        title = { 
+            Text(
+                StringTranslator.translate(context, "nouveau_post"), 
+                fontWeight = FontWeight.Bold
+            ) 
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(StringTranslator.translate(context, "Titre")) },
+                    label = { Text(StringTranslator.translate(context, "titre")) },
+                    placeholder = { Text(StringTranslator.translate(context, "entrez_titre_post")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text(StringTranslator.translate(context, "Contenu")) },
+                    label = { Text(StringTranslator.translate(context, "contenu")) },
+                    placeholder = { Text(StringTranslator.translate(context, "partagez_experiences")) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
                     maxLines = 8
@@ -426,7 +558,8 @@ fun CreatePostDialog(
                 OutlinedTextField(
                     value = destination,
                     onValueChange = { destination = it },
-                    label = { Text(StringTranslator.translate(context, "Destination (optionnel)")) },
+                    label = { Text(StringTranslator.translate(context, "destination_optionnel")) },
+                    placeholder = { Text(StringTranslator.translate(context, "ex_paris_tokyo")) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -444,9 +577,26 @@ fun CreatePostDialog(
                         )
                     }
                 },
-                enabled = title.isNotBlank() && content.isNotBlank()
+                enabled = title.isNotBlank() && content.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2)
+                )
             ) {
-                Text(StringTranslator.translate(context, "Publier"))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.White
+                    )
+                    Text(
+                        StringTranslator.translate(context, "publier"),
+                        color = Color.White
+                    )
+                }
             }
         },
         dismissButton = {
@@ -467,3 +617,10 @@ private fun formatDate(dateString: String): String {
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+fun DiscussionScreenPreview() {
+    WayFinderTheme {
+        DiscussionScreen(rememberNavController())
+    }
+}

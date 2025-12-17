@@ -6,7 +6,9 @@ import tn.esprit.wayfinder.network.ApiService
 class DiscussionRepository(private val apiService: ApiService) {
     
     suspend fun getPosts(limit: Int = 20, skip: Int = 0, destination: String? = null): PostsResponse {
-        return apiService.getPosts(limit, skip, destination)
+        // Convert skip to page (1-based)
+        val page = (skip / limit) + 1
+        return apiService.getPosts(page = page, limit = limit, destination = destination)
     }
     
     suspend fun getPost(postId: String): DiscussionPost {
@@ -53,7 +55,9 @@ class DiscussionRepository(private val apiService: ApiService) {
     }
     
     suspend fun getComments(postId: String, limit: Int = 50, skip: Int = 0): CommentsResponse {
-        return apiService.getComments(postId, limit, skip)
+        // Convert skip to page (1-based)
+        val page = (skip / limit) + 1
+        return apiService.getComments(postId, page = page, limit = limit)
     }
     
     suspend fun createComment(postId: String, content: String, parentId: String? = null): DiscussionComment {

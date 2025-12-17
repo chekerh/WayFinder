@@ -66,9 +66,9 @@ class DiscussionViewModel(
                     (_uiState.value as? DiscussionUiState.Success)?.posts ?: emptyList()
                 }
                 _uiState.value = DiscussionUiState.Success(
-                    posts = existingPosts + response.posts,
-                    total = response.total,
-                    hasMore = response.posts.size == pageSize
+                    posts = existingPosts + response.data,
+                    total = response.pagination.total,
+                    hasMore = response.data.size == pageSize
                 )
                 currentPage++
             } catch (e: Exception) {
@@ -87,7 +87,7 @@ class DiscussionViewModel(
                 val comments = discussionRepository.getComments(postId)
                 _postDetailState.value = PostDetailUiState.Success(
                     post = post,
-                    comments = comments.comments
+                    comments = comments.data
                 )
             } catch (e: Exception) {
                 _postDetailState.value = PostDetailUiState.Error(
@@ -400,7 +400,7 @@ class DiscussionViewModel(
                             if (currentState is PostDetailUiState.Success) {
                                 _postDetailState.value = PostDetailUiState.Success(
                                     post = post,
-                                    comments = comments.comments
+                                    comments = comments.data
                                 )
                             }
                         } catch (syncError: Exception) {

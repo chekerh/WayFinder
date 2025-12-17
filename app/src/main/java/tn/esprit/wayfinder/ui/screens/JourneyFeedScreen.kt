@@ -267,9 +267,6 @@ fun JourneyFeedScreen(navController: NavController) {
                                 onVideoClick = { videoUrl ->
                                     showVideoDialog = videoUrl
                                 },
-                                onGenerateVideoClick = {
-                                    journeyViewModel.regenerateVideo(journey.id)
-                                },
                                 onDeleteClick = {
                                     journeyViewModel.deleteJourney(journey.id)
                                 }
@@ -525,7 +522,6 @@ fun JourneyCard(
     onCommentClick: () -> Unit,
     onImageClick: (String) -> Unit,
     onVideoClick: (String) -> Unit,
-    onGenerateVideoClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -727,29 +723,7 @@ fun JourneyCard(
                         )
                     }
                 }
-                // Show generate button for pending or failed
-                else if (journey.videoStatus == "pending" || journey.videoStatus == "failed") {
-                    // Show "Generate Video" button for own journeys when video is not yet generated or failed
-                    Button(
-                        onClick = onGenerateVideoClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4A90E2)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.VideoLibrary,
-                            contentDescription = "Generate Video",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (journey.videoStatus == "failed") StringTranslator.translate(context, "Régénérer la vidéo") else StringTranslator.translate(context, "Générer ma vidéo"),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                // Generate button removed - no longer showing for pending or failed status
             } else if (journey.videoStatus == "completed" && !journey.videoUrl.isNullOrEmpty() && journey.videoUrl.isNotBlank()) {
                 // Show video status for other users' journeys - only when video is fully ready
                 Row(

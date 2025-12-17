@@ -38,6 +38,17 @@
     <string name="discussions">Discussions</string>
     <string name="no_discussions">Aucune discussion pour le moment</string>
     <string name="create_first_discussion">Créer la première discussion</string>
+    <string name="discussions_will_appear_here">Les discussions apparaîtront ici</string>
+    <string name="nouveau_post">Nouveau post</string>
+    <string name="supprimer_le_post">Supprimer le post</string>
+    <string name="confirmation_suppression_post">Êtes-vous sûr de vouloir supprimer ce post ? Cette action est irréversible.</string>
+    <string name="publier">Publier</string>
+    <string name="titre">Titre</string>
+    <string name="contenu">Contenu</string>
+    <string name="entrez_titre_post">Entrez le titre de votre post</string>
+    <string name="partagez_experiences">Partagez vos expériences et conseils...</string>
+    <string name="destination_optionnel">Destination (optionnel)</string>
+    <string name="ex_paris_tokyo">Ex: Paris, Tokyo...</string>
     
     <!-- Connexion -->
     <string name="login">Se connecter</string>
@@ -73,4 +84,10 @@
     <!-- Voyages -->
     <string name="share_journey">Partager mon voyage</string>
     <string name="shared_journeys">Voyages partagés</string>
+    
+    <!-- Community Discussion -->
+    <string name="home_community_discussions">Discussions communautaires</string>
+    <string name="home_community_subtitle">Partagez vos expériences et posez vos questions</string>
+    <string name="commentaires">commentaires</string>
+    <string name="voir_tout">Voir tout</string>
 </resources>
