@@ -54,10 +54,12 @@ struct ShareTripView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") {
+                    Button(action: {
                         dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(ThemeColors.accent())
                     }
-                    .foregroundColor(ThemeColors.accent())
                 }
             }
             .alert("Erreur", isPresented: $showError) {
@@ -92,7 +94,7 @@ struct ShareTripView: View {
                 HStack {
                     if let booking = selectedBooking {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(booking.destination)
+                            Text(DestinationHelper.getFullDestinationName(from: booking.destination))
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(ThemeColors.primaryText(colorScheme))
                             if let confirmationNumber = booking.confirmationNumber as String? {
@@ -426,7 +428,7 @@ struct ShareTripView: View {
             let destination = booking.destination
             let tagsList = tags.isEmpty ? nil : tags
             
-            _ = try await journeyViewModel.createJourney(
+            let journey = try await journeyViewModel.createJourney(
                 images: selectedImages,
                 bookingId: booking.id,
                 destination: destination,
@@ -435,7 +437,11 @@ struct ShareTripView: View {
                 isPublic: true
             )
             
+            print("✅ [ShareTripView] Journey created successfully: \(journey.id)")
             showSuccess = true
+            
+            // Notifier que la carte doit être rafraîchie
+            NotificationCenter.default.post(name: NSNotification.Name("JourneyShared"), object: nil)
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -460,7 +466,7 @@ struct BookingSelectionView: View {
                     }) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(booking.destination)
+                                Text(DestinationHelper.getFullDestinationName(from: booking.destination))
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(ThemeColors.primaryText(colorScheme))
                                 Text("Confirmation: \(booking.confirmationNumber)")
