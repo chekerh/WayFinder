@@ -52,15 +52,6 @@ struct ShareTripView: View {
             }
             .navigationTitle("Partager mon voyage")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Retour") {
-                        dismiss()
-                    }
-                    .foregroundColor(ThemeColors.accent())
-                }
-            }
             .alert("Erreur", isPresented: $showError) {
                 Button("OK", role: .cancel) { }
             } message: {
