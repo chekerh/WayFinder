@@ -13,12 +13,35 @@ final class MapMemoriesViewModel: ObservableObject {
     func loadMapMemories() async {
         guard !isLoading else { return }
         
+        // Essayer de charger depuis le cache d'abord
+        if let cachedMemories = AppDataCache.shared.mapMemoriesCache.load() {
+            print("✅ [MapMemoriesViewModel] Loaded \(cachedMemories.countries.count) countries, \(cachedMemories.totalMemories) total memories from cache")
+            mapMemories = cachedMemories
+            
+            // Mettre à jour en arrière-plan sans bloquer
+            Task {
+                do {
+                    let freshMemories = try await socialService.getMapMemories()
+                    AppDataCache.shared.mapMemoriesCache.save(freshMemories)
+                    await MainActor.run {
+                        mapMemories = freshMemories
+                    }
+                    print("✅ [MapMemoriesViewModel] Updated cache with \(freshMemories.countries.count) countries, \(freshMemories.totalMemories) total memories")
+                } catch {
+                    print("⚠️ [MapMemoriesViewModel] Failed to update cache: \(error.localizedDescription)")
+                }
+            }
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
         
         do {
             let response = try await socialService.getMapMemories()
             mapMemories = response
+            // Sauvegarder dans le cache
+            AppDataCache.shared.mapMemoriesCache.save(response)
             print("✅ [MapMemoriesViewModel] Loaded \(response.countries.count) countries, \(response.totalMemories) total memories")
         } catch let error as DecodingError {
             var detailedError = "Erreur de décodage JSON: "

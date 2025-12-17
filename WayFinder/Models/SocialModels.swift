@@ -1,6 +1,6 @@
 import Foundation
 
-struct UserPreview: Decodable {
+struct UserPreview: Codable {
     let id: String
     let username: String
     let firstName: String?
@@ -33,6 +33,16 @@ struct UserPreview: Decodable {
         lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
         profileImageUrl = try container.decodeIfPresent(String.self, forKey: .profileImageUrl)
         followedAt = try container.decodeIfPresent(String.self, forKey: .followedAt)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(username, forKey: .username)
+        try container.encodeIfPresent(firstName, forKey: .firstName)
+        try container.encodeIfPresent(lastName, forKey: .lastName)
+        try container.encodeIfPresent(profileImageUrl, forKey: .profileImageUrl)
+        try container.encodeIfPresent(followedAt, forKey: .followedAt)
     }
     
     // Manual init for fallback cases
@@ -171,7 +181,7 @@ struct LikeResponse: Decodable {
     }
 }
 
-struct CountryMemory: Decodable, Identifiable {
+struct CountryMemory: Codable, Identifiable {
     let id: String
     let country: String
     let lat: Double
@@ -196,9 +206,18 @@ struct CountryMemory: Decodable, Identifiable {
         trips = try container.decode([SharedTrip].self, forKey: .trips)
         count = try container.decode(Int.self, forKey: .count)
     }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(country, forKey: .country)
+        try container.encode(lat, forKey: .lat)
+        try container.encode(lng, forKey: .lng)
+        try container.encode(trips, forKey: .trips)
+        try container.encode(count, forKey: .count)
+    }
 }
 
-struct MapMemoriesResponse: Decodable {
+struct MapMemoriesResponse: Codable {
     let countries: [CountryMemory]
     let totalCountries: Int
     let totalMemories: Int
