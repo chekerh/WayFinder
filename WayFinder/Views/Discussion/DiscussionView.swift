@@ -47,18 +47,43 @@ struct DiscussionView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.posts.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                        .font(.system(size: 48))
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
-                    Text("discussions_title")
-                        .font(.headline)
-                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
-                    Text("discussions_empty")
-                        .font(.subheadline)
-                        .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                ZStack(alignment: .bottomTrailing) {
+                    VStack(spacing: 16) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 48))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                        Text("discussions_title")
+                            .font(.headline)
+                            .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                        Text("discussions_empty")
+                            .font(.subheadline)
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+                    // Floating Action Button pour créer un nouveau post (même dans l'état vide)
+                    Button(action: {
+                        showCreatePost = true
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(
+                                Circle()
+                                    .fill(Color(red: 0.098, green: 0.463, blue: 0.824))
+                            )
+                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay {
+                    if showCreatePost {
+                        CreatePostView(viewModel: viewModel, isPresented: $showCreatePost)
+                            .zIndex(1000)
+                    }
+                }
             } else {
                 ZStack(alignment: .bottomTrailing) {
                     VStack(spacing: 0) {
