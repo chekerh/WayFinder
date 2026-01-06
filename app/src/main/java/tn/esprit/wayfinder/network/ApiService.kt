@@ -32,6 +32,12 @@ interface ApiService {
     @POST("auth/resend-verification")
     suspend fun resendVerificationEmail(@Body request: ResendVerificationRequest): ResendVerificationResponse
 
+    @POST("auth/request-password-reset")
+    suspend fun requestPasswordResetOtp(@Body request: RequestPasswordResetRequest): RequestPasswordResetResponse
+
+    @POST("auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): ResetPasswordResponse
+
     // --- USER --- //
     @GET("user/profile")
     suspend fun getProfile(): User
