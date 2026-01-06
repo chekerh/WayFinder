@@ -151,3 +151,25 @@ data class FcmTokenResponse(
 data class GoogleMapsApiKeyResponse(
     @SerialName("apiKey") val apiKey: String? = null
 )
+
+@Serializable
+data class RequestPasswordResetRequest(
+    val email: String
+)
+
+@Serializable
+data class RequestPasswordResetResponse(
+    val message: String
+)
+
+@Serializable
+data class ResetPasswordRequest(
+    val email: String,
+    val code: String,
+    @SerialName("new_password") val new_password: String
+)
+
+@Serializable
+data class ResetPasswordResponse(
+    val message: String
+)

@@ -27,4 +27,12 @@ class AuthRepository(private val apiService: ApiService) {
     suspend fun resendVerificationEmail(email: String) = apiService.resendVerificationEmail(
         ResendVerificationRequest(email)
     )
+
+    suspend fun requestPasswordResetOtp(email: String) = apiService.requestPasswordResetOtp(
+        RequestPasswordResetRequest(email = email)
+    )
+
+    suspend fun resetPassword(email: String, otpCode: String, newPassword: String) = apiService.resetPassword(
+        ResetPasswordRequest(email = email, code = otpCode, new_password = newPassword)
+    )
 }
