@@ -38,6 +38,17 @@
     <string name="discussions">Discussions</string>
     <string name="no_discussions">No discussions yet</string>
     <string name="create_first_discussion">Create the first discussion</string>
+    <string name="discussions_will_appear_here">Discussions will appear here</string>
+    <string name="nouveau_post">New post</string>
+    <string name="supprimer_le_post">Delete post</string>
+    <string name="confirmation_suppression_post">Are you sure you want to delete this post? This action is irreversible.</string>
+    <string name="publier">Publish</string>
+    <string name="titre">Title</string>
+    <string name="contenu">Content</string>
+    <string name="entrez_titre_post">Enter the title of your post</string>
+    <string name="partagez_experiences">Share your experiences and tips...</string>
+    <string name="destination_optionnel">Destination (optional)</string>
+    <string name="ex_paris_tokyo">Ex: Paris, Tokyo...</string>
     
     <!-- Login -->
     <string name="login">Login</string>
@@ -73,4 +84,10 @@
     <!-- Journeys -->
     <string name="share_journey">Share my journey</string>
     <string name="shared_journeys">Shared journeys</string>
+    
+    <!-- Community Discussion -->
+    <string name="home_community_discussions">Community Discussions</string>
+    <string name="home_community_subtitle">Share your experiences and ask questions</string>
+    <string name="commentaires">comments</string>
+    <string name="voir_tout">See all</string>
 </resources>

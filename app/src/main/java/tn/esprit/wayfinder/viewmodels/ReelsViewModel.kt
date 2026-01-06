@@ -114,7 +114,7 @@ class ReelsViewModel(
                 val journeys = journeysDeferred.await()
                 
                 // Convert to ReelContentItem
-                val postItems = postsResponse?.posts?.map { ReelContentItem.PostItem(it) } ?: emptyList()
+                val postItems = postsResponse?.data?.map { ReelContentItem.PostItem(it) } ?: emptyList()
                 val journeyItems = journeys.map { ReelContentItem.JourneyItem(it) }
                 
                 // Merge and sort by engagement (likes + comments) and recency
@@ -133,7 +133,7 @@ class ReelsViewModel(
                 }
                 
                 val updatedItems = existingItems + allItems
-                hasMore = allItems.isNotEmpty() && (postsResponse?.posts?.size == pageSize || journeys.size == pageSize)
+                hasMore = allItems.isNotEmpty() && (postsResponse?.data?.size == pageSize || journeys.size == pageSize)
                 
                 _uiState.value = ReelsUiState.Success(
                     items = updatedItems,

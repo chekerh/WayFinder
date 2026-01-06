@@ -44,19 +44,25 @@ data class DiscussionComment(
 )
 
 @Serializable
+data class DiscussionPaginationInfo(
+    val page: Int = 1,
+    val limit: Int = 20,
+    val total: Int = 0,
+    @SerialName("total_pages") val totalPages: Int = 0,
+    @SerialName("has_next") val hasNext: Boolean = false,
+    @SerialName("has_prev") val hasPrev: Boolean = false
+)
+
+@Serializable
 data class PostsResponse(
-    val posts: List<DiscussionPost>,
-    val total: Int,
-    val limit: Int,
-    val skip: Int
+    val data: List<DiscussionPost> = emptyList(),
+    val pagination: DiscussionPaginationInfo = DiscussionPaginationInfo()
 )
 
 @Serializable
 data class CommentsResponse(
-    val comments: List<DiscussionComment>,
-    val total: Int,
-    val limit: Int,
-    val skip: Int
+    val data: List<DiscussionComment> = emptyList(),
+    val pagination: DiscussionPaginationInfo = DiscussionPaginationInfo()
 )
 
 @Serializable
