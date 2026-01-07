@@ -183,7 +183,7 @@ private struct BookingCard: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 8) {
                                 // Destination avec pays en gras et grand (ex: "Paris, France")
-                                Text(DestinationHelper.getFullDestinationName(from: booking.destination))
+                                Text(getDisplayDestinationName(for: booking))
                                     .font(.system(size: 18, weight: .bold))
                                     .foregroundStyle(ThemeColors.primaryText(colorScheme))
                                 
@@ -351,6 +351,38 @@ private struct BookingCard: View {
         }
         
         return dateString
+    }
+    
+    /// Obtient le nom d'affichage de la destination en utilisant plusieurs stratégies
+    private func getDisplayDestinationName(for booking: Booking) -> String {
+        // 1. Essayer d'abord avec DestinationHelper pour les codes standards
+        let helperResult = DestinationHelper.getFullDestinationName(from: booking.destination)
+        if helperResult != booking.destination {
+            // DestinationHelper a réussi à convertir
+            return helperResult
+        }
+        
+        // 2. Si destinationCountry est disponible, essayer de construire un nom
+        if let country = booking.destinationCountry, !country.isEmpty {
+            // Extraire un nom de ville depuis le code de destination si possible
+            let cityName = DestinationHelper.getCityName(from: booking.destination)
+            if cityName != booking.destination {
+                return "\(cityName), \(country)"
+            }
+            // Si on a juste le pays, retourner le pays
+            return country
+        }
+        
+        // 3. Fallback: vérifier si c'est un simple code d'aéroport (3 lettres)
+        let upperCode = booking.destination.uppercased()
+        if upperCode.count == 3 {
+            if let (city, country) = DestinationHelper.getDestinationName(from: "WF-\(upperCode)-001") {
+                return "\(city), \(country)"
+            }
+        }
+        
+        // 4. Dernier fallback: retourner le code tel quel
+        return booking.destination
     }
 }
 

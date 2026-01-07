@@ -62,9 +62,40 @@ struct DestinationHelper {
     
     /// Retourne le nom complet de la destination (ex: "Barcelone, Espagne")
     static func getFullDestinationName(from code: String) -> String {
+        // D'abord essayer de parser le format standard "WF-XXX-001"
         if let (city, country) = getDestinationName(from: code) {
             return "\(city), \(country)"
         }
+        
+        // Si ça ne fonctionne pas, essayer de détecter un code d'aéroport dans d'autres formats
+        // Par exemple: "dest_2", "7", "WF-BCN", etc.
+        
+        // Vérifier si c'est un code d'aéroport de 3 lettres (ex: "BCN", "CDG")
+        let upperCode = code.uppercased()
+        if upperCode.count == 3, let (city, country) = getDestinationName(from: "WF-\(upperCode)-001") {
+            return "\(city), \(country)"
+        }
+        
+        // Si la chaîne contient un code d'aéroport (ex: dans "dest_BCN" ou similaire)
+        for airportCode in ["BCN", "CDG", "ORY", "LHR", "LGW", "JFK", "LGA", "LAX", "DXB", "FCO", "MAD", "AMS", "FRA", "MUC", "IST", "CAI", "TUN", "NRT", "HND", "ICN", "PEK", "PKX", "PVG", "SIN", "BKK", "SYD", "MEL"] {
+            if upperCode.contains(airportCode), let (city, country) = getDestinationName(from: "WF-\(airportCode)-001") {
+                return "\(city), \(country)"
+            }
+        }
+        
+        // Si aucun pattern ne correspond, retourner une version plus lisible du code
+        // Remplacer "dest_" par rien et essayer de formater
+        if code.lowercased().hasPrefix("dest_") {
+            let cleaned = String(code.dropFirst(5))
+            // Essayer de trouver un code d'aéroport dans le reste
+            for airportCode in ["BCN", "CDG", "ORY", "LHR", "LGW", "JFK", "LGA", "LAX", "DXB", "FCO", "MAD", "AMS", "FRA", "MUC", "IST", "CAI", "TUN", "NRT", "HND", "ICN", "PEK", "PKX", "PVG", "SIN", "BKK", "SYD", "MEL"] {
+                if cleaned.uppercased().contains(airportCode), let (city, country) = getDestinationName(from: "WF-\(airportCode)-001") {
+                    return "\(city), \(country)"
+                }
+            }
+        }
+        
+        // Fallback: retourner le code tel quel
         return code
     }
     
