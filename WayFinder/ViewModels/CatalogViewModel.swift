@@ -91,6 +91,20 @@ final class CatalogViewModel: ObservableObject {
                 source: source
             )
         } catch {
+            // Si c'est une erreur d'authentification, ne pas afficher d'erreur si on a des données en cache
+            if error.localizedDescription.contains("Non autorisé") || 
+               error.localizedDescription.contains("Unauthorized") ||
+               error.localizedDescription.contains("401") {
+                print("⚠️ [CatalogViewModel] Authentication required for recommended flights")
+                // Si on a des données en cache, les utiliser
+                if let cached = flightsCache.read(), !cached.destinations.isEmpty {
+                    emitCachedFlights(cached, showAll: showAll)
+                    return
+                }
+                // Sinon, ne pas afficher d'erreur (l'utilisateur n'est simplement pas connecté)
+                return
+            }
+        } catch {
             // Always try to show cached data if available, even on error
             if let cachedOnError = flightsCache.read(), !cachedOnError.destinations.isEmpty {
                 emitCachedFlights(cachedOnError, showAll: showAll)

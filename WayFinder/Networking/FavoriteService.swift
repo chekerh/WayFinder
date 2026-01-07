@@ -139,6 +139,12 @@ final class FavoriteService {
     
     /// Vérifie si un item est en favori
     func checkFavorite(itemType: FavoriteItemType, itemId: String) async throws -> Bool {
+        // Vérifier si un token est présent avant de faire l'appel
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [FavoriteService] No token found, cannot check favorite")
+            return false // Retourner false si pas de token (pas en favori par défaut)
+        }
+        
         let builder = DefaultRequest(
             method: "GET",
             path: "favorites/check/\(itemType.rawValue)/\(itemId)"

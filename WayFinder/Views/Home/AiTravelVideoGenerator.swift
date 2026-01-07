@@ -905,6 +905,12 @@ struct TravelPlanCard: View {
 
 extension APIService {
     func getAiVideoStatus() async throws -> AiVideoStatusResponse {
+        // Vérifier si un token est présent avant de faire l'appel (endpoint protégé)
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [APIService] No token found, cannot get AI video status")
+            throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+        }
+        
         let request = DefaultRequest(method: "GET", path: "/ai-video/status")
         return try await self.request(request, decodeTo: AiVideoStatusResponse.self)
     }
