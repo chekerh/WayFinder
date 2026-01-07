@@ -1,6 +1,6 @@
 import Foundation
 
-struct Journey: Decodable, Identifiable {
+struct Journey: Codable, Identifiable {
     let id: String
     let userId: String
     let bookingId: String?
@@ -81,6 +81,31 @@ struct Journey: Decodable, Identifiable {
         updatedAt = try? container.decode(String.self, forKey: .updatedAt)
         user = try? container.decode(UserPreview.self, forKey: .user)
     }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encodeIfPresent(bookingId, forKey: .bookingId)
+        try container.encode(destination, forKey: .destination)
+        try container.encodeIfPresent(destinationCountry, forKey: .destinationCountry)
+        try container.encode(imageUrls, forKey: .imageUrls)
+        try container.encode(slides, forKey: .slides)
+        try container.encodeIfPresent(videoUrl, forKey: .videoUrl)
+        try container.encode(videoStatus, forKey: .videoStatus)
+        try container.encodeIfPresent(musicTheme, forKey: .musicTheme)
+        try container.encodeIfPresent(captionText, forKey: .captionText)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(tags, forKey: .tags)
+        try container.encode(likesCount, forKey: .likesCount)
+        try container.encode(commentsCount, forKey: .commentsCount)
+        try container.encode(viewsCount, forKey: .viewsCount)
+        try container.encode(isPublic, forKey: .isPublic)
+        try container.encode(isLiked, forKey: .isLiked)
+        try container.encodeIfPresent(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
+        try container.encodeIfPresent(user, forKey: .user)
+    }
 }
 
 extension Journey: Equatable {
@@ -92,7 +117,7 @@ extension Journey: Equatable {
     }
 }
 
-struct JourneySlide: Decodable {
+struct JourneySlide: Codable {
     let imageUrl: String
     let caption: String?
     let id: String?
@@ -108,6 +133,13 @@ struct JourneySlide: Decodable {
         imageUrl = try container.decode(String.self, forKey: .imageUrl)
         caption = try? container.decode(String.self, forKey: .caption)
         id = try? container.decode(String.self, forKey: .id)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(caption, forKey: .caption)
+        try container.encodeIfPresent(id, forKey: .id)
     }
 }
 

@@ -39,7 +39,7 @@ struct RecommendationResponse: Decodable {
     }
 }
 
-struct PersonalizedRecommendationsPayload: Decodable {
+struct PersonalizedRecommendationsPayload: Codable {
     let generatedAt: String?
     let preferencesUsed: [String: String]?
     let destinations: [PersonalizedDestination]?
@@ -55,7 +55,7 @@ struct PersonalizedRecommendationsPayload: Decodable {
     }
 }
 
-struct PersonalizedDestination: Decodable, Identifiable {
+struct PersonalizedDestination: Codable, Identifiable {
     let id: String
     let name: String
     let imageUrl: String?
@@ -75,7 +75,7 @@ struct PersonalizedDestination: Decodable, Identifiable {
     }
 }
 
-struct PersonalizedOffer: Decodable, Identifiable {
+struct PersonalizedOffer: Codable, Identifiable {
     let id: String
     let type: String
     let destination: String
@@ -90,7 +90,7 @@ struct PersonalizedOffer: Decodable, Identifiable {
     }
 }
 
-struct PersonalizedActivity: Decodable, Identifiable {
+struct PersonalizedActivity: Codable, Identifiable {
     let id: String
     let name: String
     let type: String
@@ -106,7 +106,7 @@ struct PersonalizedActivity: Decodable, Identifiable {
     }
 }
 
-struct EstimatedCost: Decodable {
+struct EstimatedCost: Codable {
     let flight: Double
     let hotelPerNight: Double
     let currency: String

@@ -51,9 +51,13 @@ final class SocialService {
     }
     
     func getUserSharedTrips(userId: String, limit: Int = 20, skip: Int = 0) async throws -> [SharedTrip] {
+        // Convertir skip en page (l'API utilise page, pas skip)
+        // page = (skip / limit) + 1
+        let page = (skip / limit) + 1
+        
         let queryItems = [
             URLQueryItem(name: "limit", value: "\(limit)"),
-            URLQueryItem(name: "skip", value: "\(skip)")
+            URLQueryItem(name: "page", value: "\(page)")
         ]
         
         let builder = DefaultRequest(
@@ -62,7 +66,9 @@ final class SocialService {
             queryItems: queryItems
         )
         
-        return try await APIService.shared.request(builder, decodeTo: [SharedTrip].self)
+        // L'API retourne une réponse paginée { data: [...], pagination: {...} }
+        let paginatedResponse = try await APIService.shared.request(builder, decodeTo: PaginatedResponse<SharedTrip>.self)
+        return paginatedResponse.data
     }
     
     func getSocialFeed(limit: Int = 20, skip: Int = 0) async throws -> [SharedTrip] {

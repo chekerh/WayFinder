@@ -49,9 +49,52 @@ final class DiscussionService {
         skip: Int = 0,
         destination: String? = nil
     ) async throws -> [DiscussionPost] {
+        // Si c'est la première page et pas de filtre destination, charger depuis le cache d'abord
+        if skip == 0 && destination == nil {
+            if let cachedPosts = AppDataCache.shared.postsCache.load() {
+                print("✅ [DiscussionService] Loaded \(cachedPosts.count) posts from cache")
+                
+                // Limiter aux premiers éléments si nécessaire
+                let limitedPosts = Array(cachedPosts.prefix(limit))
+                
+                // Mettre à jour en arrière-plan sans bloquer
+                Task {
+                    do {
+                        let freshPosts = try await fetchPostsFromAPI(limit: limit, skip: skip, destination: destination)
+                        AppDataCache.shared.postsCache.store(freshPosts)
+                        print("✅ [DiscussionService] Updated cache with \(freshPosts.count) posts")
+                    } catch {
+                        print("⚠️ [DiscussionService] Failed to update cache: \(error.localizedDescription)")
+                    }
+                }
+                
+                return limitedPosts
+            }
+        }
+        
+        // Pas de cache ou filtre destination : charger depuis l'API
+        let posts = try await fetchPostsFromAPI(limit: limit, skip: skip, destination: destination)
+        
+        // Sauvegarder dans le cache seulement pour la première page sans filtre
+        if skip == 0 && destination == nil {
+            AppDataCache.shared.postsCache.store(posts)
+        }
+        
+        return posts
+    }
+    
+    private func fetchPostsFromAPI(
+        limit: Int = 20,
+        skip: Int = 0,
+        destination: String? = nil
+    ) async throws -> [DiscussionPost] {
+        // Convertir skip en page (l'API utilise page, pas skip)
+        // page = (skip / limit) + 1
+        let page = (skip / limit) + 1
+        
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "skip", value: String(skip))
+            URLQueryItem(name: "page", value: String(page))
         ]
         if let destination = destination {
             queryItems.append(URLQueryItem(name: "destination", value: destination))
@@ -63,7 +106,29 @@ final class DiscussionService {
             queryItems: queryItems
         )
         
-        // L'API retourne { posts: [...], total, limit, skip }
+        // L'API retourne { data: [...], pagination: {...} } (format paginé standard)
+        // Mais on supporte aussi l'ancien format { posts: [...], total, limit, skip } pour compatibilité
+        
+        // Utiliser un décodage personnalisé pour éviter les conflits avec convertFromSnakeCase
+        let (data, _) = try await APIService.shared.requestRaw(builder)
+        
+        // Log raw JSON for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔍 [DiscussionService] Raw JSON response: \(jsonString.prefix(500))")
+        }
+        
+        let decoder = JSONDecoder()
+        // Ne pas utiliser convertFromSnakeCase car nos CodingKeys gèrent déjà le mapping
+        decoder.keyDecodingStrategy = .useDefaultKeys
+        decoder.dateDecodingStrategy = .iso8601
+        
+        // Essayer d'abord le format paginé standard { data: [...], pagination: {...} }
+        if let paginatedResponse = try? decoder.decode(PaginatedResponse<DiscussionPost>.self, from: data) {
+            print("✅ [DiscussionService] Decoded paginated response with \(paginatedResponse.data.count) posts")
+            return paginatedResponse.data
+        }
+        
+        // Essayer l'ancien format { posts: [...], total, limit, skip }
         struct PostsResponse: Decodable {
             let posts: [DiscussionPost]
             let total: Int?
@@ -71,16 +136,23 @@ final class DiscussionService {
             let skip: Int?
         }
         
-        // Utiliser un décodage personnalisé pour éviter les conflits avec convertFromSnakeCase
-        let (data, _) = try await APIService.shared.requestRaw(builder)
+        if let oldResponse = try? decoder.decode(PostsResponse.self, from: data) {
+            print("✅ [DiscussionService] Decoded old format response with \(oldResponse.posts.count) posts")
+            return oldResponse.posts
+        }
         
-        let decoder = JSONDecoder()
-        // Ne pas utiliser convertFromSnakeCase car nos CodingKeys gèrent déjà le mapping
-        decoder.keyDecodingStrategy = .useDefaultKeys
-        decoder.dateDecodingStrategy = .iso8601
+        // Si aucun format ne fonctionne, essayer directement un tableau
+        if let directArray = try? decoder.decode([DiscussionPost].self, from: data) {
+            print("✅ [DiscussionService] Decoded direct array with \(directArray.count) posts")
+            return directArray
+        }
         
-        let response = try decoder.decode(PostsResponse.self, from: data)
-        return response.posts
+        // Si tout échoue, lancer une erreur descriptive
+        throw APIError.decodingError(NSError(
+            domain: "DiscussionService",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Impossible de décoder la réponse de l'API. Format inattendu."]
+        ))
     }
     
     /// Récupère un post par ID

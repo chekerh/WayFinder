@@ -34,6 +34,7 @@ struct ProfileView: View {
         actionsList.append(contentsOf: [
             .init(icon: "pencil", titleKey: "profile_edit_profile", destination: .editProfile),
             .init(icon: "square.and.arrow.up", titleKey: "profileShareTrip", destination: .shareTrip),
+            .init(icon: "map.fill", titleKey: "profile_my_shared_trips", destination: .mySharedTrips),
             .init(icon: "sparkles", titleKey: "profile_discover_app", destination: .discoverApp),
             .init(icon: "gearshape", titleKey: "profile_settings", destination: .settings),
             .init(icon: "arrow.right.square", titleKey: "profile_logout", isDestructive: true)
@@ -482,6 +483,7 @@ private enum ProfileDestination {
     case changeEmail
     case settings
     case shareTrip
+    case mySharedTrips
     case sharedJourneys
     case mapMemories
     case retakeOnboarding
@@ -558,6 +560,8 @@ private extension ProfileView {
             SettingsView()
         case .shareTrip:
             ShareTripView()
+        case .mySharedTrips:
+            MySharedTripsView()
         case .sharedJourneys:
             JourneyFeedView()
         case .mapMemories:

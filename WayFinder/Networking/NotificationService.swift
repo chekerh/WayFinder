@@ -7,6 +7,38 @@ final class NotificationService {
     
     /// Récupère toutes les notifications de l'utilisateur
     func getNotifications(unreadOnly: Bool = false) async throws -> [Notification] {
+        // Si on veut toutes les notifications (pas seulement les non lues), charger depuis le cache d'abord
+        if !unreadOnly {
+            if let cachedNotifications = AppDataCache.shared.notificationsCache.load() {
+                print("✅ [NotificationService] Loaded \(cachedNotifications.count) notifications from cache")
+                
+                // Mettre à jour en arrière-plan sans bloquer
+                Task {
+                    do {
+                        let freshNotifications = try await fetchNotificationsFromAPI(unreadOnly: unreadOnly)
+                        AppDataCache.shared.notificationsCache.store(freshNotifications)
+                        print("✅ [NotificationService] Updated cache with \(freshNotifications.count) notifications")
+                    } catch {
+                        print("⚠️ [NotificationService] Failed to update cache: \(error.localizedDescription)")
+                    }
+                }
+                
+                return cachedNotifications
+            }
+        }
+        
+        // Pas de cache ou unreadOnly : charger depuis l'API
+        let notifications = try await fetchNotificationsFromAPI(unreadOnly: unreadOnly)
+        
+        // Sauvegarder dans le cache seulement si toutes les notifications
+        if !unreadOnly {
+            AppDataCache.shared.notificationsCache.store(notifications)
+        }
+        
+        return notifications
+    }
+    
+    private func fetchNotificationsFromAPI(unreadOnly: Bool = false) async throws -> [Notification] {
         var queryItems: [URLQueryItem]? = nil
         if unreadOnly {
             queryItems = [URLQueryItem(name: "unreadOnly", value: "true")]

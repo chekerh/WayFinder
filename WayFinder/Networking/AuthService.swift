@@ -281,6 +281,9 @@ final class AuthService {
         TokenStorage.delete()
         UserStorage.clear()
         PreferenceStorage.clearPreferenceId()
+        // Vider tous les caches de données
+        AppDataCache.shared.clearAll()
+        print("✅ [AuthService] All caches cleared on logout")
     }
     
     /// Envoie un code OTP à l'email de l'utilisateur

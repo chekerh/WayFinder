@@ -1,6 +1,6 @@
 import Foundation
 
-enum NotificationType: String, Decodable {
+enum NotificationType: String, Codable {
     case bookingConfirmed = "booking_confirmed"
     case bookingCancelled = "booking_cancelled"
     case bookingUpdated = "booking_updated"
@@ -15,7 +15,7 @@ enum NotificationType: String, Decodable {
     case general = "general"
 }
 
-struct Notification: Decodable, Identifiable {
+struct Notification: Codable, Identifiable {
     let id: String
     let userId: String
     let type: NotificationType
@@ -92,9 +92,47 @@ struct Notification: Decodable, Identifiable {
         
         updatedAt = nil
     }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(type, forKey: .type)
+        try container.encode(title, forKey: .title)
+        try container.encode(message, forKey: .message)
+        try container.encodeIfPresent(data, forKey: .data)
+        try container.encode(isRead, forKey: .isRead)
+        
+        // Encode dates as ISO8601 strings
+        if let readAt = readAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            try container.encode(formatter.string(from: readAt), forKey: .readAt)
+        } else {
+            try container.encodeNil(forKey: .readAt)
+        }
+        
+        try container.encodeIfPresent(actionUrl, forKey: .actionUrl)
+        
+        if let createdAt = createdAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            try container.encode(formatter.string(from: createdAt), forKey: .createdAt)
+        } else {
+            try container.encodeNil(forKey: .createdAt)
+        }
+        
+        if let updatedAt = updatedAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            try container.encode(formatter.string(from: updatedAt), forKey: .updatedAt)
+        } else {
+            try container.encodeNil(forKey: .updatedAt)
+        }
+    }
 }
 
-struct NotificationData: Decodable {
+struct NotificationData: Codable {
     let bookingId: String?
     let destinationId: String?
     let price: Double?

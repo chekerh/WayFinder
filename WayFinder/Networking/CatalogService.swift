@@ -132,8 +132,83 @@ final class CatalogService {
         priceRangeMin: Double? = nil,
         priceRangeMax: Double? = nil,
         minRating: Int? = nil,
-        boardType: String? = nil
-    ) async throws -> HotelSearchResponse {
+        boardType: String? = nil,
+        accommodationType: String? = nil
+    ) async throws -> AccommodationSearchResponse {
+        // Créer une clé de cache basée sur la destination et le type d'hébergement
+        let cacheKey = accommodationType ?? "hotel"
+        let cache = AppDataCache.shared.hotelsCache(for: locationCode, type: cacheKey)
+        
+        // Charger depuis le cache d'abord si disponible
+        if let cachedHotels = cache.load() {
+            print("✅ [CatalogService] Loaded \(cachedHotels.count) hotels from cache for \(locationCode) (\(cacheKey))")
+            
+            // Mettre à jour en arrière-plan sans bloquer
+            Task {
+                do {
+                    let freshResponse = try await fetchAccommodationsFromAPI(
+                        locationCode: locationCode,
+                        checkInDate: checkInDate,
+                        checkOutDate: checkOutDate,
+                        adults: adults,
+                        children: children,
+                        currencyCode: currencyCode,
+                        radius: radius,
+                        maxResults: maxResults,
+                        priceRangeMin: priceRangeMin,
+                        priceRangeMax: priceRangeMax,
+                        minRating: minRating,
+                        boardType: boardType,
+                        accommodationType: accommodationType
+                    )
+                    cache.store(freshResponse.data)
+                    print("✅ [CatalogService] Updated cache with \(freshResponse.data.count) accommodations")
+                } catch {
+                    print("⚠️ [CatalogService] Failed to update accommodations cache: \(error.localizedDescription)")
+                }
+            }
+            
+            return AccommodationSearchResponse(data: cachedHotels, meta: nil)
+        }
+        
+        // Pas de cache : charger depuis l'API
+        let response = try await fetchAccommodationsFromAPI(
+            locationCode: locationCode,
+            checkInDate: checkInDate,
+            checkOutDate: checkOutDate,
+            adults: adults,
+            children: children,
+            currencyCode: currencyCode,
+            radius: radius,
+            maxResults: maxResults,
+            priceRangeMin: priceRangeMin,
+            priceRangeMax: priceRangeMax,
+            minRating: minRating,
+            boardType: boardType,
+            accommodationType: accommodationType
+        )
+        
+        // Sauvegarder dans le cache
+        cache.store(response.data)
+        
+        return response
+    }
+    
+    private func fetchAccommodationsFromAPI(
+        locationCode: String,
+        checkInDate: String,
+        checkOutDate: String? = nil,
+        adults: Int,
+        children: Int? = nil,
+        currencyCode: String? = nil,
+        radius: Int? = nil,
+        maxResults: Int? = nil,
+        priceRangeMin: Double? = nil,
+        priceRangeMax: Double? = nil,
+        minRating: Int? = nil,
+        boardType: String? = nil,
+        accommodationType: String? = nil
+    ) async throws -> AccommodationSearchResponse {
         var queryItems: [URLQueryItem] = [
             URLQueryItem(name: "locationCode", value: locationCode),
             URLQueryItem(name: "checkInDate", value: checkInDate),
@@ -167,14 +242,17 @@ final class CatalogService {
         if let board = boardType {
             queryItems.append(URLQueryItem(name: "boardType", value: board))
         }
+        if let accommodationType = accommodationType {
+            queryItems.append(URLQueryItem(name: "accommodationType", value: accommodationType))
+        }
         
         let request = DefaultRequest(
             method: "GET",
-            path: "/catalog/hotels/search",
+            path: "/catalog/accommodations/search",
             queryItems: queryItems
         )
         
-        return try await APIService.shared.request(request, decodeTo: HotelSearchResponse.self)
+        return try await APIService.shared.request(request, decodeTo: AccommodationSearchResponse.self)
     }
     
     func getHotelDetails(

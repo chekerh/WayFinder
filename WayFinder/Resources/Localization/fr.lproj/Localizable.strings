@@ -112,7 +112,14 @@
 "profile_list_project" = "Liste des projets";
 "profile_list_reservations" = "Liste des réservations";
 "profileShareTrip" = "Partager mon voyage";
+"profile_my_shared_trips" = "Mes voyages partagés";
 "profileSharedJourneys" = "Voyages partagés";
+"my_shared_trips_empty_title" = "Aucun voyage partagé";
+"my_shared_trips_empty_message" = "Vous n'avez pas encore partagé de voyage. Partagez vos voyages pour les voir ici !";
+"delete_trip_confirm_title" = "Supprimer le voyage";
+"delete_trip_confirm_message" = "Êtes-vous sûr de vouloir supprimer ce voyage partagé ?";
+"delete" = "Supprimer";
+"cancel" = "Annuler";
 "profile_change_password" = "Changer le mot de passe";
 "profile_change_email" = "Modifier l'adresse e-mail";
 "profile_settings" = "Réglages";

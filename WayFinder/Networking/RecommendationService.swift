@@ -10,6 +10,41 @@ final class RecommendationService {
         type: String = "all",
         limit: Int = 10
     ) async throws -> RecommendationResponse {
+        // Pour le type "home", charger depuis le cache d'abord
+        if type == "home" {
+            if let cachedPayload = AppDataCache.shared.recommendationsCache.load() {
+                print("✅ [RecommendationService] Loaded recommendations from cache")
+                
+                // Mettre à jour en arrière-plan sans bloquer
+                Task {
+                    do {
+                        let freshPayload = try await fetchRecommendationsFromAPI(type: type, limit: limit)
+                        AppDataCache.shared.recommendationsCache.store(freshPayload)
+                        print("✅ [RecommendationService] Updated cache with fresh recommendations")
+                    } catch {
+                        print("⚠️ [RecommendationService] Failed to update cache: \(error.localizedDescription)")
+                    }
+                }
+                
+                return makeResponse(from: cachedPayload)
+            }
+        }
+        
+        // Pas de cache : charger depuis l'API
+        let payload = try await fetchRecommendationsFromAPI(type: type, limit: limit)
+        
+        // Sauvegarder dans le cache seulement pour le type "home"
+        if type == "home" {
+            AppDataCache.shared.recommendationsCache.store(payload)
+        }
+        
+        return makeResponse(from: payload)
+    }
+    
+    private func fetchRecommendationsFromAPI(
+        type: String = "all",
+        limit: Int = 10
+    ) async throws -> PersonalizedRecommendationsPayload {
         let queryItems = [
             URLQueryItem(name: "type", value: type),
             URLQueryItem(name: "limit", value: String(limit))
@@ -21,8 +56,7 @@ final class RecommendationService {
             queryItems: queryItems
         )
         
-        let payload = try await APIService.shared.request(builder, decodeTo: PersonalizedRecommendationsPayload.self)
-        return makeResponse(from: payload)
+        return try await APIService.shared.request(builder, decodeTo: PersonalizedRecommendationsPayload.self)
     }
     
     /// Récupère les recommandations personnalisées et retourne le payload complet

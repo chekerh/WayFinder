@@ -39,24 +39,45 @@ struct DiscussionPost: Codable, Identifiable {
         do {
             // Essayer de décoder comme un objet DiscussionUser (populated)
             user = try container.decode(DiscussionUser.self, forKey: .user)
-        } catch is DecodingError {
+            print("✅ [DiscussionPost] Successfully decoded user_id as DiscussionUser object: \(user.id)")
+        } catch let decodingError as DecodingError {
+            // Afficher les détails de l'erreur pour le débogage
+            print("⚠️ [DiscussionPost] Failed to decode user_id as object")
+            print("   Error type: \(decodingError)")
+            switch decodingError {
+            case .keyNotFound(let key, let context):
+                print("   Missing key: \(key.stringValue) at path: \(context.codingPath)")
+            case .typeMismatch(let type, let context):
+                print("   Type mismatch: expected \(type) at path: \(context.codingPath)")
+            case .valueNotFound(let type, let context):
+                print("   Value not found: \(type) at path: \(context.codingPath)")
+            case .dataCorrupted(let context):
+                print("   Data corrupted at path: \(context.codingPath), description: \(context.debugDescription)")
+            @unknown default:
+                print("   Unknown decoding error")
+            }
+            
             // Si le décodage échoue, essayer de décoder comme un ID simple
             do {
                 let userId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .user)
                 user = DiscussionUser(id: userId, username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
+                print("✅ [DiscussionPost] Successfully decoded user_id as ID: \(userId)")
             } catch {
-                // Si même l'ID ne peut pas être décodé, propager l'erreur originale
-                print("❌ [DiscussionPost] Error decoding user_id: \(error)")
-                throw error
+                // Si même l'ID ne peut pas être décodé, créer un user par défaut pour ne pas bloquer le décodage
+                print("❌ [DiscussionPost] Error decoding user_id as ID: \(error)")
+                print("⚠️ [DiscussionPost] Creating default user to allow post decoding")
+                user = DiscussionUser(id: "unknown", username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
             }
         } catch {
             // Pour toute autre erreur, essayer de décoder comme ID
+            print("⚠️ [DiscussionPost] Unexpected error decoding user_id: \(error), trying as ID")
             do {
                 let userId = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .user)
                 user = DiscussionUser(id: userId, username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
             } catch {
                 print("❌ [DiscussionPost] Error decoding user_id: \(error)")
-                throw error
+                // Créer un user par défaut pour ne pas bloquer le décodage du post
+                user = DiscussionUser(id: "unknown", username: nil, firstName: nil, lastName: nil, profileImageUrl: nil)
             }
         }
         
@@ -228,7 +249,38 @@ struct DiscussionUser: Codable, Identifiable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         // Décoder _id - peut être une string ou un objet avec $oid
-        id = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .id)
+        // Essayer plusieurs formats pour être robuste
+        // Format 1: String directe (le plus commun) - essayer en premier
+        do {
+            id = try container.decode(String.self, forKey: .id)
+            print("✅ [DiscussionUser] Decoded _id as string: \(id)")
+        } catch {
+            // Format 2: Objet avec $oid comme string
+            if let idDict = try? container.decode([String: String].self, forKey: .id),
+               let idValue = idDict["$oid"] {
+                id = idValue
+                print("✅ [DiscussionUser] Decoded _id from object with $oid: \(id)")
+            }
+            // Format 3: Utiliser le helper (gère les cas complexes)
+            else {
+                do {
+                    id = try DiscussionDecodingHelper.decodeObjectId(from: container, forKey: .id)
+                    print("✅ [DiscussionUser] Decoded _id using helper: \(id)")
+                } catch {
+                    // Si le helper échoue, essayer de décoder comme string simple en dernier recours
+                    print("⚠️ [DiscussionUser] Helper failed for _id, trying direct string decode: \(error)")
+                    if let fallbackId = try? container.decode(String.self, forKey: .id) {
+                        id = fallbackId
+                        print("✅ [DiscussionUser] Decoded _id as fallback string: \(id)")
+                    } else {
+                        print("❌ [DiscussionUser] All decoding attempts failed for _id: \(error)")
+                        // Créer un ID par défaut pour ne pas bloquer le décodage
+                        id = "unknown_\(UUID().uuidString.prefix(8))"
+                        print("⚠️ [DiscussionUser] Using fallback ID: \(id)")
+                    }
+                }
+            }
+        }
         
         // Décoder les autres champs (optionnels)
         username = try container.decodeIfPresent(String.self, forKey: .username)
@@ -356,13 +408,27 @@ extension DiscussionPost {
 
 enum DiscussionDecodingHelper {
     static func decodeObjectId<Key: CodingKey>(from container: KeyedDecodingContainer<Key>, forKey key: Key) throws -> String {
+        // Essayer plusieurs formats
+        // Format 1: String directe (le plus commun)
         if let idString = try? container.decode(String.self, forKey: key) {
             return idString
-        } else if let idDict = try? container.decode([String: String].self, forKey: key),
-                  let idValue = idDict["$oid"] {
+        }
+        // Format 2: Objet avec $oid comme string
+        if let idDict = try? container.decode([String: String].self, forKey: key),
+           let idValue = idDict["$oid"] {
             return idValue
         }
-        throw DecodingError.dataCorruptedError(forKey: key, in: container, debugDescription: "Invalid id format")
+        // Format 3: Essayer de décoder comme Int puis convertir en String
+        if let idInt = try? container.decode(Int.self, forKey: key) {
+            return String(idInt)
+        }
+        
+        // Si tous les formats échouent, lancer une erreur descriptive
+        throw DecodingError.dataCorruptedError(
+            forKey: key,
+            in: container,
+            debugDescription: "Invalid id format - could not decode as string, object with $oid, or int"
+        )
     }
     
     static func decodeObjectIdArray<Key: CodingKey>(from container: KeyedDecodingContainer<Key>, forKey key: Key) -> [String] {

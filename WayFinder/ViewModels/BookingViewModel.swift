@@ -276,31 +276,30 @@ final class BookingViewModel: ObservableObject {
         return response
     }
     
-    /// Réactive une réservation annulée en changeant son statut à "confirmed"
+    /// Demande de ré-réservation pour une réservation annulée
+    /// Envoie des emails au support et à l'utilisateur
     func reactivateBooking(_ booking: Booking) async throws {
         guard booking.status == .cancelled else {
             throw NSError(domain: "BookingViewModel", code: -1, userInfo: [NSLocalizedDescriptionKey: "La réservation n'est pas annulée"])
         }
         
-        print("🔄 [BookingViewModel] Reactivating cancelled booking: \(booking.id)")
+        print("🔄 [BookingViewModel] Requesting rebooking for cancelled booking: \(booking.id)")
         
         do {
-            // Mettre à jour le statut de la réservation à "confirmed"
-            _ = try await service.updateBooking(
-                id: booking.id,
-                status: "confirmed"
-            )
+            // Appeler l'endpoint de ré-réservation qui envoie les emails
+            let response = try await service.requestRebooking(id: booking.id)
             
-            print("✅ [BookingViewModel] Booking reactivated: \(booking.confirmationNumber)")
+            print("✅ [BookingViewModel] Rebooking request submitted: \(response.message)")
+            print("✅ [BookingViewModel] Booking info: \(response.booking.confirmationNumber) - \(response.booking.destination)")
+            
+            // Afficher un message de succès à l'utilisateur
+            // L'email de confirmation a été envoyé automatiquement par le backend
         } catch {
-            print("❌ [BookingViewModel] Error reactivating booking: \(error.localizedDescription)")
-            // Même en cas d'erreur de décodage, le serveur a peut-être quand même mis à jour
-            // On va recharger l'historique pour vérifier
-            print("⚠️ [BookingViewModel] Reloading history to check if update succeeded")
+            print("❌ [BookingViewModel] Error requesting rebooking: \(error.localizedDescription)")
+            throw error
         }
         
-        // Toujours recharger l'historique pour mettre à jour la liste
-        // Cela permet de récupérer l'état actuel depuis le serveur
+        // Recharger l'historique pour mettre à jour la liste
         await loadHistory()
     }
 }

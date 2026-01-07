@@ -275,5 +275,48 @@ final class BookingService {
         )
         let _: EmptyResponse = try await APIService.shared.request(builder, decodeTo: EmptyResponse.self)
     }
+    
+    /// Demande de ré-réservation pour une réservation annulée
+    /// Envoie des emails au support et à l'utilisateur
+    func requestRebooking(id: String) async throws -> RebookResponse {
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "booking/\(id)/rebook"
+        )
+        
+        // Use requestRaw to get raw data and manually decode for better error handling
+        let (data, _) = try await APIService.shared.requestRaw(builder)
+        
+        // Log raw JSON for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔍 [BookingService] Raw JSON response for rebook: \(jsonString)")
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        do {
+            let result = try decoder.decode(RebookResponse.self, from: data)
+            print("✅ [BookingService] Successfully decoded rebook response")
+            return result
+        } catch {
+            print("❌ [BookingService] Decoding error for rebook response: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("❌ [BookingService] Missing key: \(key.stringValue) at path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("❌ [BookingService] Type mismatch for type \(type) at path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("❌ [BookingService] Value not found for type \(type) at path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("❌ [BookingService] Data corrupted at path: \(context.codingPath), \(context.debugDescription)")
+                @unknown default:
+                    print("❌ [BookingService] Unknown decoding error: \(decodingError)")
+                }
+            }
+            throw error
+        }
+    }
 }
 

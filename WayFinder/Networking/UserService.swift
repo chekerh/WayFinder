@@ -5,6 +5,36 @@ final class UserService {
     private init() {}
 
     func fetchProfile() async throws -> UserProfile {
+        // Charger depuis le cache d'abord
+        if let cachedProfile = AppDataCache.shared.userProfileCache.load() {
+            print("✅ [UserService] Loaded profile from cache")
+            
+            // Mettre à jour en arrière-plan sans bloquer
+            Task {
+                do {
+                    let freshProfile = try await fetchProfileFromAPI()
+                    AppDataCache.shared.userProfileCache.store(freshProfile)
+                    persistProfileUpdate(user: freshProfile, imageUrl: freshProfile.resolvedProfileImageUrl)
+                    print("✅ [UserService] Updated cache with fresh profile")
+                } catch {
+                    print("⚠️ [UserService] Failed to update cache: \(error.localizedDescription)")
+                }
+            }
+            
+            return cachedProfile
+        }
+        
+        // Pas de cache : charger depuis l'API
+        let profile = try await fetchProfileFromAPI()
+        
+        // Sauvegarder dans le cache
+        AppDataCache.shared.userProfileCache.store(profile)
+        persistProfileUpdate(user: profile, imageUrl: profile.resolvedProfileImageUrl)
+        
+        return profile
+    }
+    
+    private func fetchProfileFromAPI() async throws -> UserProfile {
         guard let token = TokenStorage.fetch() else {
             throw APIError.custom("Token manquant")
         }
@@ -18,9 +48,7 @@ final class UserService {
             ]
         )
 
-        let profile = try await APIService.shared.request(builder, decodeTo: UserProfile.self)
-        persistProfileUpdate(user: profile, imageUrl: profile.resolvedProfileImageUrl)
-        return profile
+        return try await APIService.shared.request(builder, decodeTo: UserProfile.self)
     }
     
     /// Met à jour le nom de l'utilisateur

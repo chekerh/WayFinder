@@ -274,3 +274,22 @@ struct UpdateBookingRequest: Encodable {
     }
 }
 
+struct RebookResponse: Decodable {
+    let message: String
+    let booking: RebookBookingInfo
+    
+    struct RebookBookingInfo: Decodable {
+        let id: String
+        let confirmationNumber: String
+        let destination: String
+        let status: BookingStatus
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case confirmationNumber = "confirmation_number"
+            case destination
+            case status
+        }
+    }
+}
+

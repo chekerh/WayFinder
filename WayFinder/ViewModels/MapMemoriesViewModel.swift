@@ -22,7 +22,7 @@ final class MapMemoriesViewModel: ObservableObject {
             Task {
                 do {
                     let freshMemories = try await socialService.getMapMemories()
-                    AppDataCache.shared.mapMemoriesCache.save(freshMemories)
+                    AppDataCache.shared.mapMemoriesCache.store(freshMemories)
                     await MainActor.run {
                         mapMemories = freshMemories
                     }
@@ -41,7 +41,7 @@ final class MapMemoriesViewModel: ObservableObject {
             let response = try await socialService.getMapMemories()
             mapMemories = response
             // Sauvegarder dans le cache
-            AppDataCache.shared.mapMemoriesCache.save(response)
+            AppDataCache.shared.mapMemoriesCache.store(response)
             print("✅ [MapMemoriesViewModel] Loaded \(response.countries.count) countries, \(response.totalMemories) total memories")
         } catch let error as DecodingError {
             var detailedError = "Erreur de décodage JSON: "

@@ -42,7 +42,7 @@ struct LoginResponse: Decodable {
     }
 }
 
-struct UserProfile: Decodable {
+struct UserProfile: Codable {
     let id: String?
     let email: String?
     let username: String?
@@ -130,6 +130,31 @@ struct UserProfile: Decodable {
         totalCountries = try container.decodeIfPresent(Int.self, forKey: .totalCountries)
         totalOutfitsAnalyzed = try container.decodeIfPresent(Int.self, forKey: .totalOutfitsAnalyzed)
         totalPostsShared = try container.decodeIfPresent(Int.self, forKey: .totalPostsShared)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encodeIfPresent(email, forKey: .email)
+        try container.encodeIfPresent(username, forKey: .username)
+        try container.encodeIfPresent(firstName, forKey: .firstName)
+        try container.encodeIfPresent(lastName, forKey: .lastName)
+        try container.encodeIfPresent(avatarUrl, forKey: .avatarUrl)
+        try container.encodeIfPresent(profileImageUrl, forKey: .profileImageUrl)
+        try container.encodeIfPresent(preferences, forKey: .preferences)
+        try container.encodeIfPresent(onboardingCompleted, forKey: .onboardingCompleted)
+        try container.encodeIfPresent(onboardingSkipped, forKey: .onboardingSkipped)
+        try container.encodeIfPresent(totalPoints, forKey: .totalPoints)
+        try container.encodeIfPresent(lifetimePoints, forKey: .lifetimePoints)
+        try container.encodeIfPresent(currentStreak, forKey: .currentStreak)
+        try container.encodeIfPresent(longestStreak, forKey: .longestStreak)
+        try container.encodeIfPresent(totalBookings, forKey: .totalBookings)
+        try container.encodeIfPresent(totalDestinations, forKey: .totalDestinations)
+        try container.encodeIfPresent(totalTravelDays, forKey: .totalTravelDays)
+        try container.encodeIfPresent(totalDistanceKm, forKey: .totalDistanceKm)
+        try container.encodeIfPresent(totalCountries, forKey: .totalCountries)
+        try container.encodeIfPresent(totalOutfitsAnalyzed, forKey: .totalOutfitsAnalyzed)
+        try container.encodeIfPresent(totalPostsShared, forKey: .totalPostsShared)
     }
 }
 

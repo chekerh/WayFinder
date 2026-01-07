@@ -16,6 +16,37 @@ class ReelsViewModel: ObservableObject {
     
     init() {
         loadCurrentUserId()
+        loadCachedData()
+    }
+    
+    /// Charge les données depuis le cache immédiatement pour un affichage instantané
+    private func loadCachedData() {
+        Task { @MainActor in
+            // Charger les posts et journeys depuis le cache
+            if let cachedPosts = AppDataCache.shared.postsCache.load(),
+               let cachedJourneys = AppDataCache.shared.journeysCache.load() {
+                
+                let postItems = cachedPosts.prefix(pageSize).map { ReelContentItem.postItem($0) }
+                let journeyItems = cachedJourneys.prefix(pageSize).map { ReelContentItem.journeyItem($0) }
+                
+                let allItems = (Array(postItems) + Array(journeyItems)).sorted { lhs, rhs in
+                    let lhsEngagement = lhs.likesCount + lhs.commentsCount
+                    let rhsEngagement = rhs.likesCount + rhs.commentsCount
+                    
+                    if lhsEngagement != rhsEngagement {
+                        return lhsEngagement > rhsEngagement
+                    }
+                    
+                    return lhs.createdAt > rhs.createdAt
+                }
+                
+                if !allItems.isEmpty {
+                    items = allItems
+                    uiState = .success(items: items, hasMore: true)
+                    print("✅ [ReelsViewModel] Loaded \(allItems.count) items from cache")
+                }
+            }
+        }
     }
     
     private func loadCurrentUserId() {

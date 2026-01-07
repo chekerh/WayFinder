@@ -129,6 +129,41 @@ final class JourneyService {
     }
     
     func getJourneys(limit: Int? = nil, skip: Int? = nil) async throws -> [Journey] {
+        // Si c'est la première page (skip == 0 ou nil), charger depuis le cache d'abord
+        if (skip == nil || skip == 0) && limit != nil {
+            if let cachedJourneys = AppDataCache.shared.journeysCache.load() {
+                print("✅ [JourneyService] Loaded \(cachedJourneys.count) journeys from cache")
+                
+                // Limiter aux premiers éléments si nécessaire
+                let limitedJourneys = Array(cachedJourneys.prefix(limit ?? cachedJourneys.count))
+                
+                // Mettre à jour en arrière-plan sans bloquer
+                Task {
+                    do {
+                        let freshJourneys = try await fetchJourneysFromAPI(limit: limit, skip: skip)
+                        AppDataCache.shared.journeysCache.store(freshJourneys)
+                        print("✅ [JourneyService] Updated cache with \(freshJourneys.count) journeys")
+                    } catch {
+                        print("⚠️ [JourneyService] Failed to update cache: \(error.localizedDescription)")
+                    }
+                }
+                
+                return limitedJourneys
+            }
+        }
+        
+        // Pas de cache ou pas la première page : charger depuis l'API
+        let journeys = try await fetchJourneysFromAPI(limit: limit, skip: skip)
+        
+        // Sauvegarder dans le cache seulement pour la première page
+        if (skip == nil || skip == 0) {
+            AppDataCache.shared.journeysCache.store(journeys)
+        }
+        
+        return journeys
+    }
+    
+    private func fetchJourneysFromAPI(limit: Int? = nil, skip: Int? = nil) async throws -> [Journey] {
         guard let token = TokenStorage.fetch() else {
             throw APIError.custom("Token manquant")
         }

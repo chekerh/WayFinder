@@ -88,7 +88,7 @@ struct HotelReview: Codable, Equatable {
     }
 }
 
-struct HotelSearchResponse: Codable {
+struct AccommodationSearchResponse: Codable {
     let data: [Accommodation]
     let meta: [String: String]?
 }
