@@ -609,8 +609,8 @@ class FlightDetailViewModel: ObservableObject {
                 price: 450.0,
                 currency: "EUR",
                 description: "Découvrez la ville éternelle",
-                departureDate: "2025-12-03T07:55:00",
-                arrivalDate: "2025-12-03T09:20:00",
+                departureDate: "2026-12-03T07:55:00",
+                arrivalDate: "2026-12-03T09:20:00",
                 airline: "TU"
             )
         )

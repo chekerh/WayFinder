@@ -172,8 +172,8 @@ struct ConfirmationScreen: View {
                 price: 191.33,
                 currency: "EUR",
                 description: nil,
-                departureDate: "2025-12-03T07:55:00",
-                arrivalDate: "2025-12-03T09:20:00",
+                departureDate: "2026-12-03T07:55:00",
+                arrivalDate: "2026-12-03T09:20:00",
                 airline: "TU"
             )
         )

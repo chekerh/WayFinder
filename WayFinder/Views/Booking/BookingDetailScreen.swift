@@ -270,7 +270,7 @@ struct BookingDetailScreen_Previews: PreviewProvider {
                 destinationCountry: "France",
                 status: .confirmed,
                 confirmationNumber: "CONF-H8SJBGBY",
-                createdAt: "2025-11-20T20:09:48.937Z",
+                createdAt: "2026-01-07T20:09:48.937Z",
                 price: 750.0,
                 currency: "EUR",
                 departureDate: nil,

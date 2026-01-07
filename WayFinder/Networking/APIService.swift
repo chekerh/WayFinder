@@ -117,6 +117,23 @@ final class APIService {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
+            // Gérer spécifiquement l'erreur 401 (Unauthorized)
+            if httpResponse.statusCode == 401 {
+                print("❌ [API] 401 Unauthorized - Token may be missing or expired")
+                
+                // Vérifier si un token était présent
+                if let authHeader = request.value(forHTTPHeaderField: "Authorization"), !authHeader.isEmpty {
+                    print("⚠️ [API] Token was present but rejected - it may be expired")
+                    // Le token est probablement expiré, le supprimer pour forcer une nouvelle connexion
+                    TokenStorage.delete()
+                    NotificationCenter.default.post(name: NSNotification.Name("TokenExpired"), object: nil)
+                    throw APIError.custom("Votre session a expiré. Veuillez vous reconnecter.")
+                } else {
+                    print("⚠️ [API] No token present in request")
+                    throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+                }
+            }
+            
             // Essayer de décoder l'erreur NestJS standard
             if let nestError = try? JSONDecoder().decode(NestError.self, from: data) {
                 print("❌ [API] Error: \(nestError.message.text)")
@@ -226,6 +243,23 @@ final class APIService {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
+            // Gérer spécifiquement l'erreur 401 (Unauthorized)
+            if httpResponse.statusCode == 401 {
+                print("❌ [API] 401 Unauthorized - Token may be missing or expired")
+                
+                // Vérifier si un token était présent
+                if let authHeader = request.value(forHTTPHeaderField: "Authorization"), !authHeader.isEmpty {
+                    print("⚠️ [API] Token was present but rejected - it may be expired")
+                    // Le token est probablement expiré, le supprimer pour forcer une nouvelle connexion
+                    TokenStorage.delete()
+                    NotificationCenter.default.post(name: NSNotification.Name("TokenExpired"), object: nil)
+                    throw APIError.custom("Votre session a expiré. Veuillez vous reconnecter.")
+                } else {
+                    print("⚠️ [API] No token present in request")
+                    throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+                }
+            }
+            
             // Essayer de décoder l'erreur NestJS standard
             if let nestError = try? JSONDecoder().decode(NestError.self, from: data) {
                 print("❌ [API] Error: \(nestError.message.text)")
