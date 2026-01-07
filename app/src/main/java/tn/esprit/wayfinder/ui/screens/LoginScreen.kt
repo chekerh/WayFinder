@@ -246,7 +246,7 @@ fun LoginScreen(navController: NavController) {
                         TextButton(onClick = { navController.navigate("signup_screen") }) {
                             Text(StringTranslator.translate(context, "Pas de compte ?"))
                         }
-                        TextButton(onClick = { /* TODO */ }) {
+                        TextButton(onClick = { navController.navigate("forgot_password_screen") }) {
                             Text(StringTranslator.translate(context, "Mot de passe oublié ?"))
                         }
                     }

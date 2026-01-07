@@ -43,6 +43,13 @@ sealed class GoogleSignInResult {
     data class Error(val message: String) : GoogleSignInResult()
 }
 
+sealed class PasswordResetResult {
+    object Idle : PasswordResetResult()
+    object Loading : PasswordResetResult()
+    data class Success(val message: String) : PasswordResetResult()
+    data class Error(val message: String) : PasswordResetResult()
+}
+
 class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _loginResult = MutableStateFlow<LoginResult>(LoginResult.Idle)
@@ -54,10 +61,18 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _googleSignInResult = MutableStateFlow<GoogleSignInResult>(GoogleSignInResult.Idle)
     val googleSignInResult: StateFlow<GoogleSignInResult> = _googleSignInResult
 
+    private val _requestPasswordResetOtpResult = MutableStateFlow<PasswordResetResult>(PasswordResetResult.Idle)
+    val requestPasswordResetOtpResult: StateFlow<PasswordResetResult> = _requestPasswordResetOtpResult
+
+    private val _passwordResetResult = MutableStateFlow<PasswordResetResult>(PasswordResetResult.Idle)
+    val passwordResetResult: StateFlow<PasswordResetResult> = _passwordResetResult
+
     fun clearMessages() {
         _loginResult.value = LoginResult.Idle
         _signUpResult.value = SignUpResult.Idle
         _googleSignInResult.value = GoogleSignInResult.Idle
+        _requestPasswordResetOtpResult.value = PasswordResetResult.Idle
+        _passwordResetResult.value = PasswordResetResult.Idle
     }
 
     fun login(context: Context, request: LoginRequest) {
@@ -249,6 +264,30 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             true
         } catch (e: Exception) {
             false
+        }
+    }
+
+    fun requestPasswordResetOtp(context: Context, email: String) {
+        viewModelScope.launch {
+            _requestPasswordResetOtpResult.value = PasswordResetResult.Loading
+            try {
+                val response = authRepository.requestPasswordResetOtp(email)
+                _requestPasswordResetOtpResult.value = PasswordResetResult.Success(response.message)
+            } catch (e: Exception) {
+                _requestPasswordResetOtpResult.value = PasswordResetResult.Error(parseError(e))
+            }
+        }
+    }
+
+    fun resetPassword(context: Context, email: String, otpCode: String, newPassword: String) {
+        viewModelScope.launch {
+            _passwordResetResult.value = PasswordResetResult.Loading
+            try {
+                val response = authRepository.resetPassword(email, otpCode, newPassword)
+                _passwordResetResult.value = PasswordResetResult.Success(response.message)
+            } catch (e: Exception) {
+                _passwordResetResult.value = PasswordResetResult.Error(parseError(e))
+            }
         }
     }
 

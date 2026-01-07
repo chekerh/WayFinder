@@ -98,7 +98,7 @@ fun AppNavigation() {
             }
         }
     }
-
+   
     NavHost(navController, startDestination = startDestination) {
         composable("splash_screen") { SplashScreen(navController = navController) }
         composable("after_splash_screen") { AfterSplashScreen(navController = navController) }
@@ -438,6 +438,7 @@ fun AppNavigation() {
         composable("confirmation") {
             ConfirmationScreen(navController = navController)
         }
+        composable("forgot_password_screen") { ForgotPasswordScreen(navController = navController) }
         // Legacy Ticket Screen (keeping for backward compatibility, but TicketsScreen is preferred)
         composable("ticket") {
             TicketScreen(navController = navController)

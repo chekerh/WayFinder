@@ -136,13 +136,13 @@ fun AiTravelVideoGenerator(
                     
                     Column {
                         Text(
-                            text = StringTranslator.translate(context, "Créer une vidéo IA"),
+                            text = StringTranslator.translate(context, "Créer une vidéo"),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.onSurface
                         )
                         Text(
-                            text = StringTranslator.translate(context, "Texte, photos & musique"),
+                            text = StringTranslator.translate(context, "Photos, transitions & musique"),
                             fontSize = 12.sp,
                             color = colorScheme.onSurfaceVariant
                         )
@@ -546,7 +546,7 @@ fun AiTravelVideoGenerator(
             // Collapsed state preview
             if (!isExpanded) {
                 Text(
-                    text = StringTranslator.translate(context, "Appuyez pour créer des vidéos de voyage avec l'IA"),
+                    text = StringTranslator.translate(context, "Appuyez pour créer des vidéos de voyage avec des transitions"),
                     fontSize = 12.sp,
                     color = colorScheme.onSurfaceVariant,
                     modifier = Modifier

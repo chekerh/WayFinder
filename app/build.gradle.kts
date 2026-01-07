@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21" // Add serialization plugin
     id("com.google.gms.google-services") // Google Services plugin for Firebase
+    id("org.jetbrains.dokka") version "1.9.20" // Dokka for documentation generation
 }
 
 android {
@@ -133,4 +134,21 @@ afterEvaluate {
             }
         }
     }
+}
+
+// Dokka Configuration for Documentation Generation
+tasks.dokkaHtml.configure {
+    outputDirectory.set(file("$rootDir/docs/android"))
+    dokkaSourceSets.named("main") {
+        includeNonPublic.set(false)
+        skipEmptyPackages.set(true)
+        skipDeprecated.set(true)
+        reportUndocumented.set(false) // Don't fail on undocumented code
+        jdkVersion.set(8)
+    }
+}
+
+tasks.register("dokkaHtmlMultiModule") {
+    description = "Generates documentation in HTML format for all modules"
+    dependsOn(tasks.dokkaHtml)
 }
