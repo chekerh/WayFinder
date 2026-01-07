@@ -175,6 +175,10 @@ struct OTPScreenView: View {
                     )
                     .focused($focusedField, equals: index)
                     .onChange(of: codeDigits[index]) { oldValue, newValue in
+                        // Clear error message when user starts typing
+                        if !newValue.isEmpty && oldValue != newValue {
+                            errorMessage = nil
+                        }
                         handleOTPChange(at: index, newValue: newValue)
                     }
                 }
