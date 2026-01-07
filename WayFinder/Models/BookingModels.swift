@@ -43,6 +43,7 @@ struct BookingOffer: Decodable, Identifiable {
 struct Booking: Decodable, Identifiable {
     let id: String
     let destination: String
+    let offerId: String? // Code de l'offre (ex: "WF-BCN-001") - utilisé pour obtenir le nom de destination
     let destinationCountry: String? // Nom du pays (ex: "South Korea")
     let status: BookingStatus
     let confirmationNumber: String
@@ -124,13 +125,17 @@ struct Booking: Decodable, Identifiable {
             decodedDestinationCountry = try? container.decode(String.self, forKey: .destinationCountry)
         }
         
+        // Stocker offer_id pour utilisation ultérieure
+        let decodedOfferId = try? container.decode(String.self, forKey: .offerId)
+        
         // Fallback to offer_id if destination is not in trip_details
         if decodedDestination == nil || decodedDestination?.isEmpty == true {
-            decodedDestination = try? container.decode(String.self, forKey: .offerId)
+            decodedDestination = decodedOfferId
         }
         
         // Fallback to "N/A" if still no destination
         destination = decodedDestination ?? "N/A"
+        offerId = decodedOfferId
         destinationCountry = decodedDestinationCountry
         
         // If dates weren't found in trip_details, try root level
@@ -147,9 +152,10 @@ struct Booking: Decodable, Identifiable {
     }
     
     // Initializer pour les previews et tests
-    init(id: String, destination: String, destinationCountry: String? = nil, status: BookingStatus, confirmationNumber: String, createdAt: String, price: Double?, currency: String?, departureDate: String?, returnDate: String?) {
+    init(id: String, destination: String, offerId: String? = nil, destinationCountry: String? = nil, status: BookingStatus, confirmationNumber: String, createdAt: String, price: Double?, currency: String?, departureDate: String?, returnDate: String?) {
         self.id = id
         self.destination = destination
+        self.offerId = offerId
         self.destinationCountry = destinationCountry
         self.status = status
         self.confirmationNumber = confirmationNumber
