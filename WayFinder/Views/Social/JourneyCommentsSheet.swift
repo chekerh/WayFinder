@@ -144,6 +144,30 @@ struct JourneyCommentsSheet: View {
             if viewModel.isLoadingComments {
                 ProgressView()
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else if let errorMessage = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Text("Erreur lors du chargement des commentaires")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.red)
+                    Text(errorMessage)
+                        .font(.system(size: 13))
+                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        .multilineTextAlignment(.center)
+                    Button(action: {
+                        Task { await viewModel.loadComments() }
+                    }) {
+                        Text("Réessayer")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(ThemeColors.accent())
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .center)
             } else if viewModel.comments.isEmpty {
                 Text("Aucun commentaire pour le moment. Soyez le premier à réagir !")
                     .font(.system(size: 15))
@@ -170,11 +194,16 @@ struct JourneyCommentsSheet: View {
         HStack(spacing: 12) {
             TextField("Ajouter un commentaire...", text: $viewModel.commentText, axis: .vertical)
                 .textFieldStyle(.plain)
+                .foregroundColor(ThemeColors.primaryText(colorScheme))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(ThemeColors.surface(colorScheme).opacity(0.9))
+                        .fill(ThemeColors.surface(colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(ThemeColors.border(colorScheme), lineWidth: 1)
                 )
             
             Button(action: {
@@ -223,17 +252,32 @@ private struct JourneyAvatarView: View {
     }
     
     private var resolvedURL: URL? {
-        guard let raw = urlString, !raw.isEmpty else {
+        guard let raw = urlString, !raw.isEmpty, raw != "null" else {
+            // Si pas d'URL, utiliser un placeholder basé sur le seed
             return placeholderURL
         }
-        let resolved = raw.hasPrefix("http") ? raw : "https://wayfinder-api-w92x.onrender.com\(raw)"
+        
+        // Nettoyer l'URL (supprimer les espaces, etc.)
+        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Si c'est déjà une URL complète, l'utiliser directement
+        if cleaned.hasPrefix("http://") || cleaned.hasPrefix("https://") {
+            return URL(string: cleaned)
+        }
+        
+        // Si c'est une URL relative, ajouter le domaine
+        // Supprimer le slash initial s'il existe pour éviter les doubles slashes
+        let path = cleaned.hasPrefix("/") ? String(cleaned.dropFirst()) : cleaned
+        let resolved = "https://wayfinder-api-w92x.onrender.com/\(path)"
+        
+        print("🖼️ [JourneyAvatarView] Resolving image URL: '\(raw)' -> '\(resolved)'")
         return URL(string: resolved)
     }
     
     private var placeholderURL: URL? {
-        guard let seed = placeholderSeed, !seed.isEmpty else { return nil }
-        let index = abs(seed.hashValue % 70)
-        return URL(string: "https://i.pravatar.cc/150?img=\(index)")
+        // Ne pas utiliser de placeholder random, retourner nil pour afficher le placeholder par défaut
+        // Cela permet d'afficher l'icône person par défaut au lieu d'une image random
+        return nil
     }
     
     private var placeholder: some View {
@@ -257,6 +301,14 @@ private struct JourneyCommentRow: View {
                 placeholderSeed: comment.user?.id ?? comment.userId
             )
                 .frame(width: 36, height: 36)
+                .onAppear {
+                    // Debug: Log pour voir l'URL de l'image
+                    if let profileUrl = comment.user?.profileImageUrl {
+                        print("🖼️ [JourneyCommentRow] Comment by \(comment.user?.username ?? "unknown") - Profile URL: \(profileUrl)")
+                    } else {
+                        print("⚠️ [JourneyCommentRow] Comment by \(comment.user?.username ?? "unknown") - No profile URL")
+                    }
+                }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(comment.displayName)

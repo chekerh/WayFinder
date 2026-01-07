@@ -229,9 +229,15 @@ final class HomeViewModel: ObservableObject {
             countries = try await countryService.fetchCountries(regionId: regionId)
             print("✅ [HomeViewModel] Loaded \(countries.count) countries for region \(regionId)")
         } catch {
-            print("❌ [HomeViewModel] Error loading countries: \(error.localizedDescription)")
-            countriesErrorMessage = error.localizedDescription
-            countries = [] // Réinitialiser en cas d'erreur
+            // Endpoint may not exist (404), handle silently
+            if error.localizedDescription.contains("404") || error.localizedDescription.contains("Not Found") {
+                print("⚠️ [HomeViewModel] Countries endpoint not available for region \(regionId), skipping")
+                countries = [] // Empty list, no error message
+            } else {
+                print("❌ [HomeViewModel] Error loading countries: \(error.localizedDescription)")
+                countriesErrorMessage = error.localizedDescription
+                countries = [] // Réinitialiser en cas d'erreur
+            }
         }
     }
 

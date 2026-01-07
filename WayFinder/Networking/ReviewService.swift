@@ -172,7 +172,8 @@ final class ReviewService {
         }
         
         let decoder = JSONDecoder()
-        // Use default keys (camelCase) since API returns camelCase
+        // Backend returns camelCase (averageRating, totalReviews, ratingDistribution)
+        // So we use default keys without conversion
         decoder.keyDecodingStrategy = .useDefaultKeys
         
         do {

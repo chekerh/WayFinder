@@ -160,11 +160,8 @@ struct ReviewStats: Decodable {
     let totalReviews: Int
     let ratingDistribution: [Int: Int]?
     
-    enum CodingKeys: String, CodingKey {
-        case averageRating = "average_rating"
-        case totalReviews = "total_reviews"
-        case ratingDistribution = "rating_distribution"
-    }
+    // Backend returns camelCase, so we use default keys
+    // No CodingKeys needed - backend already returns camelCase
 }
 
 struct CreateReviewRequest: Encodable {

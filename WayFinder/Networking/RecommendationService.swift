@@ -45,6 +45,12 @@ final class RecommendationService {
         type: String = "all",
         limit: Int = 10
     ) async throws -> PersonalizedRecommendationsPayload {
+        // Vérifier si un token est présent avant de faire l'appel (endpoint protégé)
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [RecommendationService] No token found, cannot fetch personalized recommendations")
+            throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+        }
+        
         let queryItems = [
             URLQueryItem(name: "type", value: type),
             URLQueryItem(name: "limit", value: String(limit))
@@ -64,6 +70,12 @@ final class RecommendationService {
         type: String = "all",
         limit: Int = 10
     ) async throws -> PersonalizedRecommendationsPayload {
+        // Vérifier si un token est présent avant de faire l'appel (endpoint protégé)
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [RecommendationService] No token found, cannot fetch personalized recommendations")
+            throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+        }
+        
         let queryItems = [
             URLQueryItem(name: "type", value: type),
             URLQueryItem(name: "limit", value: String(limit))

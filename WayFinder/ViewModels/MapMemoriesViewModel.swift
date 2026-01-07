@@ -34,6 +34,14 @@ final class MapMemoriesViewModel: ObservableObject {
             return
         }
         
+        // Vérifier si un token est présent avant de faire l'appel
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [MapMemoriesViewModel] No token found, cannot load map memories")
+            errorMessage = "Non autorisé. Veuillez vous connecter."
+            isLoading = false
+            return
+        }
+        
         isLoading = true
         errorMessage = nil
         

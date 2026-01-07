@@ -175,6 +175,10 @@ struct OTPScreenView: View {
                     )
                     .focused($focusedField, equals: index)
                     .onChange(of: codeDigits[index]) { oldValue, newValue in
+                        // Clear error message when user starts typing
+                        if !newValue.isEmpty && oldValue != newValue {
+                            errorMessage = nil
+                        }
                         handleOTPChange(at: index, newValue: newValue)
                     }
                 }
@@ -198,13 +202,8 @@ struct OTPScreenView: View {
             focusedField = index + 1
         }
         
-        // Auto-submit when all fields are filled
-        if isOTPComplete && codeDigits.allSatisfy({ !$0.isEmpty }) {
-            Task {
-                try? await Task.sleep(nanoseconds: 300_000_000) // Small delay for UX
-                await verifyOTP()
-            }
-        }
+        // Note: Auto-submit désactivé - l'utilisateur doit cliquer sur "Se connecter" manuellement
+        // Cela évite les erreurs prématurées si le code n'est pas encore complètement saisi
     }
     
     @MainActor

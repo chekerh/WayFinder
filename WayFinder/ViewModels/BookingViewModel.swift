@@ -38,6 +38,13 @@ final class BookingViewModel: ObservableObject {
             return 
         }
         
+        // Vérifier si un token est présent avant de faire l'appel
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [BookingViewModel] No token found, cannot load booking history")
+            errorMessage = "Non autorisé. Veuillez vous connecter."
+            return
+        }
+        
         // Vérifier le throttling - éviter les appels trop fréquents
         if let lastLoad = lastLoadTime {
             let timeSinceLastLoad = Date().timeIntervalSince(lastLoad)

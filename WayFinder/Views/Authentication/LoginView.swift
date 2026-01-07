@@ -32,6 +32,7 @@ struct LoginView: View {
     @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var loggedInUserName: String?
     @State private var navigationPath = NavigationPath()
+    @State private var navigateToHome = false // Pour afficher HomeScreen en fullScreenCover
 
     private let googleLoginEnabled = true
     
@@ -290,6 +291,15 @@ struct LoginView: View {
                     email = storedEmail
                 }
             }
+            .fullScreenCover(isPresented: $navigateToHome) {
+                NavigationStack {
+                    HomeScreen(initialName: loggedInUserName)
+                        .navigationBarBackButtonHidden(true)
+                        .environmentObject(languageManager)
+                        .environment(\.locale, languageManager.locale)
+                        .environment(\.layoutDirection, languageManager.layoutDirection)
+                }
+            }
         }
     } // Fin body
 } // Fin struct
@@ -349,15 +359,14 @@ private extension LoginView {
             // Sauvegarder le profil utilisateur pour que HomeScreen puisse vérifier l'état d'onboarding
             UserStorage.saveProfile(user)
             
-            // Navigate to home (popup will show if onboarding not completed, like Android)
-            let destination = "home"
-            print("✅ [LoginView] Navigating to: \(destination) (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
+            // Navigate to home using fullScreenCover for better UX
+            print("✅ [LoginView] Login successful, navigating to home (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
             
-            // Trigger navigation on main thread
+            // Trigger navigation on main thread using fullScreenCover
             await MainActor.run {
-                navigationPath.append(destination)
                 isLoggedIn = true
-                print("✅ [LoginView] Navigation triggered, destination: \(destination), isLoggedIn: \(isLoggedIn)")
+                navigateToHome = true
+                print("✅ [LoginView] Navigation triggered to home, isLoggedIn: \(isLoggedIn)")
             }
         } catch {
             loginError = error.localizedDescription
@@ -416,14 +425,13 @@ private extension LoginView {
             print("✅ [LoginView] Setting loggedInUserName: \(loggedInUserName)")
             print("✅ [LoginView] Onboarding status - completed: \(loginResult.onboardingCompleted ?? false)")
             
-            // Navigate to home (onboarding popup will show if needed)
-            let destination = "home"
-            print("✅ [LoginView] Navigating to: \(destination) (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
+            // Navigate to home using fullScreenCover
+            print("✅ [LoginView] Google login successful, navigating to home (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
             
             await MainActor.run {
-                navigationPath.append(destination)
                 isLoggedIn = true
-                print("✅ [LoginView] Google login navigation triggered")
+                navigateToHome = true
+                print("✅ [LoginView] Google login navigation triggered to home")
             }
         } catch {
             loginError = error.localizedDescription
@@ -470,12 +478,13 @@ private extension LoginView {
             loggedInUserName = user.displayNameValue
             print("✅ [LoginView] Onboarding status - completed: \(loginResult.onboardingCompleted ?? false)")
             
-            // Navigate to home (onboarding popup will show if needed)
-            let destination = "home"
+            // Navigate to home using fullScreenCover
+            print("✅ [LoginView] Apple login successful, navigating to home (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
+            
             await MainActor.run {
-                navigationPath.append(destination)
                 isLoggedIn = true
-                print("✅ [LoginView] Apple login navigation triggered")
+                navigateToHome = true
+                print("✅ [LoginView] Apple login navigation triggered to home")
             }
         } catch {
             loginError = error.localizedDescription

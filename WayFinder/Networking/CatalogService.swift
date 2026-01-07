@@ -79,6 +79,12 @@ final class CatalogService {
         maxResults: Int? = nil,
         maxPrice: Double? = nil
     ) async throws -> RecommendedFlightsResponse {
+        // Vérifier si un token est présent avant de faire l'appel (endpoint protégé)
+        guard let token = TokenStorage.fetch(), !token.isEmpty else {
+            print("⚠️ [CatalogService] No token found, cannot fetch recommended flights")
+            throw APIError.custom("Non autorisé. Veuillez vous connecter.")
+        }
+        
         var queryItems: [URLQueryItem] = []
         
         if let origin = originLocationCode {

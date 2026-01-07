@@ -303,10 +303,19 @@ final class AuthService {
 
     /// Vérifie le code OTP et connecte l'utilisateur
     func verifyOTP(email: String, code: String) async throws -> UserProfile {
+        // Normaliser le code OTP : supprimer tous les caractères non numériques et s'assurer qu'il fait exactement 4 chiffres
+        let normalizedCode = code
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+            .padding(toLength: 4, withPad: "0", startingAt: 0)
+            .prefix(4)
+        
+        print("🔐 [AuthService] Verifying OTP - Original code: '\(code)', Normalized: '\(normalizedCode)'")
+        
         let encoder = JSONEncoder()
         let data = try encoder.encode(VerifyOTPRequest(
             email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-            code: code.trimmingCharacters(in: .whitespacesAndNewlines)
+            code: String(normalizedCode)
         ))
 
         let builder = DefaultRequest(
@@ -315,8 +324,14 @@ final class AuthService {
             headers: ["Content-Type": "application/json"],
             body: data
         )
+        
+        // Log the request body for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔐 [AuthService] Verify OTP request body: \(jsonString)")
+        }
 
         let response = try await APIService.shared.request(builder, decodeTo: VerifyOTPResponse.self)
+        print("✅ [AuthService] OTP verification successful")
         TokenStorage.save(token: response.accessToken)
 
         // Register FCM token after login
