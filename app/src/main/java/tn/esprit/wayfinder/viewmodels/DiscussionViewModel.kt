@@ -189,8 +189,23 @@ class DiscussionViewModel(
     }
 
     fun createComment(postId: String, content: String, parentId: String? = null, currentUser: DiscussionUser?) {
-        // Optimistic update: add comment immediately to UI
+        // Always ensure we have the post detail loaded first
         val currentDetailState = _postDetailState.value
+        
+        // If state is not Success or post ID doesn't match, load it first
+        if (currentDetailState !is PostDetailUiState.Success || currentDetailState.post.id != postId) {
+            viewModelScope.launch {
+                try {
+                    loadPostDetail(postId)
+                    // Wait a bit for the load to complete
+                    kotlinx.coroutines.delay(200)
+                } catch (e: Exception) {
+                    android.util.Log.e("DiscussionViewModel", "Error loading post detail: ${e.message}")
+                }
+            }
+        }
+        
+        // Optimistic update: add comment immediately to UI if we have the right state
         if (currentDetailState is PostDetailUiState.Success && 
             currentDetailState.post.id == postId && 
             currentUser != null) {
@@ -234,7 +249,10 @@ class DiscussionViewModel(
                 listOf(tempComment) + currentDetailState.comments
             }
             
+            android.util.Log.d("DiscussionViewModel", "Adding optimistic comment. Total comments now: ${updatedComments.size}")
             _postDetailState.value = currentDetailState.copy(comments = updatedComments)
+        } else {
+            android.util.Log.d("DiscussionViewModel", "Cannot add optimistic comment. State: ${currentDetailState::class.simpleName}, Post ID match: ${(currentDetailState as? PostDetailUiState.Success)?.post?.id == postId}, User: ${currentUser != null}")
         }
         
         // Make API call in background
@@ -267,8 +285,10 @@ class DiscussionViewModel(
                         }
                     } else {
                         // For top-level comments, replace temp with real
-                        updatedState.comments.map { comment ->
-                            if (comment.id.startsWith("temp_")) {
+                        // Find and replace the temp comment that matches the content
+                        updatedState.comments.mapIndexed { index, comment ->
+                            if (comment.id.startsWith("temp_") && comment.content == content) {
+                                // Replace this temp comment with the real one
                                 newComment
                             } else {
                                 comment
@@ -281,9 +301,10 @@ class DiscussionViewModel(
                     loadPostDetail(postId)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("DiscussionViewModel", "Error creating comment: ${e.message}", e)
                 // Rollback on error - remove temporary comment
                 val rollbackState = _postDetailState.value
-                if (rollbackState is PostDetailUiState.Success) {
+                if (rollbackState is PostDetailUiState.Success && rollbackState.post.id == postId) {
                     val cleanedComments = if (parentId != null) {
                         rollbackState.comments.map { comment ->
                             if (comment.id == parentId) {
@@ -303,9 +324,8 @@ class DiscussionViewModel(
                     }
                     _postDetailState.value = rollbackState.copy(comments = cleanedComments)
                 }
-                _postDetailState.value = PostDetailUiState.Error(
-                    e.message ?: "Failed to create comment"
-                )
+                // Reload to get current state
+                loadPostDetail(postId)
             }
         }
     }

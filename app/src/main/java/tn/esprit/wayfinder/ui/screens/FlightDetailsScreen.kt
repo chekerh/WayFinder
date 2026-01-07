@@ -295,7 +295,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             airline = null
         )
     }
-    
+
     LaunchedEffect(destination) {
         navController.currentBackStackEntry
             ?.savedStateHandle
@@ -369,10 +369,10 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             
             // Gradient overlay for better text readability
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
+            modifier = Modifier
+                .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Black.copy(alpha = 0.3f)
@@ -396,16 +396,16 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(24.dp)
-            ) {
+                        .padding(24.dp)
+                ) {
 
                 // Destination Title and Price
-                Text(
-                    text = destination.name,
+                    Text(
+                        text = destination.name,
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Bold,
                     color = colorScheme.onBackground
-                )
+                    )
                 if (destination.country.isNotBlank()) {
                     Text(
                         text = destination.country,
@@ -414,11 +414,11 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                if (destination.price != null) {
-                    Text(
-                        text = "${destination.price.toInt()} ${destination.currency}",
+                    if (destination.price != null) {
+                        Text(
+                            text = "${destination.price.toInt()} ${destination.currency}",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Bold,
                         color = colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -526,119 +526,119 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Flight Information - Glass Effect (Glassmorphism)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
+                    Text(
                             text = StringTranslator.translate(context, "Informations du vol"),
-                            fontSize = 20.sp,
+                        fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.onSurface
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                    text = StringTranslator.translate(context, "Départ"),
+                                fontSize = 14.sp,
+                                    color = colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = destination.departureDate?.substringBefore("T") ?: "N/A",
+                                fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
+                            )
+                            Text(
+                                text = destination.departureDate?.substringAfter("T")?.substringBefore(":")?.let {
+                                    "${it}:${destination.departureDate.substringAfter(":").substringBefore(":")}"
+                                } ?: "N/A",
+                                fontSize = 16.sp,
+                                    color = colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.Filled.Flight,
+                            contentDescription = null,
+                                tint = colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = StringTranslator.translate(context, "Départ"),
-                                    fontSize = 14.sp,
-                                    color = colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = destination.departureDate?.substringBefore("T") ?: "N/A",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colorScheme.onSurface
-                                )
-                                Text(
-                                    text = destination.departureDate?.substringAfter("T")?.substringBefore(":")?.let {
-                                        "${it}:${destination.departureDate.substringAfter(":").substringBefore(":")}"
-                                    } ?: "N/A",
-                                    fontSize = 16.sp,
-                                    color = colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Icon(
-                                imageVector = Icons.Filled.Flight,
-                                contentDescription = null,
-                                tint = colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
                                     text = StringTranslator.translate(context, "Arrivée"),
-                                    fontSize = 14.sp,
+                                fontSize = 14.sp,
                                     color = colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = destination.arrivalDate?.substringBefore("T") ?: "N/A",
-                                    fontSize = 18.sp,
+                            )
+                            Text(
+                                text = destination.arrivalDate?.substringBefore("T") ?: "N/A",
+                                fontSize = 18.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colorScheme.onSurface
-                                )
-                                Text(
-                                    text = destination.arrivalDate?.substringAfter("T")?.substringBefore(":")?.let {
-                                        "${it}:${destination.arrivalDate.substringAfter(":").substringBefore(":")}"
-                                    } ?: "N/A",
-                                    fontSize = 16.sp,
+                            )
+                            Text(
+                                text = destination.arrivalDate?.substringAfter("T")?.substringBefore(":")?.let {
+                                    "${it}:${destination.arrivalDate.substringAfter(":").substringBefore(":")}"
+                                } ?: "N/A",
+                                fontSize = 16.sp,
                                     color = colorScheme.onSurfaceVariant
-                                )
-                            }
+                            )
                         }
+                    }
 
                         HorizontalDivider(
                             color = colorScheme.outline.copy(alpha = 0.3f)
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
                                     text = StringTranslator.translate(context, "Compagnie aérienne"),
-                                    fontSize = 14.sp,
+                                fontSize = 14.sp,
                                     color = colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = destination.airline ?: "N/A",
-                                    fontSize = 16.sp,
+                            )
+                            Text(
+                                text = destination.airline ?: "N/A",
+                                fontSize = 16.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
                                     text = StringTranslator.translate(context, "Durée"),
-                                    fontSize = 14.sp,
+                                fontSize = 14.sp,
                                     color = colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "~4h 30min",
-                                    fontSize = 16.sp,
+                            )
+                            Text(
+                                text = "~4h 30min",
+                                fontSize = 16.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
-                                )
-                            }
+                            )
                         }
                     }
                 }
+            }
                 Spacer(modifier = Modifier.height(16.dp))
 
 
@@ -658,7 +658,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
                         onClick = { showReviewsSheet = true }
-                ) {
+                    ) {
                         Row(
                         modifier = Modifier
                                 .fillMaxSize()
@@ -666,14 +666,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                                Icon(
+                            Icon(
                                 imageVector = Icons.Outlined.Star,
-                                    contentDescription = null,
+                                contentDescription = null,
                                     tint = Color(0xFFFFC107),
                                 modifier = Modifier.size(28.dp)
-                                )
+                            )
                             Column {
-                                Text(
+                            Text(
                                     text = reviewStats?.averageRating?.let { 
                                         String.format("%.1f", it) 
                                     } ?: "–",
@@ -719,7 +719,7 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                                 modifier = Modifier.size(28.dp)
                             )
                             Column {
-                            Text(
+                        Text(
                                     text = StringTranslator.translate(context, "Alerte prix"),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -737,14 +737,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Travel Tips - Collapsible
-                TravelTipsSection(
-                    destinationId = destination.id,
-                    destinationName = destination.name,
-                    city = destination.city,
-                    country = destination.country,
-                    travelTipsViewModel = travelTipsViewModel,
-                    navController = navController
-                )
+            TravelTipsSection(
+                destinationId = destination.id,
+                destinationName = destination.name,
+                city = destination.city,
+                country = destination.country,
+                travelTipsViewModel = travelTipsViewModel,
+                navController = navController
+            )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Action Buttons
@@ -801,29 +801,29 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
                     }
                     
                     // Organize Group Flight Button
-                    OutlinedButton(
-                        onClick = {
+                OutlinedButton(
+                    onClick = {
                             navController.currentBackStackEntry
                                 ?.savedStateHandle
                                 ?.set(SELECTED_DESTINATION_KEY, destination)
                             navController.navigate("airline_selection/${destination.id}")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(
                             2.dp,
                             colorScheme.primary
-                        )
-                    ) {
-                        Icon(
+                    )
+                ) {
+                    Icon(
                             imageVector = Icons.Filled.Group,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
                             text = StringTranslator.translate(context, "Organiser un vol de groupe"),
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.primary
@@ -833,60 +833,14 @@ fun FlightDetailsScreen(navController: NavController, destinationId: String) {
             }
         }
 
-        // Airline Logo Buttons on Right Side - Scroll with parallax and fade out
-        if (headerAlpha > 0.1f) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 16.dp)
-                    .statusBarsPadding()
-                    .padding(top = 100.dp)
-                    .graphicsLayer {
-                        // Move up with parallax
-                        translationY = -parallaxOffset * 0.8f
-                        // Fade out with scroll
-                        alpha = headerAlpha
-                    },
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-            // Booking.com
-            BookingSourceButton(
-                logoUrl = "https://upload.wikimedia.org/wikipedia/commons/6/66/Booking.com_logo.png",
-                sourceName = "Booking.com",
-                price = destination.price?.let { "${(it * 0.98).toInt()} ${destination.currency}" },
-                onClick = {
-                    // Show price comparison or open booking link
-                }
-            )
-            // Expedia
-            BookingSourceButton(
-                logoUrl = "https://upload.wikimedia.org/wikipedia/commons/5/5b/Expedia_2012_logo.svg",
-                sourceName = "Expedia",
-                price = destination.price?.let { "${(it * 1.02).toInt()} ${destination.currency}" },
-                onClick = {
-                    // Show price comparison or open booking link
-                }
-            )
-            // Skyscanner
-            BookingSourceButton(
-                logoUrl = "https://logos-world.net/wp-content/uploads/2021/02/Skyscanner-Logo.png",
-                sourceName = "Skyscanner",
-                price = destination.price?.let { "${it.toInt()} ${destination.currency}" },
-                onClick = {
-                    // Show price comparison or open booking link
-                }
-            )
-            }
-        }
-
         // Action Buttons overlay - fade out with scroll but back button always visible
         Box(
             modifier = Modifier
                 .fillMaxSize()
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(16.dp)
                     .align(Alignment.TopStart),
@@ -1011,9 +965,9 @@ fun ReviewsBottomSheet(
                     onClick = { showReviewDialog = true },
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(
+                        Icon(
                         Icons.Outlined.Edit,
-                        contentDescription = null,
+                            contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -1047,7 +1001,7 @@ fun ReviewsBottomSheet(
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
+                    Text(
                                     text = String.format("%.1f", stats.averageRating),
                                     fontSize = 36.sp,
                                     fontWeight = FontWeight.Bold,
@@ -1092,8 +1046,8 @@ fun ReviewsBottomSheet(
                                         )
                                         LinearProgressIndicator(
                                             progress = { percentage },
-                                            modifier = Modifier
-                                                .weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
                                                 .height(6.dp)
                                                 .clip(RoundedCornerShape(3.dp)),
                                             color = Color(0xFFFFC107),
@@ -1121,14 +1075,14 @@ fun ReviewsBottomSheet(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
+                    Icon(
                                     Icons.Outlined.RateReview,
-                                    contentDescription = null,
+                        contentDescription = null,
                                     modifier = Modifier.size(40.dp),
                                     tint = colorScheme.onSurfaceVariant
-                                )
+                    )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(
+                    Text(
                                     text = StringTranslator.translate(context, "Aucun avis pour le moment"),
                                     color = colorScheme.onSurfaceVariant
                                 )
@@ -1210,7 +1164,7 @@ fun CompactReviewCard(review: tn.esprit.wayfinder.models.Review) {
                                 else -> append(review.userId.username.firstOrNull() ?: '?')
                             }
                         }.uppercase()
-                        Text(
+                    Text(
                             text = displayInitial,
                             fontWeight = FontWeight.Bold,
                             color = colorScheme.primary,

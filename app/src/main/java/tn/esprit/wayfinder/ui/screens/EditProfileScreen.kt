@@ -167,7 +167,7 @@ fun EditProfileScreen(navController: NavController) {
     
     val colorScheme = MaterialTheme.colorScheme
     val isValid = firstName.isNotBlank() && lastName.isNotBlank() && email.isNotBlank()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -212,18 +212,18 @@ fun EditProfileScreen(navController: NavController) {
         },
         containerColor = WayFinderBackground
     ) { paddingValues ->
-        when (uiState) {
-            is UserUiState.Loading -> {
-                Box(
+            when (uiState) {
+                is UserUiState.Loading -> {
+                    Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
-            is UserUiState.Error -> {
+                is UserUiState.Error -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -234,17 +234,17 @@ fun EditProfileScreen(navController: NavController) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = (uiState as UserUiState.Error).message,
+                    Text(
+                        text = (uiState as UserUiState.Error).message,
                             color = MaterialTheme.colorScheme.error
-                        )
+                    )
                         Button(onClick = { userViewModel.loadProfile() }) {
                             Text(StringTranslator.translate(context, "Réessayer"))
                         }
                     }
                 }
-            }
-            else -> {
+                }
+                else -> {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -360,9 +360,9 @@ fun AnimatedProfilePictureSection(
     onImageClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val imageToShow = selectedImageUri ?: currentProfileImageUrl?.let { url ->
-        if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
-    }
+                            val imageToShow = selectedImageUri ?: currentProfileImageUrl?.let { url ->
+                                if (url.startsWith("http")) url else "https://wayfinder-api-w92x.onrender.com$url"
+                            }
     
     // Animation for profile picture
     val scale by animateFloatAsState(
@@ -403,27 +403,27 @@ fun AnimatedProfilePictureSection(
                     .background(WayFinderSurface, CircleShape)
                     .clickable(onClick = onImageClick)
             ) {
-                if (imageToShow != null) {
-                    AsyncImage(
-                        model = imageToShow.toString(),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
+                            if (imageToShow != null) {
+                                AsyncImage(
+                                    model = imageToShow.toString(),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop,
-                        placeholder = painterResource(id = R.drawable.europe),
-                        error = painterResource(id = R.drawable.europe)
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.europe),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
+                                    placeholder = painterResource(id = R.drawable.europe),
+                                    error = painterResource(id = R.drawable.europe)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.europe),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
                             .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
             }
             
             // Camera Icon Overlay with animation
@@ -438,16 +438,16 @@ fun AnimatedProfilePictureSection(
             
             FloatingActionButton(
                 onClick = onImageClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(40.dp)
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(40.dp)
                     .scale(cameraScale),
                 containerColor = colorScheme.primary,
                 contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.CameraAlt,
-                    contentDescription = "Change Profile Picture",
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.CameraAlt,
+                                    contentDescription = "Change Profile Picture",
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -475,14 +475,14 @@ fun ProfileSectionCard(
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
+                    Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = colorScheme.primary,
                 modifier = Modifier.padding(bottom = 4.dp)

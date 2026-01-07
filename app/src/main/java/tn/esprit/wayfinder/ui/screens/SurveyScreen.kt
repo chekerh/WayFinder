@@ -234,12 +234,12 @@ fun QuestionScreen(
         }
 
         // Main content - using BoxWithConstraints to better manage space
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
             Spacer(modifier = Modifier.height(56.dp)) // Space for skip button
 
             // Pinterest-style progress bar
@@ -277,8 +277,8 @@ fun QuestionScreen(
                     questionId = question.id,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    when (question.type) {
-                        "single_choice" -> {
+        when (question.type) {
+            "single_choice" -> {
                             PinterestSingleChoiceQuestion(
                                 question.options ?: emptyList(),
                                 onAnswer
@@ -480,7 +480,7 @@ fun PinterestMultipleChoiceQuestion(
                                 if (maxSelections != null && newSelection.size > maxSelections) {
                                     // Remove oldest selection if max reached
                                     selectedOptions.drop(1).toSet() + option.value
-                                } else {
+                        } else {
                                     newSelection
                                 }
                             }
@@ -517,13 +517,13 @@ fun PinterestMultipleChoiceQuestion(
                                 val newSelection = selectedOptions + option.value
                                 if (maxSelections != null && newSelection.size > maxSelections) {
                                     selectedOptions.drop(1).toSet() + option.value
-                                } else {
+                        } else {
                                     newSelection
-                                }
-                            }
+                        }
+                    }
                         },
                         modifier = Modifier.fillMaxWidth()
-                    )
+                )
                 }
             }
         }

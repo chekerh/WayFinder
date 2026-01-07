@@ -272,13 +272,50 @@ class JourneyViewModel(private val journeyRepository: JourneyRepository) : ViewM
         }
     }
     
-    fun addComment(journeyId: String, content: String, parentCommentId: String? = null) {
+    fun addComment(journeyId: String, content: String, parentCommentId: String? = null, currentUser: tn.esprit.wayfinder.models.UserPreview? = null) {
+        // Optimistic update: add comment immediately to UI
+        if (currentUser != null) {
+            val tempCommentId = "temp_${System.currentTimeMillis()}"
+            val now = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
+            
+            val tempComment = JourneyComment(
+                id = tempCommentId,
+                journeyId = journeyId,
+                userId = currentUser.id,
+                content = content,
+                parentCommentId = parentCommentId,
+                createdAt = now,
+                updatedAt = now,
+                user = currentUser
+            )
+            
+            // Add temp comment to the beginning of the list
+            val currentComments = _comments.value
+            _comments.value = listOf(tempComment) + currentComments
+        }
+        
+        // Make API call in background
         viewModelScope.launch {
             try {
-                journeyRepository.addComment(journeyId, content, parentCommentId)
-                loadComments(journeyId)
+                val newComment = journeyRepository.addComment(journeyId, content, parentCommentId)
+                // Replace temporary comment with real one
+                // Find and replace the temp comment that matches the content
+                val currentComments = _comments.value
+                val updatedComments = currentComments.map { comment ->
+                    if (comment.id.startsWith("temp_") && comment.content == content) {
+                        // Replace this temp comment with the real one
+                        newComment
+                    } else {
+                        comment
+                    }
+                }
+                _comments.value = updatedComments
             } catch (e: Exception) {
-                // Handle error
+                // Rollback on error - remove temporary comment
+                val currentComments = _comments.value
+                _comments.value = currentComments.filter { !it.id.startsWith("temp_") }
+                // Reload to get current state
+                loadComments(journeyId)
             }
         }
     }

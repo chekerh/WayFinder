@@ -262,20 +262,10 @@ fun HomeScreen(navController: NavController) {
                         text = StringTranslator.translate(context, "Voyages adaptés à vos préférences"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 12.dp) // iOS: spacing 0 between sections, padding bottom 8 + 4
                     )
                 }
                 
-                // Region section (matching iOS - padding horizontal 24)
-                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                    RegionSection(
-                        regions = regions,
-                        selectedRegion = selectedRegion,
-                        onRegionSelected = { regionName ->
-                            selectedRegion = if (selectedRegion == regionName) null else regionName
-                        }
-                    )
-                }
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -309,6 +299,24 @@ fun HomeScreen(navController: NavController) {
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Region section - moved under "Comparateur avec Gemini"
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        RegionSection(
+                            regions = regions,
+                            selectedRegion = selectedRegion,
+                            onRegionSelected = { regionName ->
+                                selectedRegion = if (selectedRegion == regionName) null else regionName
+                            }
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     
                     when (val state = uiState) {
                         is CatalogUiState.Loading -> {
@@ -781,11 +789,12 @@ fun RegionSection(
     selectedRegion: String?,
     onRegionSelected: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     
     Row(
         modifier = Modifier.horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp) // iOS spacing: 16dp
     ) {
         regions.forEach { region -> 
             RegionChip(
@@ -803,39 +812,47 @@ fun RegionChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
+    
+    // Match iOS: Check if this is "Préférences" by checking translated name
+    val isPreferences = region.name == StringTranslator.translate(context, "Préférences")
+    
     Row(
         modifier = Modifier
             .background(
-                if (isSelected) Color(0xFF1976D2) else colorScheme.surface,
-                RoundedCornerShape(12.dp)
+                if (isSelected) Color(0xFF1976D2) else colorScheme.surface, // iOS accent color
+                RoundedCornerShape(50.dp) // Capsule shape like iOS
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 10.dp), // iOS padding: h16, v10
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp) // iOS spacing: 12dp
     ) {
-        // Use icon for "Préférences", image for others
-        if (region.name == "Préférences") {
+        // Use icon for "Préférences", image for others - matching iOS sizes
+        if (isPreferences) {
             Icon(
                 imageVector = Icons.Filled.Star,
                 contentDescription = region.name,
-                modifier = Modifier.size(16.dp),
-                tint = if (isSelected) Color.White else Color(0xFFFFC107)
+                modifier = Modifier.size(24.dp), // iOS size: 24dp
+                tint = if (isSelected) Color.White else Color(0xFFFFC107) // iOS yellow: #FFC107
             )
         } else {
             Image(
                 painter = painterResource(id = region.imageRes),
                 contentDescription = region.name,
-                modifier = Modifier.size(20.dp).clip(CircleShape)
+                modifier = Modifier
+                    .size(32.dp) // iOS size: 32dp
+                    .clip(CircleShape)
             )
         }
-        Spacer(modifier = Modifier.width(6.dp))
+        
         Text(
             text = region.name,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, // iOS: bold when selected
             color = if (isSelected) Color.White else colorScheme.onSurface,
-            fontSize = 12.sp
+            fontSize = 16.sp // iOS size: 16sp
         )
     }
 }

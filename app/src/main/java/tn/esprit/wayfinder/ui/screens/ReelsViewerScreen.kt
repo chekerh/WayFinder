@@ -1149,14 +1149,10 @@ fun CommentsBottomSheet(
                             // If post ID doesn't match, reload for the correct post
                             if (!postIdMatches) {
                                 LaunchedEffect(item.post.id) {
+                                    android.util.Log.d("CommentsBottomSheet", "Post ID mismatch, reloading. Current: ${currentPostState.post.id}, Expected: ${item.post.id}")
                                     discussionViewModel.loadPostDetail(item.post.id)
                                 }
-                            }
-                            
-                            // Use postComments which already has the correct filtering logic
-                            val actualComments = postComments
-                            
-                            if (actualComments.isEmpty()) {
+                                // Show loading while reloading
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1164,47 +1160,64 @@ fun CommentsBottomSheet(
                                         .padding(32.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
-                                        color = colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        textAlign = TextAlign.Center
-                                    )
+                                    CircularProgressIndicator()
                                 }
                             } else {
-                                LazyColumn(
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(actualComments) { comment ->
-                                        InstagramStyleCommentCard(
-                                            comment = comment,
-                                            currentUserId = currentUser?.id,
-                                            onLikeClick = {
-                                                discussionViewModel.likeComment(
-                                                    comment.id,
-                                                    item.post.id,
-                                                    currentUser?.id
-                                                )
-                                            }
+                                // Use comments directly from success state (more reliable)
+                                val actualComments = currentPostState.comments
+                                
+                                android.util.Log.d("CommentsBottomSheet", "Displaying comments. Count: ${actualComments.size}, Post ID: ${currentPostState.post.id}")
+                                
+                                if (actualComments.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .padding(32.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = StringTranslator.translate(context, "Aucun commentaire pour le moment"),
+                                            color = colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            textAlign = TextAlign.Center
                                         )
-                                        
-                                        // Display replies if any
-                                        if (comment.replies.isNotEmpty()) {
-                                            comment.replies.forEach { reply ->
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                InstagramStyleCommentCard(
-                                                    comment = reply,
-                                                    currentUserId = currentUser?.id,
-                                                    onLikeClick = {
-                                                        discussionViewModel.likeComment(
-                                                            reply.id,
-                                                            item.post.id,
-                                                            currentUser?.id
-                                                        )
-                                                    }
-                                                )
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        items(actualComments) { comment ->
+                                            InstagramStyleCommentCard(
+                                                comment = comment,
+                                                currentUserId = currentUser?.id,
+                                                onLikeClick = {
+                                                    discussionViewModel.likeComment(
+                                                        comment.id,
+                                                        item.post.id,
+                                                        currentUser?.id
+                                                    )
+                                                }
+                                            )
+                                            
+                                            // Display replies if any
+                                            if (comment.replies.isNotEmpty()) {
+                                                comment.replies.forEach { reply ->
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    InstagramStyleCommentCard(
+                                                        comment = reply,
+                                                        currentUserId = currentUser?.id,
+                                                        onLikeClick = {
+                                                            discussionViewModel.likeComment(
+                                                                reply.id,
+                                                                item.post.id,
+                                                                currentUser?.id
+                                                            )
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -1336,27 +1349,35 @@ fun CommentsBottomSheet(
                                                 
                                                 when (item) {
                                                     is ReelContentItem.PostItem -> {
-                                                        // Create comment (has optimistic update if state is loaded)
+                                                        // Create comment (has optimistic update and auto-reload in ViewModel)
                                                         discussionViewModel.createComment(
                                                             item.post.id,
                                                             textToSubmit,
                                                             null,
                                                             currentUserObj
                                                         )
-                                                        // Reload after a short delay to sync with server
-                                                        kotlinx.coroutines.delay(500)
-                                                        discussionViewModel.loadPostDetail(item.post.id)
+                                                        // ViewModel handles optimistic update and server sync automatically
+                                                        // No need to manually reload - it will update the state when server responds
                                                     }
                                                     is ReelContentItem.JourneyItem -> {
-                                                        // Add comment
+                                                        // Convert current user to UserPreview for optimistic update
+                                                        val currentUserPreview = currentUser?.let {
+                                                            tn.esprit.wayfinder.models.UserPreview(
+                                                                id = it.id,
+                                                                username = it.username,
+                                                                firstName = it.firstName,
+                                                                lastName = it.lastName,
+                                                                profileImageUrl = it.profileImageUrl
+                                                            )
+                                                        }
+                                                        // Add comment (has optimistic update if user is provided)
                                                         journeyViewModel.addComment(
                                                             item.journey.id,
                                                             textToSubmit,
-                                                            null
+                                                            null,
+                                                            currentUserPreview
                                                         )
-                                                        // Reload after delay to sync
-                                                        kotlinx.coroutines.delay(1000)
-                                                        journeyViewModel.loadComments(item.journey.id)
+                                                        // ViewModel handles optimistic update and server sync automatically
                                                     }
                                                 }
                                             } catch (e: Exception) {
@@ -1416,23 +1437,34 @@ fun CommentsBottomSheet(
                                         
                                         when (item) {
                                             is ReelContentItem.PostItem -> {
+                                                // Create comment (has optimistic update and auto-reload in ViewModel)
                                                 discussionViewModel.createComment(
                                                     item.post.id,
                                                     textToSubmit,
                                                     null,
                                                     currentUserObj
                                                 )
-                                                kotlinx.coroutines.delay(1500)
-                                                discussionViewModel.loadPostDetail(item.post.id)
+                                                // ViewModel handles optimistic update and server sync automatically
                                             }
                                             is ReelContentItem.JourneyItem -> {
+                                                // Convert current user to UserPreview for optimistic update
+                                                val currentUserPreview = currentUser?.let {
+                                                    tn.esprit.wayfinder.models.UserPreview(
+                                                        id = it.id,
+                                                        username = it.username,
+                                                        firstName = it.firstName,
+                                                        lastName = it.lastName,
+                                                        profileImageUrl = it.profileImageUrl
+                                                    )
+                                                }
+                                                // Add comment (has optimistic update if user is provided)
                                                 journeyViewModel.addComment(
                                                     item.journey.id,
                                                     textToSubmit,
-                                                    null
+                                                    null,
+                                                    currentUserPreview
                                                 )
-                                                kotlinx.coroutines.delay(1500)
-                                                journeyViewModel.loadComments(item.journey.id)
+                                                // ViewModel handles optimistic update and server sync automatically
                                             }
                                         }
                                     } catch (e: Exception) {
