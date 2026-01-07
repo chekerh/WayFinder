@@ -144,6 +144,30 @@ struct JourneyCommentsSheet: View {
             if viewModel.isLoadingComments {
                 ProgressView()
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else if let errorMessage = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Text("Erreur lors du chargement des commentaires")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.red)
+                    Text(errorMessage)
+                        .font(.system(size: 13))
+                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        .multilineTextAlignment(.center)
+                    Button(action: {
+                        Task { await viewModel.loadComments() }
+                    }) {
+                        Text("Réessayer")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(ThemeColors.accent())
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .center)
             } else if viewModel.comments.isEmpty {
                 Text("Aucun commentaire pour le moment. Soyez le premier à réagir !")
                     .font(.system(size: 15))
@@ -170,11 +194,16 @@ struct JourneyCommentsSheet: View {
         HStack(spacing: 12) {
             TextField("Ajouter un commentaire...", text: $viewModel.commentText, axis: .vertical)
                 .textFieldStyle(.plain)
+                .foregroundColor(ThemeColors.primaryText(colorScheme))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(ThemeColors.surface(colorScheme).opacity(0.9))
+                        .fill(ThemeColors.surface(colorScheme))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(ThemeColors.border(colorScheme), lineWidth: 1)
                 )
             
             Button(action: {

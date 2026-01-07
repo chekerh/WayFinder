@@ -45,10 +45,21 @@ final class JourneyCommentsViewModel: ObservableObject {
         isLoadingComments = true
         defer { isLoadingComments = false }
         
+        print("🔄 [JourneyCommentsViewModel] Loading comments for journey: \(journeyId)")
         do {
             comments = try await service.getJourneyComments(journeyId: journeyId, limit: 100, skip: 0)
+            print("✅ [JourneyCommentsViewModel] Loaded \(comments.count) comments")
         } catch {
+            print("❌ [JourneyCommentsViewModel] Error loading comments: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
+            // Afficher l'erreur seulement si ce n'est pas une erreur 404 (pas de commentaires)
+            if let apiError = error as? APIError,
+               case .httpError(let code, _) = apiError,
+               code == 404 {
+                // 404 signifie qu'il n'y a pas encore de commentaires, ce n'est pas une erreur
+                comments = []
+                errorMessage = nil
+            }
         }
     }
     
