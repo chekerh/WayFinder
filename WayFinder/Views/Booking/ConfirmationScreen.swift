@@ -89,9 +89,9 @@ struct ConfirmationScreen: View {
                     .padding(20)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
+                            .fill(ThemeColors.surface(colorScheme))
                     )
-                    .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.04), radius: 4, x: 0, y: 4)
                     .padding(.horizontal, 24)
                     
                     Spacer()
@@ -142,7 +142,7 @@ struct ConfirmationScreen: View {
                                 .foregroundColor(Color(red: 0.098, green: 0.463, blue: 0.824))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 16)
-                                .background(Color.white)
+                                .background(ThemeColors.surface(colorScheme))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
                                         .stroke(Color(red: 0.098, green: 0.463, blue: 0.824), lineWidth: 2)
