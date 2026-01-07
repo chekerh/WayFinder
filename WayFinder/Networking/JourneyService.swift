@@ -287,20 +287,55 @@ final class JourneyService {
     }
     
     func getJourneyComments(journeyId: String, limit: Int? = nil, skip: Int? = nil) async throws -> [JourneyComment] {
+        // Le backend retourne une réponse paginée, donc on doit convertir skip en page
+        let page: Int
+        if let skip = skip, let limit = limit, limit > 0 {
+            page = (skip / limit) + 1
+        } else {
+            page = 1
+        }
+        
         var queryItems: [URLQueryItem] = []
         if let limit = limit {
             queryItems.append(URLQueryItem(name: "limit", value: "\(limit)"))
         }
-        if let skip = skip {
-            queryItems.append(URLQueryItem(name: "skip", value: "\(skip)"))
-        }
+        queryItems.append(URLQueryItem(name: "page", value: "\(page)"))
         
         let builder = DefaultRequest(
             method: "GET",
             path: "journey/\(journeyId)/comments",
             queryItems: queryItems.isEmpty ? nil : queryItems
         )
-        return try await APIService.shared.request(builder, decodeTo: [JourneyComment].self)
+        
+        // Le backend retourne une réponse paginée { data: [...], pagination: {...} }
+        // Utiliser requestRaw pour décoder manuellement
+        let (data, _) = try await APIService.shared.requestRaw(builder)
+        
+        // Log raw JSON for debugging
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🔍 [JourneyService] Raw JSON response for comments: \(jsonString.prefix(500))")
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .useDefaultKeys
+        decoder.dateDecodingStrategy = .iso8601
+        
+        // Essayer de décoder comme réponse paginée d'abord
+        do {
+            let paginatedResponse = try decoder.decode(PaginatedResponse<JourneyComment>.self, from: data)
+            print("✅ [JourneyService] Successfully decoded \(paginatedResponse.data.count) comments from paginated response")
+            return paginatedResponse.data
+        } catch {
+            // Si échec, essayer comme tableau direct (pour backward compatibility)
+            do {
+                let comments = try decoder.decode([JourneyComment].self, from: data)
+                print("✅ [JourneyService] Successfully decoded \(comments.count) comments from array response")
+                return comments
+            } catch {
+                print("❌ [JourneyService] Decoding error for comments: \(error)")
+                throw error
+            }
+        }
     }
     
     func addJourneyComment(journeyId: String, content: String, parentCommentId: String? = nil) async throws -> JourneyComment {
