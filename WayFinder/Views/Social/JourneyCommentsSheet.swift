@@ -252,17 +252,32 @@ private struct JourneyAvatarView: View {
     }
     
     private var resolvedURL: URL? {
-        guard let raw = urlString, !raw.isEmpty else {
+        guard let raw = urlString, !raw.isEmpty, raw != "null" else {
+            // Si pas d'URL, utiliser un placeholder basé sur le seed
             return placeholderURL
         }
-        let resolved = raw.hasPrefix("http") ? raw : "https://wayfinder-api-w92x.onrender.com\(raw)"
+        
+        // Nettoyer l'URL (supprimer les espaces, etc.)
+        let cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Si c'est déjà une URL complète, l'utiliser directement
+        if cleaned.hasPrefix("http://") || cleaned.hasPrefix("https://") {
+            return URL(string: cleaned)
+        }
+        
+        // Si c'est une URL relative, ajouter le domaine
+        // Supprimer le slash initial s'il existe pour éviter les doubles slashes
+        let path = cleaned.hasPrefix("/") ? String(cleaned.dropFirst()) : cleaned
+        let resolved = "https://wayfinder-api-w92x.onrender.com/\(path)"
+        
+        print("🖼️ [JourneyAvatarView] Resolving image URL: '\(raw)' -> '\(resolved)'")
         return URL(string: resolved)
     }
     
     private var placeholderURL: URL? {
-        guard let seed = placeholderSeed, !seed.isEmpty else { return nil }
-        let index = abs(seed.hashValue % 70)
-        return URL(string: "https://i.pravatar.cc/150?img=\(index)")
+        // Ne pas utiliser de placeholder random, retourner nil pour afficher le placeholder par défaut
+        // Cela permet d'afficher l'icône person par défaut au lieu d'une image random
+        return nil
     }
     
     private var placeholder: some View {
@@ -286,6 +301,14 @@ private struct JourneyCommentRow: View {
                 placeholderSeed: comment.user?.id ?? comment.userId
             )
                 .frame(width: 36, height: 36)
+                .onAppear {
+                    // Debug: Log pour voir l'URL de l'image
+                    if let profileUrl = comment.user?.profileImageUrl {
+                        print("🖼️ [JourneyCommentRow] Comment by \(comment.user?.username ?? "unknown") - Profile URL: \(profileUrl)")
+                    } else {
+                        print("⚠️ [JourneyCommentRow] Comment by \(comment.user?.username ?? "unknown") - No profile URL")
+                    }
+                }
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(comment.displayName)
