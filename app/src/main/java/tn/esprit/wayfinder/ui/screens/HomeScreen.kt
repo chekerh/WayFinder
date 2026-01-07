@@ -95,7 +95,6 @@ import tn.esprit.wayfinder.models.DiscussionPost
 import androidx.compose.ui.draw.scale
 import tn.esprit.wayfinder.ui.components.SwipeableDestinationCard
 import tn.esprit.wayfinder.ui.components.TravelReelsFeed
-import tn.esprit.wayfinder.ui.components.AiTravelVideoGenerator
 
 data class Region(val name: String, val imageRes: Int, val filterCountries: List<String> = emptyList())
 
@@ -615,17 +614,8 @@ fun HomeScreen(navController: NavController) {
                 
                 Spacer(modifier = Modifier.height(32.dp))
                 
-                // Travel Reels Feed Section - Modern reels/posts feed
+                // Travel Reels Feed Section - Modern reels/posts feed (includes discussions underneath)
                 TravelReelsFeed(navController = navController)
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Community Discussion Section - like iOS with recent posts preview
-                CommunityDiscussionSection(
-                    navController = navController,
-                    discussionViewModel = discussionViewModel,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
@@ -710,16 +700,6 @@ fun HomeScreen(navController: NavController) {
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // AI Travel Video Generator Section - Moved below reels
-                AiTravelVideoGenerator(
-                    onVideoGenerated = { videoUrl ->
-                        // Optionally navigate to video player or show in reels
-                        android.util.Log.d("HomeScreen", "AI Video generated: $videoUrl")
-                    }
-                )
                 
                 Spacer(modifier = Modifier.height(32.dp))
             }

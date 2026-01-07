@@ -82,22 +82,31 @@ fun AccommodationsListScreen(
             it.city ?: it.name ?: ""
         } ?: ""
         
-        // Map accommodation types to trip types, or use null if it's not a valid trip type
+        // Separate trip types from accommodation types
         // Valid trip types: business, honeymoon, family, adventure, leisure, solo, wellness, backpacking
+        // Valid accommodation types: hotel, airbnb, hostel, resort, apartment
         val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+        val validAccommodationTypes = setOf("hotel", "airbnb", "hostel", "resort", "apartment")
+        
         val tripType = if (accommodationType in validTripTypes) {
             accommodationType
         } else {
-            // For accommodation types (hotel, airbnb, hostel, resort, apartment), don't filter by tripType
             null
         }
         
-        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityName: $cityName, accommodationType: $accommodationType, tripType: $tripType, checkIn: $checkInDate, checkOut: $checkOutDate")
+        // Only pass accommodationType if it's an actual accommodation type, not a trip type
+        val actualAccommodationType = if (accommodationType in validAccommodationTypes) {
+            accommodationType
+        } else {
+            null
+        }
+        
+        android.util.Log.d("AccommodationsListScreen", "Searching hotels for cityName: $cityName, accommodationType: $actualAccommodationType, tripType: $tripType, checkIn: $checkInDate, checkOut: $checkOutDate")
         
         hotelsViewModel.searchHotels(
             cityName = cityName.takeIf { it.isNotBlank() },
             tripType = tripType,
-            accommodationType = accommodationType,
+            accommodationType = actualAccommodationType,
             checkInDate = checkInDate,
             checkOutDate = checkOutDate,
             limit = 20
@@ -197,8 +206,17 @@ fun AccommodationsListScreen(
                             it.city ?: it.name
                         } ?: ""
                         val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+                        val validAccommodationTypes = setOf("hotel", "airbnb", "hostel", "resort", "apartment")
                         val tripType = if (accommodationType in validTripTypes) accommodationType else null
-                        hotelsViewModel.searchHotels(cityName = cityName.takeIf { it.isNotBlank() }, tripType = tripType, accommodationType = accommodationType, limit = 20)
+                        val actualAccommodationType = if (accommodationType in validAccommodationTypes) accommodationType else null
+                        hotelsViewModel.searchHotels(
+                            cityName = cityName.takeIf { it.isNotBlank() }, 
+                            tripType = tripType, 
+                            accommodationType = actualAccommodationType,
+                            checkInDate = checkInDate,
+                            checkOutDate = checkOutDate,
+                            limit = 20
+                        )
                     }) {
                         Text(StringTranslator.translate(context, "Réessayer"))
                     }
@@ -243,11 +261,13 @@ fun AccommodationsListScreen(
                                 it.city ?: it.name
                             } ?: ""
                             val validTripTypes = setOf("business", "honeymoon", "family", "adventure", "leisure", "solo", "wellness", "backpacking")
+                            val validAccommodationTypes = setOf("hotel", "airbnb", "hostel", "resort", "apartment")
                             val tripType = if (accommodationType in validTripTypes) accommodationType else null
+                            val actualAccommodationType = if (accommodationType in validAccommodationTypes) accommodationType else null
                             hotelsViewModel.searchHotels(
                                 cityName = cityName.takeIf { it.isNotBlank() }, 
                                 tripType = tripType, 
-                                accommodationType = accommodationType,
+                                accommodationType = actualAccommodationType,
                                 checkInDate = checkInDate,
                                 checkOutDate = checkOutDate,
                                 limit = 20

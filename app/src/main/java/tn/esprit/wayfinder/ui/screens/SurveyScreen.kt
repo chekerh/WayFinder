@@ -446,85 +446,42 @@ fun PinterestMultipleChoiceQuestion(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Use grid layout for better visual appeal (Pinterest-style)
-        if (options.size > 4) {
-            // Calculate approximate height needed (2 rows per item, ~100dp per item)
-            val rows = (options.size + 1) / 2
-            val estimatedHeightDp = rows * 100
-            val maxHeightDp = 500
-            val finalHeight = minOf(estimatedHeightDp, maxHeightDp)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(finalHeight.dp)
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                items(options.size) { index ->
-                    val option = options[index]
-                    val isSelected = selectedOptions.contains(option.value)
-                    
-                    PinterestInterestCard(
-                        label = option.label,
-                        icon = getIconForInterest(option.label),
-                        isSelected = isSelected,
-                        onClick = {
-                            selectedOptions = if (isSelected) {
-                                selectedOptions - option.value
-                            } else {
-                                val newSelection = selectedOptions + option.value
-                                if (maxSelections != null && newSelection.size > maxSelections) {
-                                    // Remove oldest selection if max reached
-                                    selectedOptions.drop(1).toSet() + option.value
-                        } else {
-                                    newSelection
-                                }
-                            }
-                        }
+        // Always display all options - use column layout for better visibility
+        // This ensures all options are shown regardless of count
+        options.forEachIndexed { index, option ->
+            val isSelected = selectedOptions.contains(option.value)
+            
+            AnimatedVisibility(
+                visible = true,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 2 },
+                    animationSpec = tween(
+                        durationMillis = 400 + (index * 50),
+                        easing = FastOutSlowInEasing
                     )
-                }
-            }
-            }
-        } else {
-            // For fewer options, use column layout
-            options.forEachIndexed { index, option ->
-                val isSelected = selectedOptions.contains(option.value)
-                
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(
-                        initialOffsetY = { it / 2 },
-                        animationSpec = tween(
-                            durationMillis = 400 + (index * 50),
-                            easing = FastOutSlowInEasing
-                        )
-                    ) + fadeIn(
+                ) + fadeIn(
                         animationSpec = tween(400 + (index * 50))
                     )
-                ) {
-                    PinterestInterestCard(
-                        label = option.label,
-                        icon = getIconForInterest(option.label),
-                        isSelected = isSelected,
-                        onClick = {
-                            selectedOptions = if (isSelected) {
-                                selectedOptions - option.value
-                            } else {
-                                val newSelection = selectedOptions + option.value
-                                if (maxSelections != null && newSelection.size > maxSelections) {
-                                    selectedOptions.drop(1).toSet() + option.value
+            ) {
+                PinterestInterestCard(
+                    label = option.label,
+                    icon = getIconForInterest(option.label),
+                    isSelected = isSelected,
+                    onClick = {
+                        selectedOptions = if (isSelected) {
+                            selectedOptions - option.value
                         } else {
-                                    newSelection
+                            val newSelection = selectedOptions + option.value
+                            if (maxSelections != null && newSelection.size > maxSelections) {
+                                // Remove oldest selection if max reached
+                                selectedOptions.drop(1).toSet() + option.value
+                            } else {
+                                newSelection
+                            }
                         }
-                    }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                }
             }
         }
         

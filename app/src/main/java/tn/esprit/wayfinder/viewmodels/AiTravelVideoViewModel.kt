@@ -263,7 +263,7 @@ class AiTravelVideoViewModel(
     /**
      * Load available music tracks
      */
-    private fun loadMusicTracks() {
+    fun loadMusicTracks() {
         viewModelScope.launch {
             try {
                 val response = apiService.getMusicTracks()

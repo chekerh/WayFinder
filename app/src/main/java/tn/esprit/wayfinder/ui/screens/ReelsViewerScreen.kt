@@ -348,9 +348,15 @@ fun ReelItem(
     }
     
     val creatorName = when (item) {
-        is ReelContentItem.PostItem -> "${item.post.userId.firstName} ${item.post.userId.lastName}".trim()
+        is ReelContentItem.PostItem -> {
+            val firstName = item.post.userId.firstName?.takeIf { it.isNotBlank() } ?: ""
+            val lastName = item.post.userId.lastName?.takeIf { it.isNotBlank() } ?: ""
+            "$firstName $lastName".trim().ifEmpty { item.post.userId.username }
+        }
         is ReelContentItem.JourneyItem -> item.journey.user?.let {
-            "${it.firstName ?: ""} ${it.lastName ?: ""}".trim().ifEmpty { it.username }
+            val firstName = it.firstName?.takeIf { it.isNotBlank() } ?: ""
+            val lastName = it.lastName?.takeIf { it.isNotBlank() } ?: ""
+            "$firstName $lastName".trim().ifEmpty { it.username }
         } ?: "Traveler"
     }
     

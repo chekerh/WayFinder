@@ -37,6 +37,10 @@ import tn.esprit.wayfinder.utils.StringTranslator
 import tn.esprit.wayfinder.viewmodels.ReelContentItem
 import tn.esprit.wayfinder.viewmodels.ReelsViewModel
 import tn.esprit.wayfinder.viewmodels.ReelsUiState
+import tn.esprit.wayfinder.viewmodels.DiscussionViewModel
+import tn.esprit.wayfinder.viewmodels.DiscussionUiState
+import tn.esprit.wayfinder.ui.screens.DiscussionCard
+import tn.esprit.wayfinder.ui.screens.CompactPostCard
 
 /**
  * Embedded preview section for reels feed in HomeScreen
@@ -50,12 +54,18 @@ fun TravelReelsFeed(
     val reelsViewModel: ReelsViewModel = viewModel(
         factory = ViewModelFactory(context.applicationContext as Application)
     )
+    val discussionViewModel: DiscussionViewModel = viewModel(
+        factory = ViewModelFactory(context.applicationContext as Application)
+    )
     val uiState by reelsViewModel.uiState.collectAsState()
+    val discussionUiState by discussionViewModel.uiState.collectAsState()
     val colorScheme = MaterialTheme.colorScheme
+    var showCreateReelSheet by remember { mutableStateOf(false) }
     
-    // Load reels on first composition
+    // Load reels and discussions on first composition
     LaunchedEffect(Unit) {
         reelsViewModel.loadReelsFeed(refresh = true)
+        discussionViewModel.loadPosts(refresh = false)
     }
     
     Column(
@@ -123,18 +133,28 @@ fun TravelReelsFeed(
                         }
                     }
                 } else {
-                    // Show preview cards (first 4 items)
+                    // Show preview cards (first 4 items) with Create Reel card as first item
                     val previewItems = state.items.take(4)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
+                        // Create Reel Card (first item)
+                        item {
+                            CreateReelCard(
+                                onClick = {
+                                    showCreateReelSheet = true
+                                }
+                            )
+                        }
+                        
+                        // Other reel preview cards
                         items(previewItems.size) { index ->
                             val item = previewItems[index]
                             ReelPreviewCard(
                                 item = item,
                                 onClick = {
-                                    navController.navigate("reels_viewer/$index")
+                                    navController.navigate("reels_viewer/${index + 1}") // Offset by 1 because of create card
                                 }
                             )
                         }
@@ -169,6 +189,90 @@ fun TravelReelsFeed(
             }
             else -> {}
         }
+        
+        // Community Discussions Section (underneath reels)
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Discussions header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = StringTranslator.translate(context, "home_community_discussions"),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = colorScheme.onSurface
+            )
+            TextButton(onClick = { navController.navigate("discussions") }) {
+                Text(
+                    text = StringTranslator.translate(context, "voir_tout"),
+                    color = Color(0xFF1976D2)
+                )
+            }
+        }
+        
+        // Discussion posts preview
+        when (val state = discussionUiState) {
+            is DiscussionUiState.Success -> {
+                val recentPosts = state.posts.take(3)
+                if (recentPosts.isEmpty()) {
+                    DiscussionCard(navController = navController)
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        recentPosts.forEach { post ->
+                            CompactPostCard(
+                                post = post,
+                                onClick = {
+                                    navController.navigate("post_detail/${post.id}")
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            is DiscussionUiState.Loading -> {
+                repeat(2) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = colorScheme.surface
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+            }
+            else -> {
+                DiscussionCard(navController = navController)
+            }
+        }
+    }
+    
+    // Create Reel Bottom Sheet
+    if (showCreateReelSheet) {
+        CreateReelSheet(
+            onReelCreated = {
+                showCreateReelSheet = false
+                // Refresh reels feed
+                reelsViewModel.loadReelsFeed(refresh = true)
+            },
+            onDismiss = {
+                showCreateReelSheet = false
+            }
+        )
     }
 }
 
@@ -194,9 +298,15 @@ fun ReelPreviewCard(
     }
     
     val creatorName = when (item) {
-        is ReelContentItem.PostItem -> "${item.post.userId.firstName} ${item.post.userId.lastName}".trim()
+        is ReelContentItem.PostItem -> {
+            val firstName = item.post.userId.firstName?.takeIf { it.isNotBlank() } ?: ""
+            val lastName = item.post.userId.lastName?.takeIf { it.isNotBlank() } ?: ""
+            "$firstName $lastName".trim().ifEmpty { item.post.userId.username }
+        }
         is ReelContentItem.JourneyItem -> item.journey.user?.let { 
-            "${it.firstName ?: ""} ${it.lastName ?: ""}".trim().ifEmpty { it.username }
+            val firstName = it.firstName?.takeIf { it.isNotBlank() } ?: ""
+            val lastName = it.lastName?.takeIf { it.isNotBlank() } ?: ""
+            "$firstName $lastName".trim().ifEmpty { it.username }
         } ?: "Traveler"
     }
     
