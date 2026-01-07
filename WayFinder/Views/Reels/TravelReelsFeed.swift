@@ -3,8 +3,10 @@ import SwiftUI
 /// Embedded preview section for reels feed in HomeScreen
 struct TravelReelsFeed: View {
     @StateObject private var viewModel = ReelsViewModel()
+    @StateObject private var discussionViewModel = DiscussionViewModel()
     @Environment(\.colorScheme) private var colorScheme
     @Binding var navigateToReels: Bool
+    @State private var showCreateReelSheet = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -50,10 +52,16 @@ struct TravelReelsFeed: View {
                     .frame(height: 200)
                     .padding(.horizontal, 24)
                 } else {
-                    // Show preview cards (first 4 items)
+                    // Show preview cards (first 4 items) with Create Reel card as first item
                     let previewItems = Array(items.prefix(4))
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
+                            // Create Reel Card (first item)
+                            CreateReelCard(onTap: {
+                                showCreateReelSheet = true
+                            })
+                            
+                            // Other reel preview cards
                             ForEach(previewItems) { item in
                                 ReelPreviewCard(
                                     item: item,
@@ -91,9 +99,51 @@ struct TravelReelsFeed: View {
             case .idle:
                 EmptyView()
             }
+            
+            // Community Discussions Section (underneath reels)
+            Spacer()
+                .frame(height: 24)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("home_community_discussions")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        // Navigate to full discussions view
+                    }) {
+                        Text("reels_see_all")
+                            .font(.body)
+                            .foregroundStyle(Color(red: 0.098, green: 0.463, blue: 0.824))
+                    }
+                }
+                .padding(.horizontal, 24)
+                
+                // Discussion posts preview
+                DiscussionPostsPreview(viewModel: discussionViewModel)
+                    .padding(.horizontal, 24)
+            }
         }
         .task {
             await viewModel.loadReelsFeed(refresh: true)
+            await discussionViewModel.loadPosts()
+        }
+        .sheet(isPresented: $showCreateReelSheet) {
+            CreateReelSheet(
+                onReelCreated: {
+                    showCreateReelSheet = false
+                    // Refresh reels feed
+                    Task {
+                        await viewModel.loadReelsFeed(refresh: true)
+                    }
+                },
+                onDismiss: {
+                    showCreateReelSheet = false
+                }
+            )
         }
     }
 }
@@ -257,6 +307,121 @@ struct ReelPreviewCardSkeleton: View {
             .overlay {
                 ProgressView()
             }
+    }
+}
+
+struct DiscussionPostsPreview: View {
+    @ObservedObject var viewModel: DiscussionViewModel
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding()
+            } else if viewModel.posts.isEmpty {
+                Text("No discussions yet")
+                    .font(.caption)
+                    .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else {
+                ForEach(viewModel.posts.prefix(3)) { post in
+                    CompactDiscussionPostCard(post: post)
+                }
+            }
+        }
+    }
+}
+
+struct CompactDiscussionPostCard: View {
+    let post: DiscussionPost
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                if let avatarUrl = post.user.profileImageUrl, !avatarUrl.isEmpty {
+                    AsyncImage(url: buildImageURL(from: avatarUrl)) { phase in
+                        switch phase {
+                        case .empty:
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 32, height: 32)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 32, height: 32)
+                        @unknown default:
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 32, height: 32)
+                        }
+                    }
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(post.user.username ?? "User")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                    
+                    if let destination = post.destination {
+                        Text(destination)
+                            .font(.system(size: 12))
+                            .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            Text(post.content)
+                .font(.system(size: 14))
+                .foregroundStyle(ThemeColors.primaryText(colorScheme))
+                .lineLimit(2)
+            
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 12))
+                    Text("\(post.likesCount)")
+                        .font(.system(size: 12))
+                }
+                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "bubble.right")
+                        .font(.system(size: 12))
+                    Text("\(post.commentsCount)")
+                        .font(.system(size: 12))
+                }
+                .foregroundStyle(ThemeColors.secondaryText(colorScheme))
+            }
+        }
+        .padding(12)
+        .background(ThemeColors.surface(colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private func buildImageURL(from urlString: String) -> URL? {
+        if urlString.hasPrefix("http://") || urlString.hasPrefix("https://") {
+            return URL(string: urlString)
+        }
+        let baseURL = "https://wayfinder-api-w92x.onrender.com"
+        let path = urlString.hasPrefix("/") ? urlString : "/\(urlString)"
+        return URL(string: "\(baseURL)\(path)")
     }
 }
 

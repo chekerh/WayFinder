@@ -209,26 +209,8 @@ struct HomeScreen: View {
                                 Spacer()
                                     .frame(height: 16)
                                 
-                                // AI Travel Video Generator Section
-                                AiTravelVideoGenerator(
-                                    onVideoGenerated: { videoUrl in
-                                        // Optionally navigate to video player or show in reels
-                                        print("🎬 [HomeScreen] AI Video generated: \(videoUrl)")
-                                    }
-                                )
-                                
-                                Spacer()
-                                    .frame(height: 16)
-                                
-                                // Travel Reels Feed
+                                // Travel Reels Feed (includes discussions underneath)
                                 TravelReelsFeed(navigateToReels: $showReelsViewer)
-                                
-                                Spacer()
-                                    .frame(height: 16)
-                                
-                                // Discussion Card
-                                DiscussionCard()
-                                    .padding(.horizontal, 24)
                                 
                                 Spacer()
                                     .frame(height: 16)

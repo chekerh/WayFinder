@@ -19,6 +19,87 @@ enum AiVideoState: Equatable {
     case unavailable
 }
 
+// MARK: - Lightweight components (file-scope) to avoid type-checker overload
+private struct AiMusicTrackHeaderView: View {
+    let selectedTrack: MusicTrack?
+    let colorScheme: ColorScheme
+    let onToggle: () -> Void
+    let onClear: () -> Void
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "music.note")
+                .foregroundColor(ThemeColors.accent())
+            
+            Text("Musique de fond")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(ThemeColors.primaryText(colorScheme))
+            
+            Spacer()
+            
+            if let track = selectedTrack {
+                Button(action: onClear) {
+                    HStack(spacing: 4) {
+                        Text(track.name)
+                            .font(.system(size: 11))
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(ThemeColors.accent().opacity(0.1))
+                    .foregroundColor(ThemeColors.accent())
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundColor(ThemeColors.secondaryText(colorScheme))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onToggle() }
+    }
+}
+
+private struct AiMusicTrackListView: View {
+    let tracks: [MusicTrack]
+    let selectedId: String?
+    let onSelect: (MusicTrack) -> Void
+    
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(tracks) { track in
+                    SimpleMusicTrackPill(
+                        title: track.name,
+                        selected: selectedId == track.id,
+                        onTap: { onSelect(track) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct SimpleMusicTrackPill: View {
+    let title: String
+    let selected: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Text(title)
+            .font(.system(size: 12, weight: .medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(selected ? ThemeColors.accent().opacity(0.15) : Color.gray.opacity(0.15))
+            .foregroundColor(selected ? ThemeColors.accent() : Color.primary)
+            .cornerRadius(14)
+            .onTapGesture { onTap() }
+    }
+}
+
 /// Music Track Model
 struct MusicTrack: Codable, Identifiable, Equatable {
     let id: String
@@ -61,6 +142,53 @@ class AiTravelVideoViewModel: ObservableObject {
             await loadTravelPlans()
         }
     }
+
+    // MARK: - Small subviews to help the compiler
+    private struct MusicTrackHeaderView: View {
+        let selectedTrack: MusicTrack?
+        let colorScheme: ColorScheme
+        let onToggle: () -> Void
+        let onClear: () -> Void
+        
+        var body: some View {
+            HStack {
+                Image(systemName: "music.note")
+                    .foregroundColor(ThemeColors.accent())
+                
+                Text("Musique de fond")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(ThemeColors.primaryText(colorScheme))
+                
+                Spacer()
+                
+                if let track = selectedTrack {
+                    Button(action: onClear) {
+                        HStack(spacing: 4) {
+                            Text(track.name)
+                                .font(.system(size: 11))
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 12))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(ThemeColors.accent().opacity(0.1))
+                        .foregroundColor(ThemeColors.accent())
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12))
+                        .foregroundColor(ThemeColors.secondaryText(colorScheme))
+                        .rotationEffect(.degrees(0)) // keep simple to help compiler
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { onToggle() }
+        }
+    }
+    
+    // Keep previous nested struct unused; new file-scope components added below
     
     /// Check if AI video generation service is available
     func checkServiceStatus() async {
@@ -618,55 +746,22 @@ struct AiTravelVideoGenerator: View {
     
     private var musicSelectionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button(action: { withAnimation { showMusicSelector.toggle() } }) {
-                HStack {
-                    Image(systemName: "music.note")
-                        .foregroundColor(ThemeColors.accent())
-                    Text("Musique de fond")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(ThemeColors.primaryText(colorScheme))
-                    
-                    Spacer()
-                    
-                    if let track = viewModel.selectedMusicTrack {
-                        Button(action: { viewModel.selectMusicTrack(nil) }) {
-                            HStack(spacing: 4) {
-                                Text(track.name)
-                                    .font(.system(size: 11))
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 12))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(ThemeColors.accent().opacity(0.1))
-                            .foregroundColor(ThemeColors.accent())
-                            .cornerRadius(12)
-                        }
-                    } else {
-                        Image(systemName: showMusicSelector ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12))
-                            .foregroundColor(ThemeColors.secondaryText(colorScheme))
-                    }
-                }
-            }
-            .buttonStyle(.plain)
+            AiMusicTrackHeaderView(
+                selectedTrack: viewModel.selectedMusicTrack,
+                colorScheme: colorScheme,
+                onToggle: { withAnimation { showMusicSelector.toggle() } },
+                onClear: { viewModel.selectMusicTrack(nil) }
+            )
             
             if showMusicSelector && !viewModel.musicTracks.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(viewModel.musicTracks) { track in
-                            MusicTrackCard(
-                                track: track,
-                                isSelected: viewModel.selectedMusicTrack?.id == track.id,
-                                onSelect: {
-                                    viewModel.selectMusicTrack(
-                                        viewModel.selectedMusicTrack?.id == track.id ? nil : track
-                                    )
-                                }
-                            )
-                        }
+                AiMusicTrackListView(
+                    tracks: viewModel.musicTracks,
+                    selectedId: viewModel.selectedMusicTrack?.id,
+                    onSelect: { track in
+                        let next: MusicTrack? = (viewModel.selectedMusicTrack?.id == track.id) ? nil : track
+                        viewModel.selectMusicTrack(next)
                     }
-                }
+                )
             }
         }
     }
@@ -796,49 +891,6 @@ struct AiTravelVideoGenerator: View {
             return true
         }
         return false
-    }
-}
-
-// MARK: - Music Track Card
-
-struct MusicTrackCard: View {
-    let track: MusicTrack
-    let isSelected: Bool
-    let onSelect: () -> Void
-    
-    @Environment(\.colorScheme) private var colorScheme
-    
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 12))
-                    Text(track.name)
-                        .font(.system(size: 12, weight: .medium))
-                        .lineLimit(1)
-                }
-                .foregroundColor(isSelected ? ThemeColors.accent() : ThemeColors.primaryText(colorScheme))
-                
-                HStack {
-                    Text(track.genre)
-                        .font(.system(size: 10))
-                    Spacer()
-                    Text(track.duration)
-                        .font(.system(size: 10))
-                }
-                .foregroundColor(ThemeColors.secondaryText(colorScheme))
-            }
-            .padding(12)
-            .frame(width: 140)
-            .background(isSelected ? ThemeColors.accent().opacity(0.1) : ThemeColors.surface(colorScheme))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? ThemeColors.accent() : Color.clear, lineWidth: 2)
-            )
-        }
-        .buttonStyle(.plain)
     }
 }
 
