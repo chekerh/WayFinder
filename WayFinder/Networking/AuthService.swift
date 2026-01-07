@@ -427,6 +427,40 @@ final class AuthService {
         return response
     }
 
+    /// Request password reset OTP for existing user
+    func requestPasswordResetOtp(email: String) async throws -> RequestPasswordResetResponse {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(RequestPasswordResetRequest(email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/request-password-reset",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        return try await APIService.shared.request(builder, decodeTo: RequestPasswordResetResponse.self)
+    }
+
+    /// Reset user password using OTP code
+    func resetPassword(email: String, otpCode: String, newPassword: String) async throws -> ResetPasswordResponse {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(ResetPasswordRequest(
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+            otpCode: otpCode.trimmingCharacters(in: .whitespacesAndNewlines),
+            newPassword: newPassword
+        ))
+
+        let builder = DefaultRequest(
+            method: "POST",
+            path: "auth/reset-password",
+            headers: ["Content-Type": "application/json"],
+            body: data
+        )
+
+        return try await APIService.shared.request(builder, decodeTo: ResetPasswordResponse.self)
+    }
+
     /// Enregistre le token FCM si disponible après la connexion
     private func registerFcmTokenIfAvailable() async {
         if let fcmToken = FirebaseMessagingService.shared.fcmToken {

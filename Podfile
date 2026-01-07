@@ -9,6 +9,9 @@ target 'WayFinder' do
   pod 'Firebase/Core'
   pod 'Firebase/Messaging'
 
+  # Documentation generation
+  pod 'Jazzy'
+
   target 'WayFinderTests' do
     inherit! :search_paths
     # Pods for testing

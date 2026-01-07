@@ -25,6 +25,11 @@ final class APIService {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 90.0  // 90 secondes pour le cold start Render
         configuration.timeoutIntervalForResource = 120.0  // 120 secondes au total
+        configuration.waitsForConnectivity = true  // Wait for network connectivity
+        configuration.allowsCellularAccess = true  // Allow cellular access
+        configuration.allowsExpensiveNetworkAccess = true  // Allow expensive networks
+        configuration.allowsConstrainedNetworkAccess = true  // Allow constrained networks
+        print("🌐 [APIService] URLSession configured with timeouts - request: \(configuration.timeoutIntervalForRequest)s, resource: \(configuration.timeoutIntervalForResource)s")
         return URLSession(configuration: configuration)
     }()
 
@@ -43,7 +48,7 @@ final class APIService {
         if request.value(forHTTPHeaderField: "Content-Type") == nil {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        
+
         if request.value(forHTTPHeaderField: "Authorization") == nil,
            let token = TokenStorage.fetch(), !token.isEmpty {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -51,9 +56,14 @@ final class APIService {
 
         // Log de debug pour les tests
         print("🌐 [API] \(builder.method) \(url.absoluteString)")
+        print("🌐 [API] Headers: \(request.allHTTPHeaderFields ?? [:])")
         if let body = request.httpBody, let bodyString = String(data: body, encoding: .utf8) {
             print("📤 [API] Body: \(bodyString)")
         }
+
+        // Test URL reachability before making the request
+        let reachability = try? url.checkResourceIsReachable()
+        print("🌐 [API] URL reachable: \(reachability ?? false)")
 
         let (data, response): (Data, URLResponse)
         do {

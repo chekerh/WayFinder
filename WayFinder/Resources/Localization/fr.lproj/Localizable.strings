@@ -15,6 +15,15 @@
 "login_create_account" = "Créer un compte";
 "login_or" = "OU";
 "login_forgot_password" = "Mot de passe oublié ?";
+"forgot_password_title" = "Réinitialiser le mot de passe";
+"forgot_password_subtitle" = "Entrez votre email pour recevoir un code de réinitialisation.";
+"forgot_password_email_placeholder" = "Email";
+"forgot_password_otp_placeholder" = "Code OTP (4 chiffres)";
+"forgot_password_new_password_placeholder" = "Nouveau mot de passe";
+"forgot_password_confirm_password_placeholder" = "Confirmer le mot de passe";
+"forgot_password_send_code" = "Envoyer le code";
+"forgot_password_reset_button" = "Réinitialiser le mot de passe";
+"forgot_password_back_to_login" = "Retour à la connexion";
 "validation_email_invalid" = "Veuillez saisir une adresse email valide.";
 "validation_password_invalid" = "8 caractères min., 1 majuscule, 1 minuscule, 1 chiffre et 1 symbole.";
 "alert_terms_title" = "Conditions non acceptées";

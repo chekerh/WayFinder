@@ -20,7 +20,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
-    
+
     enum Field {
         case email, password
     }
@@ -28,17 +28,15 @@ struct LoginView: View {
     @State private var passwordError: String?
     @State private var loginError: String?
     @State private var isLoggedIn = false // Etat pour déterminer si l'utilisateur est connecté
-    @State private var navigateToDestination: String? = nil // Destination de navigation après login
     @State private var activeLoginFlow: LoginFlow?
     @StateObject private var appleSignInCoordinator = AppleSignInCoordinator()
     @State private var loggedInUserName: String?
-    @State private var showSignUp = false
-    @State private var showOTPLogin = false
-    
+    @State private var navigationPath = NavigationPath()
+
     private let googleLoginEnabled = true
     
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 ThemeColors.background(colorScheme)
                     .ignoresSafeArea()
@@ -156,7 +154,7 @@ struct LoginView: View {
                                 
                                 HStack {
                                     Button(action: {
-                                        showSignUp = true
+                                        navigationPath.append("signUp")
                                     }) {
                                         Text("login_no_account")
                                             .font(.system(size: 14))
@@ -166,7 +164,7 @@ struct LoginView: View {
                                     Spacer()
                                     
                                     Button(action: {
-                                        // TODO: reset password flow
+                                        navigationPath.append("forgotPassword")
                                     }) {
                                         Text("login_forgot_password")
                                             .font(.system(size: 14))
@@ -175,7 +173,7 @@ struct LoginView: View {
                                 }
                                 
                                 Button(action: {
-                                    showOTPLogin = true
+                                    navigationPath.append("otpLogin")
                                 }) {
                                     Text("login_with_code")
                                         .font(.system(size: 14, weight: .semibold))
@@ -259,36 +257,30 @@ struct LoginView: View {
                 } // Fin GeometryReader
             } // Fin ZStack
             .navigationBarHidden(true)
-            .navigationDestination(item: Binding(
-                get: { showSignUp ? "signUp" : nil },
-                set: { showSignUp = $0 != nil }
-            )) { _ in
-                SignInView(showSignUp: $showSignUp)
-                    .environmentObject(languageManager)
-                    .navigationBarBackButtonHidden(true)
-            }
-            .navigationDestination(item: Binding(
-                get: { showOTPLogin ? "otpLogin" : nil },
-                set: { showOTPLogin = $0 != nil }
-            )) { _ in
-                EmailOTPEntryView()
-                    .environmentObject(languageManager)
-                    .navigationBarBackButtonHidden(true)
-            }
-            .navigationDestination(item: Binding(
-                get: { navigateToDestination },
-                set: { navigateToDestination = $0 }
-            )) { destination in
-                if destination == "home" {
+            .navigationDestination(for: String.self) { destination in
+                switch destination {
+                case "signUp":
+                    SignInView(showSignUp: .constant(true))
+                        .environmentObject(languageManager)
+                        .navigationBarBackButtonHidden(true)
+                case "otpLogin":
+                    EmailOTPEntryView()
+                        .environmentObject(languageManager)
+                        .navigationBarBackButtonHidden(true)
+                case "forgotPassword":
+                    ForgotPasswordView()
+                        .environmentObject(languageManager)
+                        .navigationBarBackButtonHidden(true)
+                case "home":
                     HomeScreen(initialName: loggedInUserName)
                         .environmentObject(languageManager)
                         .navigationBarBackButtonHidden(true)
-                } else if destination == "onboarding" {
+                case "onboarding":
                     // TODO: Navigate to onboarding screen when implemented
                     HomeScreen(initialName: loggedInUserName)
                         .environmentObject(languageManager)
                         .navigationBarBackButtonHidden(true)
-                } else {
+                default:
                     EmptyView()
                 }
             }
@@ -363,9 +355,9 @@ private extension LoginView {
             
             // Trigger navigation on main thread
             await MainActor.run {
-                navigateToDestination = destination
+                navigationPath.append(destination)
                 isLoggedIn = true
-                print("✅ [LoginView] Navigation triggered, navigateToDestination: \(navigateToDestination ?? "nil"), isLoggedIn: \(isLoggedIn)")
+                print("✅ [LoginView] Navigation triggered, destination: \(destination), isLoggedIn: \(isLoggedIn)")
             }
         } catch {
             loginError = error.localizedDescription
@@ -429,7 +421,7 @@ private extension LoginView {
             print("✅ [LoginView] Navigating to: \(destination) (onboardingCompleted: \(loginResult.onboardingCompleted ?? false))")
             
             await MainActor.run {
-                navigateToDestination = destination
+                navigationPath.append(destination)
                 isLoggedIn = true
                 print("✅ [LoginView] Google login navigation triggered")
             }
@@ -481,7 +473,7 @@ private extension LoginView {
             // Navigate to home (onboarding popup will show if needed)
             let destination = "home"
             await MainActor.run {
-                navigateToDestination = destination
+                navigationPath.append(destination)
                 isLoggedIn = true
                 print("✅ [LoginView] Apple login navigation triggered")
             }

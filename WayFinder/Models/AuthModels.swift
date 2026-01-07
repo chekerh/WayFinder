@@ -281,3 +281,36 @@ struct RegisterWithOTPResponse: Decodable {
     let user: UserProfile?
 }
 
+// Password Reset Models
+struct RequestPasswordResetRequest: Encodable {
+    let email: String
+}
+
+struct RequestPasswordResetResponse: Decodable {
+    let message: String
+    let email: String
+}
+
+struct ResetPasswordRequest: Encodable {
+    let email: String
+    let otpCode: String
+    let newPassword: String
+
+    enum CodingKeys: String, CodingKey {
+        case email
+        case otpCode = "code"
+        case newPassword = "new_password"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(email, forKey: .email)
+        try container.encode(otpCode, forKey: .otpCode)
+        try container.encode(newPassword, forKey: .newPassword)
+    }
+}
+
+struct ResetPasswordResponse: Decodable {
+    let message: String
+}
+
